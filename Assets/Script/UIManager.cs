@@ -14,6 +14,7 @@ public class UIManager : MonoBehaviour
     private Label _sttLogText;
     private Label _subtitleText;
     private Label _channelText;
+    private Label _hullText;
 
     private string _currentChannelName = "CH 1: CHIEF HARRIS";
 
@@ -51,6 +52,7 @@ public class UIManager : MonoBehaviour
         _sttLogText = root.Q<Label>("stt-log-text");
         _subtitleText = root.Q<Label>("subtitle-text");
         _channelText = root.Q<Label>("channel-text");
+        _hullText = root.Q<Label>("hull-text");
     }
 
     private void SubscribeToEvents()
@@ -86,6 +88,7 @@ public class UIManager : MonoBehaviour
         }
 
         ShipHull.OnShipDestroyed += HandleShipDestroyed;
+        ShipHull.OnHealthChanged += HandleHealthChanged;
         RadarSystem.OnHazardDetected += HandleHazardDetected;
         RadarSystem.OnPathClear += HandlePathClear;
     }
@@ -123,6 +126,7 @@ public class UIManager : MonoBehaviour
         }
 
         ShipHull.OnShipDestroyed -= HandleShipDestroyed;
+        ShipHull.OnHealthChanged -= HandleHealthChanged;
         RadarSystem.OnHazardDetected -= HandleHazardDetected;
         RadarSystem.OnPathClear -= HandlePathClear;
     }
@@ -162,6 +166,16 @@ public class UIManager : MonoBehaviour
         {
             _statusText.text = "HULL BREACHED - GAME OVER";
             _statusText.style.color = new StyleColor(Color.red);
+        }
+    }
+
+    private void HandleHealthChanged(int currentHealth, int maxHealth)
+    {
+        if (_hullText != null)
+        {
+            _hullText.text = $"HULL: {currentHealth}/{maxHealth}";
+            if (currentHealth == 1) _hullText.style.color = new StyleColor(Color.red);
+            else _hullText.style.color = new StyleColor(Color.white);
         }
     }
 

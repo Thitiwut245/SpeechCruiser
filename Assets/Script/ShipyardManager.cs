@@ -110,28 +110,43 @@ public class ShipyardManager : MonoBehaviour
 
     private void OnStartMission()
     {
-        // Teleport ship to start port
-        if (ShipNavigator.Instance != null)
+        // Build the ocean FIRST. The generator decides where the course starts,
+        // so the ship has to be placed after it exists, not before.
+        if (LevelGenerator.Instance != null)
         {
-            if (StartPort != null)
-            {
-                ShipNavigator.Instance.transform.position = StartPort.position;
-                ShipNavigator.Instance.transform.rotation = StartPort.rotation;
-            }
-            else
-            {
-                ShipNavigator.Instance.transform.position = Vector3.zero;
-                ShipNavigator.Instance.transform.rotation = Quaternion.identity;
-            }
-            
-            // Straighten up the wreck if it was sunk
-            ShipNavigator.Instance.transform.eulerAngles = new Vector3(0, ShipNavigator.Instance.transform.eulerAngles.y, 0);
-
-            // Repair the hull
-            ShipHull hull = ShipNavigator.Instance.GetComponentInChildren<ShipHull>();
-            if (hull != null) hull.RepairShip();
+            LevelGenerator.Instance.GenerateLevel();
         }
 
+        PlaceShipAtStart();
+
         GameManager.Instance.SetState(GameState.Playing);
+    }
+
+    private void PlaceShipAtStart()
+    {
+        var nav = ShipNavigator.Instance;
+        if (nav == null) return;
+
+        Vector3 position = Vector3.zero;
+        Quaternion rotation = Quaternion.identity;
+
+        if (LevelGenerator.Instance != null && LevelGenerator.Instance.IsLevelReady)
+        {
+            position = LevelGenerator.Instance.StartPosition;
+            rotation = LevelGenerator.Instance.StartRotation;
+        }
+        else if (StartPort != null)
+        {
+            position = StartPort.position;
+            rotation = StartPort.rotation;
+        }
+
+        nav.transform.SetPositionAndRotation(position, rotation);
+
+        // Level the hull, in case the last run ended with it capsized.
+        nav.transform.eulerAngles = new Vector3(0f, nav.transform.eulerAngles.y, 0f);
+
+        ShipHull hull = nav.GetComponentInChildren<ShipHull>();
+        if (hull != null) hull.RepairShip();
     }
 }

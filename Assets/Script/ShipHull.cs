@@ -3,8 +3,18 @@ using UnityEngine;
 public class ShipHull : MonoBehaviour
 {
     public static event System.Action OnShipDestroyed;
+    public static event System.Action<int, int> OnHealthChanged; // CurrentHealth, MaxHealth
 
+    [Header("Hull Integrity")]
+    [SerializeField] private int MaxHealth = 3;
+    
+    private int _currentHealth;
     private bool _isDestroyed = false;
+
+    private void Start()
+    {
+        _currentHealth = MaxHealth;
+    }
 
     // This built-in Unity function runs the exact frame the ship touches the Reef
     private void OnTriggerEnter(Collider other)
@@ -13,7 +23,28 @@ public class ShipHull : MonoBehaviour
 
         if (other.CompareTag("Hazard"))
         {
+            TakeDamage(1);
+        }
+    }
+
+    private void TakeDamage(int damage)
+    {
+        _currentHealth -= damage;
+        OnHealthChanged?.Invoke(_currentHealth, MaxHealth);
+        Debug.Log($"[HULL]: Hit a hazard! Hull integrity: {_currentHealth}/{MaxHealth}");
+
+        if (_currentHealth <= 0)
+        {
             CrashShip();
+        }
+        else
+        {
+            // Minor pushback or speed reduction could be added here
+            var nav = ShipNavigator.Instance;
+            if (nav != null)
+            {
+                nav.SetSpeed(nav.currentSpeed * 0.5f); // Halve speed on impact
+            }
         }
     }
 
@@ -47,6 +78,8 @@ public class ShipHull : MonoBehaviour
     public void RepairShip()
     {
         _isDestroyed = false;
+        _currentHealth = MaxHealth;
+        OnHealthChanged?.Invoke(_currentHealth, MaxHealth);
         
         var nav = ShipNavigator.Instance;
         if (nav != null)
