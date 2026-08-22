@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <Style src="ShipyardUI.uss" />
+
+    <ui:VisualElement class="shipyard-container">
+        
+        <ui:Label name="status-text" text="WELCOME TO THE SHIPYARD" class="title-label" />
+        <ui:Label name="credits-text" text="CREDITS: $0" class="credits-label" />
+
+        <ui:VisualElement class="upgrade-row">
+            <ui:Label name="engine-level-text" text="Engine Lvl: 1 (Cost: $100)" class="upgrade-text" />
+            <ui:Button name="upgrade-engine-btn" text="UPGRADE ENGINE" class="upgrade-btn" />
+        </ui:VisualElement>
+
+        <ui:VisualElement class="upgrade-row">
+            <ui:Label name="helm-level-text" text="Helm Lvl: 1 (Cost: $100)" class="upgrade-text" />
+            <ui:Button name="upgrade-helm-btn" text="UPGRADE HELM" class="upgrade-btn" />
+        </ui:VisualElement>
+
+        <ui:Button name="start-mission-btn" text="START MISSION" class="start-btn" />
+
+    </ui:VisualElement>
+</ui:UXML>

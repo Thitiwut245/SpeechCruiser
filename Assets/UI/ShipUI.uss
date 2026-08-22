@@ -1,0 +1,47 @@
+.container {
+    flex-grow: 1;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.top-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.status-label {
+    font-size: 24px;
+    color: white;
+    -unity-font-style: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.channel-label {
+    font-size: 20px;
+    color: rgb(200, 200, 200);
+    -unity-font-style: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.bottom-bar {
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+}
+
+.stt-log-label {
+    font-size: 18px;
+    color: rgb(180, 180, 180);
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    white-space: normal;
+}
+
+.subtitle-label {
+    font-size: 22px;
+    color: white;
+    -unity-font-style: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    white-space: normal;
+}

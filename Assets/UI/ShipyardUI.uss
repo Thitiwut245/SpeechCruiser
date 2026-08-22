@@ -1,0 +1,73 @@
+.shipyard-container {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.85);
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.title-label {
+    font-size: 48px;
+    color: white;
+    -unity-font-style: bold;
+    margin-bottom: 20px;
+}
+
+.credits-label {
+    font-size: 32px;
+    color: rgb(255, 215, 0);
+    -unity-font-style: bold;
+    margin-bottom: 40px;
+}
+
+.upgrade-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 600px;
+    margin-bottom: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.upgrade-text {
+    font-size: 24px;
+    color: white;
+}
+
+.upgrade-btn {
+    font-size: 20px;
+    padding: 10px 20px;
+    background-color: rgb(70, 130, 180);
+    color: white;
+    -unity-font-style: bold;
+    border-radius: 5px;
+    border-width: 0;
+}
+
+.upgrade-btn:hover {
+    background-color: rgb(100, 160, 210);
+}
+
+.upgrade-btn:active {
+    background-color: rgb(50, 110, 160);
+}
+
+.start-btn {
+    font-size: 32px;
+    padding: 20px 40px;
+    background-color: rgb(46, 139, 87);
+    color: white;
+    -unity-font-style: bold;
+    border-radius: 10px;
+    margin-top: 50px;
+}
+
+.start-btn:hover {
+    background-color: rgb(60, 179, 113);
+}
+
+.start-btn:active {
+    background-color: rgb(34, 139, 34);
+}
