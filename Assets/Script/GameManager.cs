@@ -9,58 +9,66 @@ public enum GameState
     GameOver
 }
 
-public class GameManager : MonoBehaviour
+/// <summary>
+/// Per-scene mission state machine for the Game scene (Shipyard phase -> Playing -> result).
+/// Rebuilt on every Game scene load; persistent progress lives in GameSession.
+/// </summary>
+public class GameManager : Singleton<GameManager>
 {
-    public static GameManager Instance { get; private set; }
+    [Tooltip("Towing fee when the ship is lost. Never takes credits below zero.")]
+    [SerializeField] private int TowingFee = 150;
 
-    [Header("Player Progress")]
-    [SerializeField] private int _credits = 0;
-    [SerializeField] private int _engineLevel = 1;
-    [SerializeField] private int _helmLevel = 1;
-
-    public int Credits => _credits;
-    public int EngineLevel => _engineLevel;
-    public int HelmLevel => _helmLevel;
+    [Tooltip("Hull points a towed ship comes home with.")]
+    [SerializeField] private int TowedHullHealth = 1;
 
     public GameState CurrentState { get; private set; } = GameState.Shipyard;
 
     public event Action<GameState> OnStateChanged;
-    public event Action OnProgressUpdated;
 
-    private void Awake()
+    private float _missionStartTime;
+    private int _hits;
+    private int _mineHits;
+
+    private void OnEnable()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        ShipHull.OnShipDestroyed += MissionFailed;
+        ShipHull.OnHullHit += CountHit;
+    }
+
+    private void OnDisable()
+    {
+        ShipHull.OnShipDestroyed -= MissionFailed;
+        ShipHull.OnHullHit -= CountHit;
+    }
+
+    private void CountHit(int containersLost)
+    {
+        if (CurrentState != GameState.Playing) return;
+        _hits++;
+        if (containersLost >= 2) _mineHits++;
     }
 
     private void Start()
     {
-        // Start in Shipyard state
         SetState(GameState.Shipyard);
-        
-        // Listen to hull destruction
-        ShipHull.OnShipDestroyed += MissionFailed;
-    }
-
-    private void OnDestroy()
-    {
-        ShipHull.OnShipDestroyed -= MissionFailed;
     }
 
     public void SetState(GameState newState)
     {
+        if (newState == GameState.Playing && CurrentState != GameState.Playing)
+        {
+            _missionStartTime = Time.time;
+            _hits = 0;
+            _mineHits = 0;
+        }
+
         CurrentState = newState;
-        
+
         // Lock controls if not playing
         if (ShipNavigator.Instance != null && ShipNavigator.Instance.Movement != null)
         {
             ShipNavigator.Instance.Movement.enabled = (newState == GameState.Playing);
-            
+
             // If returning to shipyard or ending game, stop the ship
             if (newState != GameState.Playing)
             {
@@ -78,10 +86,20 @@ public class GameManager : MonoBehaviour
         if (CurrentState != GameState.Playing) return;
 
         Debug.Log("[GAME MANAGER]: Mission Success! You reached the destination.");
-        
-        // Award credits
-        AddCredits(500); 
-        
+
+        // Pay for what arrived: containers knocked overboard are not paid for.
+        var session = GameSession.Instance;
+        var result = BeginResult(true);
+        int loaded = Mathf.Max(1, session.CargoLoaded);
+        int pay = Mathf.RoundToInt(session.CurrentReward * (float)session.CargoAboard / loaded);
+        session.AddCredits(pay);
+        session.RecordMissionCompleted();
+        session.LastMissionSummary = $"DELIVERED {session.CargoAboard}/{session.CargoLoaded} CONTAINERS: +${pay}";
+        result.Pay = pay;
+        FinishResult(result);
+        session.ClearCargo();
+
+        // The results screen waits for the player; Continue calls ReturnToShipyard.
         SetState(GameState.Victory);
     }
 
@@ -90,28 +108,53 @@ public class GameManager : MonoBehaviour
         if (CurrentState != GameState.Playing) return;
 
         Debug.Log("[GAME MANAGER]: Mission Failed! Hull breached.");
+
+        // Losing the ship costs something: the cargo, a towing fee, and a barely patched hull.
+        var session = GameSession.Instance;
+        var result = BeginResult(false);
+        int fee = session.ChargeFee(TowingFee);
+        session.HullHealth = TowedHullHealth;
+        session.LastMissionSummary = $"SHIP LOST. CARGO GONE, TOWED HOME: -${fee}";
+        result.TowingFee = fee;
+        result.CargoDelivered = 0;
+        FinishResult(result);
+        session.ClearCargo();
         SetState(GameState.GameOver);
     }
 
-    // --- Progression API ---
-
-    public void AddCredits(int amount)
+    private MissionResult BeginResult(bool delivered)
     {
-        _credits += amount;
-        OnProgressUpdated?.Invoke();
+        var session = GameSession.Instance;
+        return new MissionResult
+        {
+            Delivered = delivered,
+            JobName = session.CurrentJob.Name,
+            JobReward = session.CurrentReward,
+            CargoLoaded = session.CargoLoaded,
+            CargoDelivered = session.CargoAboard,
+            Hits = _hits,
+            MineHits = _mineHits,
+            Seconds = Time.time - _missionStartTime,
+            CreditsBefore = session.Credits,
+        };
     }
 
-    public bool TryBuyUpgrade(string upgradeType, int cost)
+    private void FinishResult(MissionResult result)
     {
-        if (_credits < cost) return false;
+        var session = GameSession.Instance;
+        const int hullMax = 3;
+        var hull = ShipNavigator.Instance != null ? ShipNavigator.Instance.GetComponentInChildren<ShipHull>() : null;
+        result.HullMax = hull != null ? hull.MaxHealthAmount : hullMax;
+        result.HullAfter = session.HullHealth >= 0 ? Mathf.Min(session.HullHealth, result.HullMax) : result.HullMax;
+        result.RepairCost = (result.HullMax - result.HullAfter) * GameSession.RepairCostPerHullPoint;
+        result.CreditsAfter = session.Credits;
+        session.LastResult = result;
+    }
 
-        if (upgradeType == "Engine") _engineLevel++;
-        else if (upgradeType == "Helm") _helmLevel++;
-        else return false;
-
-        _credits -= cost;
-        OnProgressUpdated?.Invoke();
-        Debug.Log($"[GAME MANAGER]: Upgraded {upgradeType}. Credits remaining: {_credits}");
-        return true;
+    // Reloading the Game scene rebuilds the ship, level and HUD; the new GameManager starts in Shipyard.
+    public void ReturnToShipyard()
+    {
+        if (SceneLoader.Instance.IsLoading) return;
+        SceneLoader.Instance.Load(SceneId.Game);
     }
 }

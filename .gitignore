@@ -108,3 +108,7 @@ InitTestScene*.unity*
 
 # Ignore large speech recognition models (>100MB) to prevent GitHub push rejections
 Assets/VoskModels/
+
+# OpenAI key (never commit)
+/[Aa]ssets/StreamingAssets/openai.key
+/[Aa]ssets/StreamingAssets/openai.key.meta

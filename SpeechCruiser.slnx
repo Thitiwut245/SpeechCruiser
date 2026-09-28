@@ -1,6 +1,6 @@
 ﻿<Solution>
-  <Project Path="com.whisper.unity.tests.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="com.whisper.unity.tests.csproj" />
   <Project Path="kTools.Mirrors.Runtime.csproj" />
   <Project Path="com.whisper.unity.csproj" />
   <Project Path="com.whisper.unity.editor.csproj" />

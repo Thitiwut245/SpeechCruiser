@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:Template name="SettingsPanel" src="Shared/SettingsPanel.uxml" />
+    <ui:Style src="Shared/Menu.uss" />
+
+    <ui:VisualElement class="main-container" name="MainMenuContainer">
+        <ui:VisualElement class="menu-panel" name="MainPanel">
+            <ui:Label text="MAIN MENU" class="menu-title" />
+            
+            <ui:Button name="PlayButton" text="Play" class="menu-button" />
+            <ui:Button name="SettingButton" text="Settings" class="menu-button" />
+            <ui:Button name="QuitButton" text="Quit" class="menu-button" />
+            <ui:Label name="RadioStatusLabel" text="" class="settings-label" style="-unity-text-align: middle-center; margin-top: 20px; font-size: 14px;" />
+        </ui:VisualElement>
+
+        <ui:Instance template="SettingsPanel" />
+    </ui:VisualElement>
+</ui:UXML>

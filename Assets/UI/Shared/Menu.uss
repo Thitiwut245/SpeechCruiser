@@ -1,0 +1,188 @@
+.main-container {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 1);
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-panel {
+    align-items: stretch;
+    justify-content: center;
+    width: 300px;
+}
+
+.menu-title {
+    font-size: 36px;
+    color: rgb(255, 255, 255);
+    -unity-text-align: middle-center;
+    margin-bottom: 40px;
+    -unity-font-style: bold;
+}
+
+.menu-button {
+    font-size: 24px;
+    color: rgb(242, 247, 250);
+    background-color: rgb(28, 52, 74);
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    padding-top: 15px;
+    padding-right: 15px;
+    padding-bottom: 15px;
+    padding-left: 15px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    transition-duration: 0.2s;
+}
+
+.menu-button:hover {
+    background-color: rgb(46, 84, 116);
+    scale: 1.03 1.03;
+}
+
+.menu-button:active {
+    background-color: rgb(255, 199, 69);
+    color: rgb(20, 16, 4);
+    scale: 0.97 0.97;
+}
+
+.settings-row {
+    flex-direction: column;
+    margin-bottom: 14px;
+}
+
+.settings-label {
+    color: rgb(255, 255, 255);
+    font-size: 18px;
+    margin-bottom: 5px;
+    -unity-font-style: bold;
+}
+
+.settings-dropdown {
+    color: rgb(255, 255, 255);
+    font-size: 18px;
+}
+
+/* The theme paints the dropdown's inner box light grey; make it dark so white text reads. */
+.settings-dropdown .unity-base-popup-field__input {
+    background-color: rgb(34, 44, 54);
+    border-color: rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.settings-dropdown .unity-base-popup-field__text {
+    color: rgb(242, 247, 250);
+}
+
+.settings-dropdown .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgb(242, 247, 250);
+}
+
+.settings-slider {
+    margin-top: 5px;
+}
+
+.pause-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(4, 10, 16, 0.93);
+    align-items: center;
+    justify-content: center;
+}
+
+/* Inside the pause screen the menus sit on a card, so nothing behind them competes. */
+.pause-container .menu-panel {
+    width: 380px;
+    padding: 28px 36px;
+    background-color: rgb(10, 22, 34);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+}
+
+/* ---- Settings page: two columns (sound | controls). Declared after the pause card rule
+   so the wider size wins inside the pause menu too. */
+.settings-panel,
+.pause-container .settings-panel {
+    width: 900px;
+}
+
+.settings-columns {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.settings-column {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin: 0 14px;
+}
+
+.settings-heading {
+    font-size: 15px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+}
+
+.settings-note {
+    font-size: 15px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin-bottom: 12px;
+}
+
+.bind-button {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(20, 16, 4);
+    background-color: rgb(255, 199, 69);
+    border-width: 0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 4px 0 0 0;
+    width: 160px;
+}
+
+.bind-button:hover {
+    background-color: rgb(255, 216, 120);
+}
+
+.bind-button.listening {
+    background-color: rgb(242, 247, 250);
+}
+
+.settings-toggle {
+    color: rgb(242, 247, 250);
+    font-size: 17px;
+    margin-left: 0;
+}
+
+.settings-toggle > .unity-label {
+    color: rgb(242, 247, 250);
+    white-space: normal;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.settings-small-button {
+    font-size: 18px;
+    padding: 8px;
+    margin-top: 4px;
+}
+
+.settings-back {
+    margin-top: 16px;
+    align-self: center;
+    width: 300px;
+}

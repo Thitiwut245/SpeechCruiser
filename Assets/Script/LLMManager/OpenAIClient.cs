@@ -78,8 +78,6 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
     [FormerlySerializedAs("priority")] [SerializeField] private int Priority = 0;
 
     [Header("OpenAI API")]
-    [Tooltip("Enter your OpenAI API key here (sk-...).")]
-    [FormerlySerializedAs("openAIApiKey")] [SerializeField] private string OpenAIApiKey = "";
     
     [FormerlySerializedAs("url")] [SerializeField] private string Url = "https://api.openai.com/v1/chat/completions";
     
@@ -104,7 +102,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
     public event System.Action<string, string> OnSubtitleUpdated;
 
     public bool IsBusy => _busy;
-    public bool Ready => !string.IsNullOrWhiteSpace(OpenAIApiKey);
+    public bool Ready => OpenAIKey.IsSet;
 
     private void Awake()
     {
@@ -181,7 +179,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
             request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
-            request.SetRequestHeader("Authorization", "Bearer " + OpenAIApiKey);
+            request.SetRequestHeader("Authorization", "Bearer " + OpenAIKey.Value);
             request.timeout = TimeoutSeconds;
 
             float started = Time.realtimeSinceStartup;
@@ -213,6 +211,12 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
                 }
 
                 reply = CrewPersona.Sanitize(reply);
+
+                if (CrewPersona.ClaimsOrderCarriedOut(reply))
+                {
+                    Debug.LogWarning("[RADIO]: " + crewName + " claimed to carry out an order over chat; replaced. Reply was: " + reply);
+                    reply = CrewBarkLibrary.NotAnOrderOnChat(crew)[0];
+                }
 
                 if (string.IsNullOrEmpty(reply))
                 {
