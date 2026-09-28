@@ -9,13 +9,6 @@ public class ShipNavigator : MonoBehaviour
     public ShipHelm Helm { get; private set; }
     public ShipMovement Movement { get; private set; }
 
-    // Legacy constants for backward compatibility with OllamaClient.cs ExecuteAIAction
-    public const float SPEED_FULL_AHEAD = 8.0f;
-    public const float SPEED_HALF_AHEAD = 5.0f;
-    public const float SPEED_SLOW_AHEAD = 3.0f;
-    public const float SPEED_STOP = 0.0f;
-    public const float SPEED_ASTERN = -2.5f;
-
     private void Awake()
     {
         Instance = this;
@@ -50,9 +43,10 @@ public class ShipNavigator : MonoBehaviour
     // ==============================
     // HELM API (Facade)
     // ==============================
-    public void ChangeHeading(float degrees)
+    /// <summary>Turn by a set number of degrees. maxRudder 0 = hard over.</summary>
+    public void ChangeHeading(float degrees, float maxRudder = 0f)
     {
-        Helm.OrderHeadingChange(degrees);
+        Helm.OrderHeadingChange(degrees, maxRudder);
     }
 
     public void TurnShip(float rudderDegrees)

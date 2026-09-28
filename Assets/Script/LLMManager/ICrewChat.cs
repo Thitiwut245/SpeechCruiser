@@ -1,14 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// Tier 3 conversation backend. Two implementations exist:
+/// Tier 3 conversation backend. The game ships one: OpenAIClient (cloud chat).
 ///
-///   OllamaClient   — HTTP to a local Ollama server. Needs Ollama installed.
-///   LLMUnityChat   — llama.cpp in-process via LLMUnity. Ships with the game.
-///
-/// CommandRouter talks to whichever registered with the highest priority, so you can
-/// keep both in the scene and switch by enabling/disabling a component. Neither is
-/// required — with no backend at all, Tier 0 commands and Tier 2 barks still work.
+/// CommandRouter talks to whichever backend registered with the highest priority, so a
+/// local model could be added later without touching the router. None is required: with
+/// no backend at all, Tier 0 commands and Tier 2 barks still work.
 /// </summary>
 public interface ICrewChat
 {
@@ -37,7 +34,7 @@ public static class CrewChat
     /// <summary>True only if a backend exists AND is ready to answer.</summary>
     public static bool Available { get { return _active != null && _active.Ready; } }
 
-    /// <summary>Higher priority replaces lower. LLMUnity uses 10, Ollama uses 0.</summary>
+    /// <summary>Higher priority replaces lower. OpenAIClient uses 0.</summary>
     public static void Register(ICrewChat backend, int priority, string label)
     {
         if (backend == null) return;
