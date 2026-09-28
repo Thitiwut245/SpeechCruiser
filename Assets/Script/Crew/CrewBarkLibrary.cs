@@ -299,6 +299,14 @@ public static class CrewBarkLibrary
         return new[] { "Radio card is up, Captain. Press F1 to close it. Over." };
     }
 
+    /// <summary>The player spoke while the crew was still answering the last message.</summary>
+    public static string[] OneAtATime(RadioChannel crew)
+    {
+        return crew == RadioChannel.Lookout
+            ? new[] { "Stand by, Sir, still answering you. One at a time, please. Over." }
+            : new[] { "Stand by, Captain, one thing at a time. Ask again in a moment. Over." };
+    }
+
     /// <summary>A bump during the tutorial drill, which costs nothing.</summary>
     public static string[] PracticeBump(bool mine)
     {

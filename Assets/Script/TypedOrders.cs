@@ -71,6 +71,13 @@ public class TypedOrders : MonoBehaviour
         _field.style.fontSize = 24f;
         _field.style.marginLeft = 0f; _field.style.marginRight = 0f;
         _field.RegisterCallback<KeyDownEvent>(HandleKey, TrickleDown.TrickleDown);
+        // Clicking anywhere else closes the box, so it can't sit open with time slowed and
+        // every hotkey blocked.
+        _field.RegisterCallback<FocusOutEvent>(evt =>
+        {
+            var next = evt.relatedTarget as VisualElement;
+            if (IsTyping && (next == null || !_box.Contains(next))) Close();
+        });
         _box.Add(_field);
 
         var example = new Label("e.g.  slow ahead  ·  turn left  ·  any danger?  ·  Finn, what do you see?");

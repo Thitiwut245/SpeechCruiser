@@ -129,7 +129,11 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
 
         if (_busy)
         {
-            Debug.Log("[RADIO]: channel busy, ignoring overlapping transmission.");
+            // Never drop words silently: the crew says why there's no answer yet.
+            Debug.Log("[RADIO]: channel busy, answered with stand-by.");
+            if (CrewVoice.Instance != null)
+                CrewVoice.Instance.SpeakFrom(crew, CrewBarkLibrary.OneAtATime(crew), ShipTelemetry.Capture(), "chat:busy");
+            if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
             return;
         }
 

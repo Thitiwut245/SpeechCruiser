@@ -74,6 +74,11 @@ public class RadioMic : MonoBehaviour
     private bool _isRecording;
     private float _recordStartTime;
     private int _recordingEpoch;
+    private float _ignorePressesUntil;
+
+    [Tooltip("Toggle-to-talk: after an automatic cut, radio key presses are ignored this long, so the " +
+             "press the player meant as 'send' doesn't start a new message.")]
+    [SerializeField] private float PressGraceAfterCut = 1.5f;
     private bool _transcribing;
     private RadioMode _currentMode = RadioMode.None;
 
@@ -223,6 +228,12 @@ public class RadioMic : MonoBehaviour
             if (_isRecording) { cmdPressed = false; convPressed = false; }
         }
 
+        if (!_isRecording && Time.realtimeSinceStartup < _ignorePressesUntil)
+        {
+            cmdPressed = false;
+            convPressed = false;
+        }
+
         if (!_isRecording)
         {
             if (cmdPressed) StartRecording(RadioMode.Command);
@@ -240,6 +251,7 @@ public class RadioMic : MonoBehaviour
         {
             Debug.Log("[RADIO]: hit the " + MaxRecordDuration + "s limit — transmitting.");
             Emit(RadioStatus.Cut, "Message cut at " + MaxRecordDuration + " seconds. Keep orders short.");
+            if (Toggle) _ignorePressesUntil = Time.realtimeSinceStartup + PressGraceAfterCut;
             StopRecordingAndProcess();
         }
     }

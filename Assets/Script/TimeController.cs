@@ -26,8 +26,9 @@ public class TimeController : Singleton<TimeController>
     private float _targetTimeScale = 1f;
     private float _normalFixedDeltaTime;
     private bool _pttActive = false;
-    private bool _aiProcessing = false;
+    private int _aiRequests = 0;
     private bool _typing = false;
+    private RadioMic _mic;
 
     public bool IsPaused
     {
@@ -45,7 +46,16 @@ public class TimeController : Singleton<TimeController>
         if (Instance != this) return;
 
         _normalFixedDeltaTime = Time.fixedDeltaTime;
+        _mic = GetComponent<RadioMic>();
     }
+
+    /// <summary>
+    /// Why time is slowed. The microphone counts for itself while it records or decodes, so a
+    /// reply landing from an earlier message can't end slow motion mid-sentence; each pending
+    /// classifier or chat request counts once.
+    /// </summary>
+    private bool WantsSlowMo =>
+        _pttActive || _aiRequests > 0 || _typing || (_mic != null && (_mic.IsRecording || _mic.IsTranscribing));
 
     private void OnEnable()
     {
@@ -65,7 +75,7 @@ public class TimeController : Singleton<TimeController>
             return;
         }
 
-        _targetTimeScale = (_pttActive || _aiProcessing || _typing) ? SlowMoTimeScale : 1f;
+        _targetTimeScale = WantsSlowMo ? SlowMoTimeScale : 1f;
         Time.timeScale = Mathf.MoveTowards(Time.timeScale, _targetTimeScale, TransitionSpeed * Time.unscaledDeltaTime);
         Time.fixedDeltaTime = Mathf.Max(MinFixedDeltaTime, _normalFixedDeltaTime * Time.timeScale);
     }
@@ -84,7 +94,7 @@ public class TimeController : Singleton<TimeController>
     public void SetPTTActive(bool active)
     {
         _pttActive = active;
-        Debug.Log($"⏱️ [TIME]: PTT {(active ? "ON — Entering Command Time" : "OFF")}. Target timeScale: {(_pttActive || _aiProcessing ? SlowMoTimeScale : 1f)}");
+        Debug.Log($"⏱️ [TIME]: PTT {(active ? "ON — Entering Command Time" : "OFF")}. Target timeScale: {(WantsSlowMo ? SlowMoTimeScale : 1f)}");
     }
 
     /// <summary>The typed-order box is open: slow time like a voice order, since typing takes longer.</summary>
@@ -93,16 +103,16 @@ public class TimeController : Singleton<TimeController>
         _typing = active;
     }
 
+    /// <summary>A classifier or chat request started (true) or finished (false). Requests are counted.</summary>
     public void SetAIProcessing(bool active)
     {
-        _aiProcessing = active;
-        Debug.Log($"⏱️ [TIME]: AI Processing {(active ? "STARTED — Holding Command Time" : "DONE — Restoring normal time")}. Target timeScale: {(_pttActive || _aiProcessing ? SlowMoTimeScale : 1f)}");
+        _aiRequests = Mathf.Max(0, _aiRequests + (active ? 1 : -1));
     }
 
     public void ForceNormalTime()
     {
         _pttActive = false;
-        _aiProcessing = false;
+        _aiRequests = 0;
         _typing = false;
         _pauseOwners.Clear();
         Time.timeScale = 1f;

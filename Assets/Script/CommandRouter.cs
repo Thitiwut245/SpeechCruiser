@@ -240,6 +240,7 @@ public class CommandRouter : MonoBehaviour
             int epoch = RadioEpoch.Current;
 
             _classifierPending = true;
+            if (TimeController.Instance != null) TimeController.Instance.SetAIProcessing(true);
             IntentClassifier.Instance.Classify(captured, (action, ok) =>
             {
                 // The classifier outlives the scene; this router may be gone, or be the old one.
@@ -249,6 +250,7 @@ public class CommandRouter : MonoBehaviour
                     return;
                 }
                 _classifierPending = false;
+                if (TimeController.Instance != null) TimeController.Instance.SetAIProcessing(false);
                 if (ok && action != ShipAction.None)
                 {
                     ExecuteAndAcknowledge(capturedTarget, action, captured);
