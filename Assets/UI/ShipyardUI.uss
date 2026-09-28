@@ -1,73 +1,386 @@
-.shipyard-container {
+/* Same palette as the HUD (ShipHUD.Hud): near-opaque navy panels, text never darker than
+   the secondary tone, one gold accent. Sizes are 1080p pixels (the panel scales). */
+
+.shipyard-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.store-panel {
+    position: absolute;
+    left: 24px;
+    top: 24px;
+    bottom: 24px;
+    width: 580px;
+    padding: 22px 26px;
+    background-color: rgb(8, 18, 28);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+}
+
+.eyebrow {
+    font-size: 15px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+}
+
+.store-title {
+    font-size: 30px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    white-space: normal;
+    margin-top: 2px;
+}
+
+.toast {
+    font-size: 18px;
+    color: rgb(98, 214, 150);
+    -unity-font-style: bold;
+    height: 24px;
+    margin-top: 2px;
+}
+
+.stat-row {
+    flex-direction: row;
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+
+.stat-box {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-right: 10px;
+}
+
+.stat-box--grow {
     flex-grow: 1;
-    background-color: rgba(0, 0, 0, 0.85);
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
+    margin-right: 0;
 }
 
-.title-label {
-    font-size: 48px;
-    color: white;
+.stat-caption {
+    font-size: 14px;
+    color: rgb(196, 209, 221);
     -unity-font-style: bold;
-    margin-bottom: 20px;
+    letter-spacing: 2px;
 }
 
-.credits-label {
-    font-size: 32px;
-    color: rgb(255, 215, 0);
+.credits-value {
+    font-size: 30px;
+    color: rgb(255, 199, 69);
     -unity-font-style: bold;
-    margin-bottom: 40px;
 }
 
-.upgrade-row {
+.hull-line {
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    width: 600px;
-    margin-bottom: 20px;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 20px;
-    border-radius: 10px;
+    margin-top: 4px;
 }
 
-.upgrade-text {
-    font-size: 24px;
-    color: white;
+.hull-pips {
+    flex-direction: row;
 }
 
-.upgrade-btn {
+.hull-pip {
+    width: 26px;
+    height: 20px;
+    margin-right: 5px;
+    border-radius: 4px;
+    background-color: rgb(52, 190, 110);
+}
+
+.hull-pip--empty {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-width: 1px;
+    border-color: rgba(255, 90, 70, 0.8);
+}
+
+.hull-text {
     font-size: 20px;
-    padding: 10px 20px;
-    background-color: rgb(70, 130, 180);
-    color: white;
+    color: rgb(242, 247, 250);
     -unity-font-style: bold;
-    border-radius: 5px;
+    margin-left: 6px;
+    flex-grow: 1;
+}
+
+.small-btn {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(20, 16, 4);
+    background-color: rgb(255, 199, 69);
     border-width: 0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin: 0;
 }
 
-.upgrade-btn:hover {
-    background-color: rgb(100, 160, 210);
+.small-btn:hover {
+    background-color: rgb(255, 216, 120);
 }
 
-.upgrade-btn:active {
-    background-color: rgb(50, 110, 160);
+.small-btn:disabled {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgb(170, 184, 198);
+    opacity: 1;
+}
+
+.section-label {
+    font-size: 15px;
+    color: rgb(196, 209, 221);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    margin-top: 16px;
+    margin-bottom: 6px;
+}
+
+.card {
+    flex-direction: row;
+    align-items: center;
+    margin: 0 0 8px 0;
+    padding: 10px 14px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.0);
+    border-radius: 10px;
+    -unity-text-align: middle-left;
+}
+
+.job-card:hover {
+    background-color: rgba(255, 255, 255, 0.11);
+}
+
+.job-card.active-job {
+    border-color: rgb(255, 199, 69);
+    background-color: rgba(255, 199, 69, 0.12);
+}
+
+.card-main {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.card-title {
+    font-size: 21px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+}
+
+.card-desc {
+    font-size: 16px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+}
+
+.card-pay {
+    font-size: 24px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+    margin-left: 10px;
+}
+
+.buy-btn {
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(242, 247, 250);
+    background-color: rgb(46, 104, 150);
+    border-width: 0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    min-width: 128px;
+    margin: 0 0 0 10px;
+}
+
+.buy-btn:hover {
+    background-color: rgb(66, 130, 182);
+}
+
+.buy-btn:disabled {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgb(170, 184, 198);
+    opacity: 1;
+}
+
+.note {
+    font-size: 15px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin-top: 2px;
+}
+
+.spacer {
+    flex-grow: 1;
+}
+
+.start-warning {
+    font-size: 17px;
+    color: rgb(255, 140, 110);
+    -unity-font-style: bold;
+    white-space: normal;
+    margin-bottom: 6px;
 }
 
 .start-btn {
-    font-size: 32px;
-    padding: 20px 40px;
-    background-color: rgb(46, 139, 87);
-    color: white;
-    -unity-font-style: bold;
+    align-items: center;
+    padding: 12px 20px;
+    margin: 0;
+    background-color: rgb(40, 150, 90);
+    border-width: 0;
     border-radius: 10px;
-    margin-top: 50px;
+    color: rgb(255, 255, 255);
+    font-size: 26px;
+    -unity-font-style: bold;
 }
 
 .start-btn:hover {
-    background-color: rgb(60, 179, 113);
+    background-color: rgb(54, 176, 108);
 }
 
 .start-btn:active {
-    background-color: rgb(34, 139, 34);
+    background-color: rgb(32, 124, 74);
+}
+
+.start-btn:disabled {
+    background-color: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+}
+
+.start-title {
+    font-size: 30px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.start-detail {
+    font-size: 17px;
+    color: rgb(222, 244, 230);
+}
+
+.loading-caption {
+    position: absolute;
+    bottom: 60px;
+    align-self: center;
+    font-size: 22px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    padding: 10px 22px;
+    background-color: rgba(8, 18, 28, 0.9);
+    border-radius: 10px;
+    display: none;
+}
+
+.results-backdrop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(4, 10, 16, 0.55);
+    align-items: center;
+    justify-content: center;
+    display: none;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.4s;
+}
+
+.results-backdrop.shown {
+    opacity: 1;
+}
+
+.results-panel {
+    width: 680px;
+    padding: 28px 34px;
+    background-color: rgb(8, 18, 28);
+    border-width: 2px;
+    border-color: rgb(255, 199, 69);
+    border-radius: 16px;
+}
+
+.results-panel.failed {
+    border-color: rgb(235, 90, 70);
+}
+
+.results-title {
+    font-size: 44px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+}
+
+.results-panel.failed .results-title {
+    color: rgb(255, 110, 90);
+}
+
+.results-subtitle {
+    font-size: 19px;
+    color: rgb(196, 209, 221);
+    margin-bottom: 14px;
+    white-space: normal;
+}
+
+.results-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.results-row-label {
+    font-size: 20px;
+    color: rgb(196, 209, 221);
+}
+
+.results-row-value {
+    font-size: 20px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+}
+
+.results-row-value.good {
+    color: rgb(98, 214, 150);
+}
+
+.results-row-value.bad {
+    color: rgb(255, 130, 110);
+}
+
+.results-total {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.results-total-label {
+    font-size: 20px;
+    color: rgb(196, 209, 221);
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+}
+
+.results-total-value {
+    font-size: 34px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+}
+
+.results-tip {
+    font-size: 18px;
+    color: rgb(242, 247, 250);
+    white-space: normal;
+    margin: 14px 0 18px 0;
+    padding: 10px 14px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+.results-continue {
+    font-size: 24px;
 }
