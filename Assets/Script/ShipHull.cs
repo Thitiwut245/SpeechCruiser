@@ -1,60 +1,148 @@
+using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// Hull integrity and what a collision does. A hit costs one hull point, shakes cargo
+/// overboard, pushes the ship clear of the rock, takes most of its way off and eases the
+/// engine two steps, then gives a short grace window so one rock can't hit twice.
+/// Mines explode and are gone. Losing the last point sinks the ship over a couple of seconds.
+/// </summary>
 public class ShipHull : MonoBehaviour
 {
     public static event System.Action OnShipDestroyed;
     public static event System.Action<int, int> OnHealthChanged; // CurrentHealth, MaxHealth
 
+    /// <summary>The hull struck something. Argument: containers shaken overboard (2 for a mine, 1 otherwise).</summary>
+    public static event System.Action<int> OnHullHit;
+
     [Header("Hull Integrity")]
     [SerializeField] private int MaxHealth = 3;
-    
+
+    [Header("Collision")]
+    [Tooltip("Seconds after a hit during which the hull can't be hit again.")]
+    [SerializeField] private float InvulnerableSeconds = 1.5f;
+
+    [Tooltip("Fraction of the ship's speed that survives a hit.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float KeptSpeedOnHit = 0.35f;
+
+    [Tooltip("Clearance, in units, left between hull and hazard after the push-out.")]
+    [SerializeField] private float PushClearance = 1.5f;
+
+    [Tooltip("Speed of the bounce away from the hazard, units/sec.")]
+    [SerializeField] private float BounceSpeed = 6f;
+
+    [Header("Sinking")]
+    [SerializeField] private float SinkSeconds = 2.5f;
+    [SerializeField] private float SinkDepth = 5f;
+
     private int _currentHealth;
     private bool _isDestroyed = false;
+    private float _invulnerableUntil;
+    private Collider _collider;
+    private int _lostThisHit;
 
-    private void Start()
+    public int CurrentHealth => _currentHealth;
+    public int MaxHealthAmount => MaxHealth;
+    public bool IsInvulnerable => Time.time < _invulnerableUntil;
+
+    // Awake, so anything reading the hull in its own Start sees the carried-over value.
+    private void Awake()
     {
-        _currentHealth = MaxHealth;
+        _collider = GetComponent<Collider>();
+        var session = GameSession.Instance;
+        _currentHealth = session != null && session.HullHealth >= 0
+            ? Mathf.Clamp(session.HullHealth, 1, MaxHealth)
+            : MaxHealth;
     }
 
-    // This built-in Unity function runs the exact frame the ship touches the Reef
     private void OnTriggerEnter(Collider other)
     {
-        if (_isDestroyed) return;
+        if (_isDestroyed || IsInvulnerable) return;
+        if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing) return;
+        if (!other.CompareTag("Hazard")) return;
 
-        if (other.CompareTag("Hazard"))
+        _invulnerableUntil = Time.time + InvulnerableSeconds;
+        bool mine = RadarSystem.KindOf(other) == "Mine";
+
+        int aboardBefore = GameSession.Instance != null ? GameSession.Instance.CargoAboard : 0;
+        OnHullHit?.Invoke(mine ? 2 : 1); // ShipyardManager drops the containers
+        _lostThisHit = aboardBefore - (GameSession.Instance != null ? GameSession.Instance.CargoAboard : 0);
+        PushClear(other);
+        if (mine) Detonate(other);
+
+        TakeDamage(1);
+    }
+
+    /// <summary>Moves the ship out of the hazard along the contact normal, then bounces it away.</summary>
+    private void PushClear(Collider other)
+    {
+        var nav = ShipNavigator.Instance;
+        if (nav == null) return;
+        Transform ship = nav.transform;
+
+        Vector3 away = transform.position - other.ClosestPoint(transform.position);
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f) away = -ship.forward;
+        away.Normalize();
+
+        if (_collider != null && Physics.ComputePenetration(
+                _collider, _collider.transform.position, _collider.transform.rotation,
+                other, other.transform.position, other.transform.rotation,
+                out Vector3 direction, out float distance))
         {
-            TakeDamage(1);
+            direction.y = 0f;
+            if (direction.sqrMagnitude > 0.0001f) away = direction.normalized;
+            ship.position += away * (distance + PushClearance);
         }
+
+        if (nav.Movement != null)
+        {
+            nav.Movement.KillTurn();
+            nav.Movement.ApplyKnockback(away * BounceSpeed);
+        }
+        if (nav.Engine != null) nav.Engine.AbsorbImpact(KeptSpeedOnHit);
+    }
+
+    /// <summary>A mine goes off once: the hazard is removed so it can't be hit again.</summary>
+    private static void Detonate(Collider mine)
+    {
+        Transform t = mine.transform;
+        while (t.parent != null && !t.parent.name.StartsWith("GeneratedLevel")) t = t.parent;
+        t.gameObject.SetActive(false);
     }
 
     private void TakeDamage(int damage)
     {
         _currentHealth -= damage;
+        if (GameSession.Instance != null) GameSession.Instance.HullHealth = Mathf.Max(0, _currentHealth);
         OnHealthChanged?.Invoke(_currentHealth, MaxHealth);
         Debug.Log($"[HULL]: Hit a hazard! Hull integrity: {_currentHealth}/{MaxHealth}");
 
         if (_currentHealth <= 0)
         {
             CrashShip();
+            return;
         }
-        else
+
+        // One damage report covers the hull, the cargo and the engine.
+        var session = GameSession.Instance;
+        var nav = ShipNavigator.Instance;
+        if (CrewVoice.Instance != null && session != null && nav != null && nav.Engine != null)
         {
-            // Minor pushback or speed reduction could be added here
-            var nav = ShipNavigator.Instance;
-            if (nav != null)
-            {
-                nav.SetSpeed(nav.currentSpeed * 0.5f); // Halve speed on impact
-            }
+            CrewVoice.Instance.SpeakFrom(RadioChannel.ChiefEngineer,
+                CrewBarkLibrary.HullDamage(_currentHealth, MaxHealth, _lostThisHit, session.CargoAboard, nav.Engine.Gear),
+                ShipTelemetry.Capture(), "hull:damage");
         }
     }
 
     private void CrashShip()
     {
         _isDestroyed = true;
-        
+
         var nav = ShipNavigator.Instance;
 
-        // 1. Stop the ship permanently. ShipMovement has to go too, or it keeps
+        // Stop the ship for good. ShipMovement has to go too, or it keeps
         // translating and banking the wreck every frame.
         if (nav != null)
         {
@@ -63,24 +151,40 @@ public class ShipHull : MonoBehaviour
             nav.enabled = false;
         }
 
-        // 2. Broadcast Game Over event
         OnShipDestroyed?.Invoke();
 
-        // 3. Make the ship "sink" visually. This component lives on a child
-        // trigger collider, so the wreck pose has to be applied to the hull root.
+        // This component lives on a child trigger collider, so the wreck pose goes on the hull root.
         Transform wreck = nav != null ? nav.transform : transform;
-        wreck.Rotate(15f, 0f, 15f);
-        wreck.position = new Vector3(wreck.position.x, -1f, wreck.position.z);
+        StartCoroutine(Sink(wreck));
 
         Debug.Log("[HULL]: We struck a reef! Abandon ship!");
+    }
+
+    private IEnumerator Sink(Transform wreck)
+    {
+        Vector3 start = wreck.position;
+        Quaternion startRotation = wreck.rotation;
+        Quaternion endRotation = startRotation * Quaternion.Euler(14f, 0f, 22f);
+
+        for (float t = 0f; t < SinkSeconds; t += Time.deltaTime)
+        {
+            float k = t / SinkSeconds;
+            float eased = k * k * (3f - 2f * k);
+            wreck.position = start + Vector3.down * (SinkDepth * eased);
+            wreck.rotation = Quaternion.Slerp(startRotation, endRotation, Mathf.Min(1f, k * 1.6f));
+            yield return null;
+        }
+        wreck.position = start + Vector3.down * SinkDepth;
+        wreck.rotation = endRotation;
     }
 
     public void RepairShip()
     {
         _isDestroyed = false;
         _currentHealth = MaxHealth;
+        if (GameSession.Instance != null) GameSession.Instance.HullHealth = MaxHealth;
         OnHealthChanged?.Invoke(_currentHealth, MaxHealth);
-        
+
         var nav = ShipNavigator.Instance;
         if (nav != null)
         {

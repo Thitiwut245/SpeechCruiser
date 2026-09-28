@@ -41,6 +41,13 @@ public class ShipHelm : MonoBehaviour
     private bool _isAutopilotActive = false;
     private float _targetHeading = 0f;
     private float _autopilotDirection = 1f;
+    private float _autopilotMaxRudder = 35f;
+    private ShipMovement _movement;
+
+    private void Awake()
+    {
+        _movement = GetComponent<ShipMovement>();
+    }
 
     public float CurrentRudderAngle => _currentRudderAngle;
     public float TargetRudderAngle => _targetRudderAngle;
@@ -52,8 +59,10 @@ public class ShipHelm : MonoBehaviour
         UpdateRudder();
     }
 
-    public void OrderHeadingChange(float degreesToTurn)
+    /// <param name="maxRudder">Rudder the helmsman may use; 0 or less means hard over.</param>
+    public void OrderHeadingChange(float degreesToTurn, float maxRudder = 0f)
     {
+        _autopilotMaxRudder = maxRudder > 0f ? Mathf.Min(maxRudder, MaxRudderAngle) : MaxRudderAngle;
         _isAutopilotActive = true;
         _isRudderCommandActive = true;
         _targetHeading = transform.eulerAngles.y + degreesToTurn;
@@ -66,12 +75,19 @@ public class ShipHelm : MonoBehaviour
     public void TurnShip(float rudderDegrees)
     {
         _isAutopilotActive = false;
-        _targetRudderAngle = Mathf.Clamp(rudderDegrees, -MaxRudderAngle, MaxRudderAngle);
+        float newTarget = Mathf.Clamp(rudderDegrees, -MaxRudderAngle, MaxRudderAngle);
+        
+        bool isNewCommand = Mathf.Abs(newTarget - _targetRudderAngle) > 1f || !_isRudderCommandActive;
+        
+        _targetRudderAngle = newTarget;
         _isRudderCommandActive = true;
         _rudderHoldTimer = RudderHoldTime;
 
-        string direction = rudderDegrees < 0 ? "PORT" : "STARBOARD";
-        Debug.Log($"🚢 [HELM]: Rudder {Mathf.Abs(_targetRudderAngle):F0}° {direction}.");
+        if (isNewCommand)
+        {
+            string direction = rudderDegrees < 0 ? "PORT" : "STARBOARD";
+            Debug.Log($"🚢 [HELM]: Rudder {Mathf.Abs(_targetRudderAngle):F0}° {direction}.");
+        }
     }
 
     public void HardTurn(float direction)
@@ -93,7 +109,15 @@ public class ShipHelm : MonoBehaviour
     {
         if (!_isAutopilotActive) return;
 
-        float error = Mathf.DeltaAngle(transform.eulerAngles.y, _targetHeading);
+        // A heavy hull keeps swinging after the rudder comes off, so steer on where the
+        // bow will be once the swing stops (omega^2 / 2a), not where it is now.
+        float heading = transform.eulerAngles.y;
+        if (_movement != null && _movement.YawAcceleration > 0f)
+        {
+            float rate = _movement.TurnRate;
+            heading += Mathf.Sign(rate) * rate * rate / (2f * _movement.YawAcceleration);
+        }
+        float error = Mathf.DeltaAngle(heading, _targetHeading);
 
         if (Mathf.Abs(error) <= AutopilotTolerance)
         {
@@ -110,19 +134,19 @@ public class ShipHelm : MonoBehaviour
         // DeltaAngle is ambiguous at exactly 180°, so an ordered "starboard one
         // eighty" would otherwise come round to port.
         float rudder = Mathf.Abs(error) > 90f
-            ? MaxRudderAngle * _autopilotDirection
+            ? _autopilotMaxRudder * _autopilotDirection
             : error * AutopilotGain;
 
-        _targetRudderAngle = Mathf.Clamp(rudder, -MaxRudderAngle, MaxRudderAngle);
+        _targetRudderAngle = Mathf.Clamp(rudder, -_autopilotMaxRudder, _autopilotMaxRudder);
         _isRudderCommandActive = true;
     }
 
     private void UpdateRudder()
     {
         float speedMultiplier = 1f;
-        if (GameManager.Instance != null)
+        if (GameSession.Instance != null)
         {
-            speedMultiplier += (GameManager.Instance.HelmLevel - 1) * 0.3f; // 30% faster rudder per level
+            speedMultiplier += (GameSession.Instance.HelmLevel - 1) * 0.3f; // 30% faster rudder per level
         }
         float actualRudderSpeed = RudderSpeed * speedMultiplier;
 

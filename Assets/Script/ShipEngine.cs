@@ -37,15 +37,16 @@ public class ShipEngine : MonoBehaviour
     [FormerlySerializedAs("speedFullAstern")] [SerializeField] private float SpeedFullAstern = -4.0f;
 
     [Header("Engine Dynamics")]
-    [Tooltip("Knots gained per second. Arcade tuning: roughly two seconds from stop to full ahead.")]
-    [FormerlySerializedAs("accelerationRate")] [SerializeField] private float AccelerationRate = 3.5f;
+    [Tooltip("Knots gained per second. A loaded cargo ship: about six seconds from stop to full ahead.")]
+    [FormerlySerializedAs("accelerationRate")] [SerializeField] private float AccelerationRate = 1.4f;
 
-    [Tooltip("Knots shed per second. Kept above acceleration so the telegraph feels responsive when backing off.")]
-    [FormerlySerializedAs("decelerationRate")] [SerializeField] private float DecelerationRate = 5f;
+    [Tooltip("Knots lost per second while coasting (engine eased or stopped). Low on purpose: the ship " +
+             "carries its way, so orders have to be given early. Full ahead to a stop takes about eight seconds.")]
+    [FormerlySerializedAs("decelerationRate")] [SerializeField] private float DecelerationRate = 1f;
 
-    [Header("Hull Physics")]
-    [Tooltip("Extra coasting drag once the telegraph is at STOP.")]
-    [FormerlySerializedAs("waterDrag")] [SerializeField] private float WaterDrag = 0.6f;
+    [Tooltip("Knots lost per second while the engine pushes against the motion (astern while moving ahead). " +
+             "The emergency brake: always stronger than just stopping the engine.")]
+    [SerializeField] private float AsternBrakeRate = 2.5f;
 
     [Header("Fuel System")]
     [FormerlySerializedAs("fuel")] [SerializeField] private float Fuel = 100f;                   // Fuel percentage (0-100)
@@ -90,6 +91,17 @@ public class ShipEngine : MonoBehaviour
         else SetGear(TelegraphGear.Stop);
     }
 
+    /// <summary>
+    /// A collision: the ship loses most of its way and the engine room eases two steps
+    /// toward STOP, so the player can carry on without re-ordering from a dead stop.
+    /// </summary>
+    public void AbsorbImpact(float keptSpeedFraction)
+    {
+        CurrentSpeed *= keptSpeedFraction;
+        int gear = (int)CurrentGear;
+        SetGear((TelegraphGear)(gear > 0 ? Mathf.Max(0, gear - 2) : 0));
+    }
+
     public void IncreaseSpeed()
     {
         int next = Mathf.Min((int)CurrentGear + 1, (int)TelegraphGear.Flank);
@@ -108,18 +120,20 @@ public class ShipEngine : MonoBehaviour
 
         // Apply Upgrade Multiplier to Acceleration
         float accelMultiplier = 1f;
-        if (GameManager.Instance != null)
+        if (GameSession.Instance != null)
         {
-            accelMultiplier += (GameManager.Instance.EngineLevel - 1) * 0.2f;
+            accelMultiplier += (GameSession.Instance.EngineLevel - 1) * 0.2f;
+            accelMultiplier *= GameSession.Instance.CargoAccelerationFactor;
         }
 
-        float rate = (Mathf.Abs(_targetSpeed) > Mathf.Abs(CurrentSpeed)) ? AccelerationRate * accelMultiplier : DecelerationRate;
+        // Three regimes: pushing against the motion brakes hard, speeding up uses the
+        // engine, and anything else is the hull coasting down on its own.
+        bool pushingAgainst = Mathf.Abs(CurrentSpeed) > 0.05f && Mathf.Abs(_targetSpeed) > 0.05f &&
+                              Mathf.Sign(_targetSpeed) != Mathf.Sign(CurrentSpeed);
+        float rate = pushingAgainst ? AsternBrakeRate
+                   : Mathf.Abs(_targetSpeed) > Mathf.Abs(CurrentSpeed) ? AccelerationRate * accelMultiplier
+                   : DecelerationRate;
         CurrentSpeed = Mathf.MoveTowards(CurrentSpeed, _targetSpeed, rate * Time.deltaTime);
-
-        if (CurrentGear == TelegraphGear.Stop && Mathf.Abs(CurrentSpeed) > 0.01f)
-        {
-            CurrentSpeed = Mathf.MoveTowards(CurrentSpeed, 0f, WaterDrag * Mathf.Abs(CurrentSpeed) * Time.deltaTime);
-        }
 
         IsEngineRunning = Mathf.Abs(CurrentSpeed) > 0.05f;
     }
@@ -157,9 +171,9 @@ public class ShipEngine : MonoBehaviour
 
         // Apply Upgrade Multiplier (each level adds 20% speed)
         float multiplier = 1f;
-        if (GameManager.Instance != null)
+        if (GameSession.Instance != null)
         {
-            multiplier += (GameManager.Instance.EngineLevel - 1) * 0.2f;
+            multiplier += (GameSession.Instance.EngineLevel - 1) * 0.2f;
         }
 
         return baseSpeed * multiplier;
