@@ -15,6 +15,8 @@ public struct ShipTelemetry
 {
     public string Gear;
     public int SpeedKn;
+    /// <summary>Speed the current order is heading for, e.g. 9.6 after an engine upgrade.</summary>
+    public float OrderedKn;
     public string Compass;
     public int FuelPct;
     public bool HazardDetected;
@@ -67,6 +69,7 @@ public struct ShipTelemetry
         {
             t.Gear = nav.telegraphGearDisplay;
             t.SpeedKn = Mathf.RoundToInt(nav.currentSpeed);
+            t.OrderedKn = nav.Engine != null ? Mathf.Abs(nav.Engine.OrderedSpeed) : 0f;
             t.Compass = CompassPoint(nav.transform.eulerAngles.y);
             t.FuelPct = RoundTo(nav.fuel, 5);
         }

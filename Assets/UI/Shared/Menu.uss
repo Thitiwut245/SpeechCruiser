@@ -5,6 +5,72 @@
     justify-content: center;
 }
 
+/* ---- Title screen: the harbour shows through; the panel sits on the left. */
+.title-screen {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.title-screen .title-panel {
+    position: absolute;
+    left: 64px;
+    top: 0;
+    bottom: 0;
+    width: 440px;
+    padding: 0 36px;
+    justify-content: center;
+    background-color: rgb(8, 18, 28);
+    border-right-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.game-title {
+    font-size: 72px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    letter-spacing: 6px;
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-left;
+}
+
+.game-title--accent {
+    color: rgb(255, 199, 69);
+    margin-top: -18px;
+}
+
+.game-tagline {
+    font-size: 21px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin: 6px 0 36px 0;
+}
+
+.menu-button--primary {
+    background-color: rgb(40, 150, 90);
+    font-size: 28px;
+    -unity-font-style: bold;
+}
+
+.menu-button--primary:hover {
+    background-color: rgb(54, 176, 108);
+}
+
+.radio-status {
+    font-size: 16px;
+    color: rgb(196, 209, 221);
+    margin-top: 24px;
+    white-space: normal;
+}
+
+/* Settings over the live harbour gets its own card. */
+.title-screen .settings-panel {
+    padding: 28px 36px;
+    background-color: rgb(10, 22, 34);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+}
+
 .menu-panel {
     align-items: stretch;
     justify-content: center;

@@ -43,15 +43,15 @@ public static class CrewBarkLibrary
                 return new[] { "Dead slow ahead, aye. Over.", "Dead slow, Sir. Just a whisper of steam. Over.", "Dead slow ahead. Barely making way. Over." };
 
             case ShipAction.EngineSlow:
-                return new[] { "Slow ahead, aye. Over.", "Slow ahead, Sir. Three knots. Over.", "Aye, slow ahead. Easing her out. Over.", "Slow ahead it is. She's answering. Over." };
+                return new[] { "Slow ahead, aye. Over.", "Slow ahead, Sir. {12} knots. Over.", "Aye, slow ahead. Easing her out. Over.", "Slow ahead it is. She's answering. Over." };
 
             case ShipAction.EngineHalf:
-                return new[] { "Half ahead, aye. Over.", "Half ahead, Sir. Five knots. Over.", "Aye, half ahead. Good working speed. Over." };
+                return new[] { "Half ahead, aye. Over.", "Half ahead, Sir. {12} knots. Over.", "Aye, half ahead. Good working speed. Over." };
 
             case ShipAction.EngineFull:
                 return urgent
                     ? new[] { "Full ahead! Sir, that reef is close! Over.", "Full ahead, aye — but I don't like it! Over." }
-                    : new[] { "Full ahead, aye. Over.", "Full ahead, Sir. Eight knots. Over.", "Aye, full ahead. She's got it. Over." };
+                    : new[] { "Full ahead, aye. Over.", "Full ahead, Sir. {12} knots. Over.", "Aye, full ahead. She's got it. Over." };
 
             case ShipAction.EngineFlank:
                 return new[] { "Flank speed, aye! She'll drink fuel, Sir! Over.", "Flank! Everything she has! Over.", "Flank speed, aye. Can't hold this long, Sir. Over." };
@@ -446,7 +446,8 @@ public static class CrewBarkLibrary
             .Replace("{8}", t.HazardKind ?? "Hazard")
             .Replace("{9}", t.HazardWhere ?? "")
             .Replace("{10}", t.HazardAvoid ?? "")
-            .Replace("{11}", (t.HazardKind ?? "hazard").ToLowerInvariant());
+            .Replace("{11}", (t.HazardKind ?? "hazard").ToLowerInvariant())
+            .Replace("{12}", t.OrderedKn.ToString("0.#"));
     }
 
     /// <summary>Reads current danger level so barks can shift register.</summary>

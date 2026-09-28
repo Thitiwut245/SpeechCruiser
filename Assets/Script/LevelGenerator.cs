@@ -115,6 +115,16 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Height of the finish-line trigger volume. Just needs to comfortably contain the hull.")]
     [SerializeField] private float EndGateHeight = 30f;
 
+    [Header("Destination")]
+    [Tooltip("Glowing material for the finish line drawn across the channel. Leave empty for no line.")]
+    [SerializeField] private Material FinishLineMaterial;
+    [SerializeField] private float FinishLineHeight = 0.3f;
+    [SerializeField] private float FinishLineDepth = 2.5f;
+    [Tooltip("Water between the finish line and the destination harbour.")]
+    [SerializeField] private float DockSetBack = 6f;
+    [Tooltip("Turn applied to the harbour model at the destination so its quay faces the arriving ship.")]
+    [SerializeField] private float DockYaw = -90f;
+
     [Tooltip("Height the ship floats at. The generator owns this because it owns where the course starts.")]
     [SerializeField] private float ShipSpawnHeight = 1f;
 
@@ -793,38 +803,49 @@ public class LevelGenerator : MonoBehaviour
         PlaceByBounds(port, target, bounds);
     }
 
+    /// <summary>
+    /// The destination: an invisible finish trigger across the whole channel, a glowing gold
+    /// line on the water where it starts, and the harbour model at its own size just beyond,
+    /// so the player can see where they are going long before they arrive.
+    /// </summary>
     private void BuildEndPort(float minX, float maxX)
     {
-        GameObject gate = SpawnStretched(EndPortPrefab, "EndPort", EndPosition,
-                                         (maxX - minX) + CellSize, CellSize * 0.5f, Anchor.Center, 0f);
+        float width = (maxX - minX) + CellSize;
 
-        // Height is set independently — the gate has to swallow the hull
-        // vertically, and stretching it by footprint alone would not.
-        Bounds bounds = MeasureBounds(gate);
-        if (bounds.size.y > 0.0001f)
+        var gate = new GameObject("EndPort");
+        gate.transform.SetParent(_levelRoot, false);
+        gate.transform.position = new Vector3(EndPosition.x, EndGateHeight * 0.5f - 4f, EndPosition.z);
+        var trigger = gate.AddComponent<BoxCollider>();
+        trigger.isTrigger = true;
+        trigger.size = new Vector3(width, EndGateHeight, CellSize * 0.5f);
+        gate.AddComponent<EndPort>();
+
+        float lineZ = EndPosition.z - CellSize * 0.25f;
+        if (FinishLineMaterial != null)
         {
-            Vector3 scale = gate.transform.localScale;
-            scale.y *= EndGateHeight / bounds.size.y;
-            gate.transform.localScale = scale;
+            var line = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            line.name = "FinishLine";
+            Destroy(line.GetComponent<Collider>());
+            line.transform.SetParent(_levelRoot, false);
+            line.transform.position = new Vector3(EndPosition.x, FinishLineHeight, lineZ);
+            line.transform.localScale = new Vector3(width, 0.25f, FinishLineDepth);
+            line.GetComponent<Renderer>().sharedMaterial = FinishLineMaterial;
         }
 
-        PlaceByBounds(gate, EndPosition, MeasureBounds(gate));
+        // The same harbour model as the start, turned so its quay faces the arriving ship.
+        GameObject dockArt = StartPortPrefab != null ? StartPortPrefab : EndPortPrefab;
+        if (dockArt == null) return;
 
-        // EndPort.OnTriggerEnter is the mission-success hook, so this must be a
-        // trigger. Add the component too if the prefab is bare art.
-        if (gate.GetComponentInChildren<EndPort>() == null) gate.AddComponent<EndPort>();
+        GameObject dock = Instantiate(dockArt, Vector3.zero, Quaternion.Euler(0f, DockYaw, 0f) * dockArt.transform.rotation, _levelRoot);
+        dock.name = "EndDock";
+        // Art only: the trigger above decides arrival, and the ship never collides with scenery.
+        foreach (var port in dock.GetComponentsInChildren<EndPort>()) Destroy(port);
+        foreach (var col in dock.GetComponentsInChildren<Collider>()) Destroy(col);
 
-        Collider[] colliders = gate.GetComponentsInChildren<Collider>();
-        if (colliders.Length == 0)
-        {
-            gate.AddComponent<BoxCollider>().isTrigger = true;
-            return;
-        }
-
-        foreach (Collider col in colliders)
-        {
-            col.isTrigger = true;
-        }
+        Bounds bounds = MeasureBounds(dock);
+        Vector3 target = new Vector3(EndPosition.x, bounds.size.y * 0.5f,
+                                     EndPosition.z + CellSize * 0.25f + DockSetBack + bounds.size.z * 0.5f);
+        PlaceByBounds(dock, target, bounds);
     }
 
     // ==============================

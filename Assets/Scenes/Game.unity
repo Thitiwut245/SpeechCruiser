@@ -491,6 +491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27fb1b48bc77bba4fb4dd9fb0df770a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShipHull
+  PracticeRemarkCooldown: 8
   MaxHealth: 3
   InvulnerableSeconds: 1.5
   KeptSpeedOnHit: 0.35
@@ -857,8 +858,8 @@ MonoBehaviour:
   StartClearRows: 5
   FirstVoyageClearRows: 8
   FirstVoyageDensityScale: 0.6
-  MinPathWeave: 1.3
   FirstVoyageMinPathWeave: 1.05
+  WeaveRelaxPerAttempt: 0.03
   WallOverlap: 3
   MinChannelWidth: 16
   HazardCellFill: 0.7
@@ -869,6 +870,11 @@ MonoBehaviour:
   SeaFloorDepth: 12
   EnvironmentMargin: 120
   EndGateHeight: 30
+  FinishLineMaterial: {fileID: 2100000, guid: 20b6e552dba31ef46b389791d106e134, type: 2}
+  FinishLineHeight: 0.3
+  FinishLineDepth: 2.5
+  DockSetBack: 6
+  DockYaw: -90
   ShipSpawnHeight: 1
   ShipHalfBeam: 2.7
   QuayGap: 1.2

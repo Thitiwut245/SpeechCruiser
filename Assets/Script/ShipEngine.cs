@@ -61,6 +61,9 @@ public class ShipEngine : MonoBehaviour
     public event Action<float> OnFuelDepleted;
 
     public float Speed => CurrentSpeed;
+
+    /// <summary>The speed the current telegraph order is heading for, in knots (includes upgrades).</summary>
+    public float OrderedSpeed => GetSpeedForGear(CurrentGear);
     public TelegraphGear Gear => CurrentGear;
     public bool EngineRunning => IsEngineRunning;
     public float CurrentFuel => Fuel;
@@ -181,17 +184,19 @@ public class ShipEngine : MonoBehaviour
 
     private void UpdateTelegraphDisplay()
     {
+        // Knots come from the gear's real speed, so an engine upgrade shows on the HUD.
+        string name;
         switch (CurrentGear)
         {
-            case TelegraphGear.Flank:      TelegraphGearDisplay = "FLANK AHEAD (10 kn)"; break;
-            case TelegraphGear.Full:       TelegraphGearDisplay = "FULL AHEAD (8 kn)"; break;
-            case TelegraphGear.Half:       TelegraphGearDisplay = "HALF AHEAD (5 kn)"; break;
-            case TelegraphGear.Slow:       TelegraphGearDisplay = "SLOW AHEAD (3 kn)"; break;
-            case TelegraphGear.DeadSlow:   TelegraphGearDisplay = "DEAD SLOW (1.5 kn)"; break;
-            case TelegraphGear.Stop:       TelegraphGearDisplay = "STOP (0 kn)"; break;
-            case TelegraphGear.SlowAstern: TelegraphGearDisplay = "SLOW ASTERN (-2 kn)"; break;
-            case TelegraphGear.FullAstern: TelegraphGearDisplay = "FULL ASTERN (-4 kn)"; break;
-            default:                       TelegraphGearDisplay = "STOP (0 kn)"; break;
+            case TelegraphGear.Flank:      name = "FLANK AHEAD"; break;
+            case TelegraphGear.Full:       name = "FULL AHEAD"; break;
+            case TelegraphGear.Half:       name = "HALF AHEAD"; break;
+            case TelegraphGear.Slow:       name = "SLOW AHEAD"; break;
+            case TelegraphGear.DeadSlow:   name = "DEAD SLOW"; break;
+            case TelegraphGear.SlowAstern: name = "SLOW ASTERN"; break;
+            case TelegraphGear.FullAstern: name = "FULL ASTERN"; break;
+            default:                       name = "STOP"; break;
         }
+        TelegraphGearDisplay = name + " (" + GetSpeedForGear(CurrentGear).ToString("0.#") + " kn)";
     }
 }

@@ -8,14 +8,17 @@
     <ui:Template name="SettingsPanel" src="Shared/SettingsPanel.uxml" />
     <ui:Style src="Shared/Menu.uss" />
 
-    <ui:VisualElement class="main-container" name="MainMenuContainer">
-        <ui:VisualElement class="menu-panel" name="MainPanel">
-            <ui:Label text="MAIN MENU" class="menu-title" />
-            
-            <ui:Button name="PlayButton" text="Play" class="menu-button" />
+    <!-- The live harbour (MenuBackdrop) shows through; the title sits on a panel to the left. -->
+    <ui:VisualElement class="main-container title-screen" name="MainMenuContainer">
+        <ui:VisualElement class="menu-panel title-panel" name="MainPanel">
+            <ui:Label text="SPEECH" class="game-title" />
+            <ui:Label text="CRUISER" class="game-title game-title--accent" />
+            <ui:Label text="Captain a cargo ship with your voice." class="game-tagline" />
+
+            <ui:Button name="PlayButton" text="Set Sail" class="menu-button menu-button--primary" />
             <ui:Button name="SettingButton" text="Settings" class="menu-button" />
             <ui:Button name="QuitButton" text="Quit" class="menu-button" />
-            <ui:Label name="RadioStatusLabel" text="" class="settings-label" style="-unity-text-align: middle-center; margin-top: 20px; font-size: 14px;" />
+            <ui:Label name="RadioStatusLabel" text="" class="radio-status" />
         </ui:VisualElement>
 
         <ui:Instance template="SettingsPanel" />

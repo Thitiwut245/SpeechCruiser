@@ -361,4 +361,12 @@ public class CommandParserTests
     {
         Assert.IsFalse(CommandRouter.LooksLikeNoise(transcript));
     }
+
+    // Crew read-backs quote the speed the order is heading for, so engine upgrades show.
+    [Test]
+    public void ReadBackQuotesOrderedSpeed()
+    {
+        var t = new ShipTelemetry { OrderedKn = 9.6f, Gear = "FULL AHEAD (9.6 kn)" };
+        Assert.AreEqual("Full ahead, Sir. 9.6 knots. Over.", CrewBarkLibrary.Fill("Full ahead, Sir. {12} knots. Over.", t));
+    }
 }
