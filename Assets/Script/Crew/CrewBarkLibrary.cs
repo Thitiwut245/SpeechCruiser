@@ -299,6 +299,17 @@ public static class CrewBarkLibrary
         return new[] { "Radio card is up, Captain. Press F1 to close it. Over." };
     }
 
+    /// <summary>A bump during the tutorial drill, which costs nothing.</summary>
+    public static string[] PracticeBump(bool mine)
+    {
+        string what = mine ? "a mine" : "a rock";
+        return new[]
+        {
+            $"Bump! We touched {what}, Captain. In practice that's free. At sea it costs hull and cargo. Over.",
+            $"Easy, Captain, that was {what}! No harm in practice, but steer wide of it at sea. Over.",
+        };
+    }
+
     /// <summary>After a hit: hull, cargo and engine in one plain report (Harris runs the engine room).</summary>
     public static string[] HullDamage(int hull, int maxHull, int lost, int aboard, ShipEngine.TelegraphGear gear)
     {

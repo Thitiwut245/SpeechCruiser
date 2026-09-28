@@ -752,7 +752,7 @@ public class ShipHUD : MonoBehaviour
     {
         if (_coachPanel == null) return;
 
-        _coachStep.text = "STEP " + step + " OF " + total;
+        _coachStep.text = "PRACTICE " + step + "/" + total + "  ·  NO DAMAGE";
         _coachTitle.text = title;
         _coachText.text = text;
         _coachTry.text = tryLine;

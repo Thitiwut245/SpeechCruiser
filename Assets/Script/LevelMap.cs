@@ -33,6 +33,9 @@ public class LevelMap : MonoBehaviour
     [Tooltip("Key that shows and hides the chart. M by default — T, Y, Tab, 1 and 2 are already taken by the radio.")]
     [SerializeField] private Key ToggleKey = Key.M;
 
+    /// <summary>The key that opens the chart, for help text.</summary>
+    public string ToggleKeyName => ToggleKey.ToString().ToUpperInvariant();
+
     [Tooltip("Whether the chart starts open when a mission begins.")]
     [SerializeField] private bool OpenByDefault = false;
 

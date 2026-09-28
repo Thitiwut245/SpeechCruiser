@@ -15,6 +15,13 @@ public class ShipHull : MonoBehaviour
     /// <summary>The hull struck something. Argument: containers shaken overboard (2 for a mine, 1 otherwise).</summary>
     public static event System.Action<int> OnHullHit;
 
+    /// <summary>A hit during the tutorial drill: the ship bounces off, but nothing is damaged or lost.</summary>
+    public static event System.Action OnPracticeBump;
+
+    [Tooltip("Seconds between the crew's \"that was free\" remarks during practice.")]
+    [SerializeField] private float PracticeRemarkCooldown = 8f;
+    private float _nextPracticeRemark;
+
     [Header("Hull Integrity")]
     [SerializeField] private int MaxHealth = 3;
 
@@ -64,6 +71,21 @@ public class ShipHull : MonoBehaviour
 
         _invulnerableUntil = Time.time + InvulnerableSeconds;
         bool mine = RadarSystem.KindOf(other) == "Mine";
+
+        // The tutorial promises the ship can't be damaged while it runs: bounce, slow down,
+        // explain, but take nothing. Mines don't go off either.
+        if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive)
+        {
+            PushClear(other);
+            OnPracticeBump?.Invoke();
+            if (Time.time >= _nextPracticeRemark && CrewVoice.Instance != null)
+            {
+                _nextPracticeRemark = Time.time + PracticeRemarkCooldown;
+                CrewVoice.Instance.SpeakFrom(RadioChannel.ChiefEngineer, CrewBarkLibrary.PracticeBump(mine),
+                    ShipTelemetry.Capture(), "hull:practice");
+            }
+            return;
+        }
 
         int aboardBefore = GameSession.Instance != null ? GameSession.Instance.CargoAboard : 0;
         OnHullHit?.Invoke(mine ? 2 : 1); // ShipyardManager drops the containers

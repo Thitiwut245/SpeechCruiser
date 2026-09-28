@@ -48,6 +48,7 @@ public class ShipAudio : MonoBehaviour
             _engine.OnGearChanged += HandleGearChanged;
         }
         ShipHull.OnHullHit += HandleHullHit;
+        ShipHull.OnPracticeBump += HandlePracticeBump;
         ShipHull.OnHealthChanged += HandleHealthChanged;
         ShipHull.OnShipDestroyed += HandleShipDestroyed;
         CrewAlertSystem.OnHazardStage += HandleHazardStage;
@@ -62,6 +63,7 @@ public class ShipAudio : MonoBehaviour
     {
         if (_engine != null) _engine.OnGearChanged -= HandleGearChanged;
         ShipHull.OnHullHit -= HandleHullHit;
+        ShipHull.OnPracticeBump -= HandlePracticeBump;
         ShipHull.OnHealthChanged -= HandleHealthChanged;
         ShipHull.OnShipDestroyed -= HandleShipDestroyed;
         CrewAlertSystem.OnHazardStage -= HandleHazardStage;
@@ -139,6 +141,12 @@ public class ShipAudio : MonoBehaviour
         audio.Play(Sfx.HullCrunch, AudioBus.Effects, mine ? 0.7f : 1f);
         audio.Play(Sfx.CargoSplash, AudioBus.Effects, 0.7f, 1f, 0.35f);
         if (mine) audio.Play(Sfx.CargoSplash, AudioBus.Effects, 0.6f, 0.9f, 0.6f);
+    }
+
+    private void HandlePracticeBump()
+    {
+        if (Sfx == null) return;
+        AudioService.Instance.Play(Sfx.HullCrunch, AudioBus.Effects, 0.45f, 1.15f);
     }
 
     private void HandleHealthChanged(int current, int max)

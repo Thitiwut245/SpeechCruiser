@@ -39,7 +39,11 @@ public class TutorialManager : MonoBehaviour
     private RadioMic _mic;
     private LevelMap _map;
 
+    /// <summary>The drill is running. While it is, ShipHull treats hits as free practice bumps.</summary>
     public bool IsActive => _active;
+
+    // The step reached, saved, so a voyage that ends mid-drill resumes there instead of at step 1.
+    private const string StepPref = "tutorial_step";
 
     private void Awake()
     {
@@ -80,10 +84,11 @@ public class TutorialManager : MonoBehaviour
         else if (state != GameState.Playing && _active) Stop(markDone: false);
     }
 
-    /// <summary>Runs the drill again (pause menu).</summary>
+    /// <summary>Runs the drill again from the start (pause menu).</summary>
     public void Replay()
     {
         GameSession.Instance.HasSeenTutorial = false;
+        PlayerPrefs.DeleteKey(StepPref);
         if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing) Begin();
     }
 
@@ -96,7 +101,8 @@ public class TutorialManager : MonoBehaviour
     {
         _steps = BuildSteps();
         _active = true;
-        _index = -1;
+        // Resume where the last voyage left off (0 on a first run).
+        _index = Mathf.Clamp(PlayerPrefs.GetInt(StepPref, 0), 0, _steps.Count - 1) - 1;
         Advance();
     }
 
@@ -120,6 +126,8 @@ public class TutorialManager : MonoBehaviour
         _heard = false;
         _executed.Clear();
         _failures = 0;
+        PlayerPrefs.SetInt(StepPref, _index);
+        PlayerPrefs.Save();
 
         var step = _steps[_index];
         if (ShipHUD.Instance != null)
@@ -132,7 +140,12 @@ public class TutorialManager : MonoBehaviour
     private void Stop(bool markDone)
     {
         _active = false;
-        if (markDone) GameSession.Instance.HasSeenTutorial = true;
+        if (markDone)
+        {
+            GameSession.Instance.HasSeenTutorial = true;
+            PlayerPrefs.DeleteKey(StepPref);
+            PlayerPrefs.Save();
+        }
         if (ShipHUD.Instance != null) ShipHUD.Instance.HideCoach();
     }
 
@@ -193,8 +206,8 @@ public class TutorialManager : MonoBehaviour
             new Step
             {
                 Title = "Welcome aboard, Captain!",
-                Text = "On this ship you give every order with your voice. Let's practise here in the harbour. " +
-                       "Nothing can hurt you yet.",
+                Text = "On this ship you give every order with your voice. Let's practise first. " +
+                       "Until this drill ends the ship can't be damaged: bumping a rock costs nothing. Take your time.",
                 NextLabel = "Let's start",
             },
             new Step
@@ -241,7 +254,7 @@ public class TutorialManager : MonoBehaviour
             {
                 Title = "The chart",
                 Text = "The chart shows the whole route. Orange squares are danger. The dock is the gold line at the top.",
-                Try = "Press M to open the chart",
+                Try = "Press " + (_map != null ? _map.ToggleKeyName : "M") + " to open the chart",
                 Done = () => _map != null && _map.IsOpen,
             },
             new Step
@@ -255,8 +268,8 @@ public class TutorialManager : MonoBehaviour
             new Step
             {
                 Title = "You're ready, Captain",
-                Text = "Now sail to the dock. Listen for Finn's warnings and turn away from danger. " +
-                       "Each hit knocks cargo overboard.",
+                Text = "Practice is over: from now on every hit costs hull and cargo. Sail to the dock, " +
+                       "listen for Finn's warnings and turn away from danger early.",
                 Try = "F1: all orders · M: chart · Esc: pause",
                 NextLabel = "Set sail",
             },
