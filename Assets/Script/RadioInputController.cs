@@ -13,6 +13,15 @@ public class RadioInputController : MonoBehaviour
 
     private void Update()
     {
+        if (TypedOrders.BlocksHotkeys) return;
+
+        var pad = Gamepad.current;
+        if (pad != null && (pad.dpad.left.wasPressedThisFrame || pad.dpad.right.wasPressedThisFrame))
+        {
+            _router.SetChannel(_router.CurrentChannel == RadioChannel.ChiefEngineer ? RadioChannel.Lookout : RadioChannel.ChiefEngineer);
+            return;
+        }
+
         if (Keyboard.current == null) return;
 
         if (Keyboard.current.tabKey.wasPressedThisFrame)

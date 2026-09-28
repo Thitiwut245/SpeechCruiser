@@ -4,6 +4,23 @@ using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using Whisper;
 
+/// <summary>What happened to a transmission. The HUD shows a plain-English hint for each.</summary>
+public enum RadioStatus
+{
+    Recording,
+    Decoding,
+    Heard,
+    TooShort,
+    TooQuiet,
+    NoAudio,
+    NotUnderstood,
+    Busy,
+    NoMic,
+    ModelNotReady,
+    Cut,
+    Failed,
+}
+
 public class RadioMic : MonoBehaviour
 {
     private const int SAMPLING_RATE = 16000;
@@ -36,7 +53,7 @@ public class RadioMic : MonoBehaviour
     [FormerlySerializedAs("silenceRmsThreshold")]
     [SerializeField] private float SilenceRmsThreshold = 0.006f;
 
-    [Header("Input System (PTT Key)")]
+    [Header("Input System (PTT keys: rebindable in Settings; gamepad RB/LB added at start)")]
     [FormerlySerializedAs("commandPttAction")]
     [SerializeField] private InputAction CommandPttAction = new InputAction("Command PTT", binding: "<Keyboard>/t");
 
@@ -52,24 +69,96 @@ public class RadioMic : MonoBehaviour
     private float[] _captureBuffer;
     private bool _isRecording;
     private float _recordStartTime;
-    private bool _legacyInputAvailable = true;
     private bool _transcribing;
     private RadioMode _currentMode = RadioMode.None;
 
-    public event Action<string> OnPlayerSpeechUpdated;
+    private const int LevelWindowSamples = SAMPLING_RATE / 10; // 100 ms
+    private readonly float[] _levelBuffer = new float[LevelWindowSamples];
+    private float _inputLevel;
+
+    /// <summary>Every transmission outcome, with the text to show: the transcript for Heard, a hint otherwise.</summary>
+    public event Action<RadioStatus, string> OnRadioStatus;
 
     public string ActiveMicrophone => _activeDevice;
+    public bool IsRecording => _isRecording;
+    public bool IsTranscribing => _transcribing;
+    public RadioMode Mode => _currentMode;
+    public int MaxRecordSeconds => MaxRecordDuration;
+    public float RecordElapsed => _isRecording ? Time.realtimeSinceStartup - _recordStartTime : 0f;
+    public bool HasMicrophone => !string.IsNullOrEmpty(_activeDevice);
+    public bool IsModelReady => _whisperManager != null && _whisperManager.IsLoaded;
+    public bool IsModelLoading => _whisperManager != null && _whisperManager.IsLoading;
+
+    /// <summary>Live microphone loudness while recording, 0..1, for the level meter.</summary>
+    public float InputLevel => _isRecording ? _inputLevel : 0f;
+
+    public InputAction CommandAction => CommandPttAction;
+    public InputAction ConversationAction => ConversationPttAction;
+
+    /// <summary>Display name of the keyboard key for orders ("T" unless rebound).</summary>
+    public string OrderKeyName => KeyName(CommandPttAction, "T");
+    public string TalkKeyName => KeyName(ConversationPttAction, "Y");
+
+    /// <summary>Keyboard binding is always index 0; the gamepad default is added after it.</summary>
+    public const int KeyboardBindingIndex = 0;
+
+    private static string KeyName(InputAction action, string fallback)
+    {
+        if (action == null || action.bindings.Count == 0) return fallback;
+        string name = action.GetBindingDisplayString(KeyboardBindingIndex);
+        return string.IsNullOrEmpty(name) ? fallback : name.ToUpperInvariant();
+    }
+
+    private static bool Toggle => SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk;
+
+    private void Awake()
+    {
+        // Gamepad defaults: right shoulder gives an order, left shoulder talks.
+        AddGamepadBinding(CommandPttAction, "<Gamepad>/rightShoulder");
+        AddGamepadBinding(ConversationPttAction, "<Gamepad>/leftShoulder");
+    }
+
+    private static void AddGamepadBinding(InputAction action, string path)
+    {
+        if (action == null) return;
+        foreach (var b in action.bindings) if (b.path.StartsWith("<Gamepad>")) return;
+        bool wasEnabled = action.enabled;
+        if (wasEnabled) action.Disable();
+        action.AddBinding(path);
+        if (wasEnabled) action.Enable();
+    }
 
     private void OnEnable()  
     { 
         if (CommandPttAction != null) CommandPttAction.Enable(); 
         if (ConversationPttAction != null) ConversationPttAction.Enable(); 
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable() 
     { 
         if (CommandPttAction != null) CommandPttAction.Disable(); 
         if (ConversationPttAction != null) ConversationPttAction.Disable(); 
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        _isRecording = false;
+        _transcribing = false;
+        _currentMode = RadioMode.None;
+        ReleaseRecordingClip();
+
+        if (CommandPttAction != null)
+        {
+            CommandPttAction.Disable();
+            CommandPttAction.Enable();
+        }
+        if (ConversationPttAction != null)
+        {
+            ConversationPttAction.Disable();
+            ConversationPttAction.Enable();
+        }
     }
 
     private void Start()
@@ -82,7 +171,7 @@ public class RadioMic : MonoBehaviour
 
         if (_whisperManager == null)
         {
-            Debug.LogWarning("[WHISPER]: WhisperManager not found in scene. Attach it to your GameManager.");
+            Debug.LogWarning("[WHISPER]: WhisperManager not found. It belongs on Assets/Resources/Services.prefab.");
         }
         else if (LogAudioStats)
         {
@@ -97,41 +186,32 @@ public class RadioMic : MonoBehaviour
 
     private void Update()
     {
+        // No new transmissions while paused (menus, tutorial); a recording in progress may still finish.
+        if (!_isRecording && TimeController.Instance != null && TimeController.Instance.IsPaused) return;
+
         bool cmdPressed = false, cmdReleased = false;
         bool convPressed = false, convReleased = false;
 
-        if (Keyboard.current != null)
-        {
-            if (Keyboard.current.tKey.wasPressedThisFrame) cmdPressed = true;
-            if (Keyboard.current.tKey.wasReleasedThisFrame) cmdReleased = true;
-            if (Keyboard.current.yKey.wasPressedThisFrame) convPressed = true;
-            if (Keyboard.current.yKey.wasReleasedThisFrame) convReleased = true;
-        }
-
-        if (CommandPttAction != null)
+        // Keys come only from the (rebindable) actions. While the player types an order or
+        // picks a new key, the radio stays off so the letters don't key the mic.
+        bool blocked = TypedOrders.BlocksHotkeys;
+        if (CommandPttAction != null && !blocked)
         {
             if (CommandPttAction.WasPressedThisFrame()) cmdPressed = true;
             if (CommandPttAction.WasReleasedThisFrame()) cmdReleased = true;
         }
-        if (ConversationPttAction != null)
+        if (ConversationPttAction != null && !blocked)
         {
             if (ConversationPttAction.WasPressedThisFrame()) convPressed = true;
             if (ConversationPttAction.WasReleasedThisFrame()) convReleased = true;
         }
 
-        if (_legacyInputAvailable)
+        // Toggle-to-talk: the second press sends; releasing the key does nothing.
+        if (Toggle)
         {
-            try
-            {
-                if (Input.GetKeyDown(KeyCode.T)) cmdPressed = true;
-                if (Input.GetKeyUp(KeyCode.T)) cmdReleased = true;
-                if (Input.GetKeyDown(KeyCode.Y)) convPressed = true;
-                if (Input.GetKeyUp(KeyCode.Y)) convReleased = true;
-            }
-            catch (Exception)
-            {
-                _legacyInputAvailable = false;
-            }
+            cmdReleased = _isRecording && _currentMode == RadioMode.Command && cmdPressed;
+            convReleased = _isRecording && _currentMode == RadioMode.Conversation && convPressed;
+            if (_isRecording) { cmdPressed = false; convPressed = false; }
         }
 
         if (!_isRecording)
@@ -145,11 +225,36 @@ public class RadioMic : MonoBehaviour
             else if (_currentMode == RadioMode.Conversation && convReleased) StopRecordingAndProcess();
         }
 
+        if (_isRecording) UpdateInputLevel();
+
         if (_isRecording && Time.realtimeSinceStartup - _recordStartTime >= MaxRecordDuration)
         {
             Debug.Log("[RADIO]: hit the " + MaxRecordDuration + "s limit — transmitting.");
+            Emit(RadioStatus.Cut, "Message cut at " + MaxRecordDuration + " seconds. Keep orders short.");
             StopRecordingAndProcess();
         }
+    }
+
+    private void UpdateInputLevel()
+    {
+        if (_recordingClip == null) return;
+
+        int position = Microphone.GetPosition(_activeDevice);
+        if (position < LevelWindowSamples) return;
+        if (!_recordingClip.GetData(_levelBuffer, position - LevelWindowSamples)) return;
+
+        double sum = 0.0;
+        for (int i = 0; i < _levelBuffer.Length; i++) sum += (double)_levelBuffer[i] * _levelBuffer[i];
+        float rms = (float)Math.Sqrt(sum / _levelBuffer.Length);
+
+        // Speech sits around 0.01-0.1 RMS; scale so normal talking fills most of the meter.
+        float target = Mathf.Clamp01(rms * 12f);
+        _inputLevel = Mathf.Lerp(_inputLevel, target, 0.5f);
+    }
+
+    private void Emit(RadioStatus status, string text)
+    {
+        OnRadioStatus?.Invoke(status, text);
     }
 
     [ContextMenu("Refresh & Log Available Microphones")]
@@ -161,6 +266,12 @@ public class RadioMic : MonoBehaviour
             Debug.LogError("[RADIO]: no microphone devices detected!");
             _activeDevice = null;
             return;
+        }
+
+        string prefMic = SettingsService.Instance != null ? SettingsService.Instance.MicrophoneDevice : "";
+        if (!string.IsNullOrEmpty(prefMic))
+        {
+            SelectedDeviceName = prefMic;
         }
 
         if (!string.IsNullOrWhiteSpace(SelectedDeviceName))
@@ -221,39 +332,44 @@ public class RadioMic : MonoBehaviour
         if (_activeDevice == null)
         {
             Debug.LogError("[RADIO]: no microphone selected.");
+            Emit(RadioStatus.NoMic, "No microphone found. Plug one in and check Settings.");
             return;
         }
 
         if (_transcribing)
         {
             Debug.Log("[RADIO]: still transcribing the last transmission.");
+            Emit(RadioStatus.Busy, "Radio busy. Wait for your last message first.");
             return;
         }
 
-        if (_whisperManager == null)
+        if (_whisperManager == null) _whisperManager = FindAnyObjectByType<WhisperManager>();
+        if (_whisperManager == null || !_whisperManager.IsLoaded)
         {
-            _whisperManager = FindAnyObjectByType<WhisperManager>();
-            if (_whisperManager == null)
-            {
-                Debug.LogError("[RADIO]: WhisperManager missing; cannot record.");
-                return;
-            }
+            bool loading = _whisperManager != null && _whisperManager.IsLoading;
+            Debug.LogWarning("[RADIO]: speech model " + (loading ? "still loading" : "not available") + "; cannot record.");
+            Emit(RadioStatus.ModelNotReady, loading
+                ? "Radio is still starting up. Try again in a moment."
+                : "Speech system did not load. Voice orders won't work.");
+            return;
         }
 
         ReleaseRecordingClip();
 
         _currentMode = mode;
         _isRecording = true;
+        _inputLevel = 0f;
         _recordStartTime = Time.realtimeSinceStartup;
         _recordingClip = Microphone.Start(_activeDevice, false, MaxRecordDuration, SAMPLING_RATE);
 
         if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(true);
+        Emit(RadioStatus.Recording, "");
     }
 
     private async void StopRecordingAndProcess()
     {
         if (!_isRecording) return;
-        
+
         RadioMode modeUsed = _currentMode;
         _currentMode = RadioMode.None;
         _isRecording = false;
@@ -263,16 +379,16 @@ public class RadioMic : MonoBehaviour
 
         if (_recordingClip == null || sampleCount <= 0)
         {
-            Reject("(no audio captured)");
+            Reject(RadioStatus.NoAudio, "No sound from the microphone. Check Settings.", "(no audio captured)");
             return;
         }
 
         int channels = Mathf.Max(1, _recordingClip.channels);
         float seconds = (float)sampleCount / SAMPLING_RATE;
-        
+
         if (seconds < MinSpeechSeconds)
         {
-            Reject("(too short: " + seconds.ToString("0.00") + "s)");
+            Reject(RadioStatus.TooShort, "Too short. Hold the key while you speak.", "(too short: " + seconds.ToString("0.00") + "s)");
             return;
         }
 
@@ -284,7 +400,7 @@ public class RadioMic : MonoBehaviour
 
         if (!_recordingClip.GetData(_captureBuffer, 0))
         {
-            Reject("(could not read microphone buffer)");
+            Reject(RadioStatus.NoAudio, "Could not read the microphone. Check Settings.", "(could not read microphone buffer)");
             return;
         }
 
@@ -307,58 +423,87 @@ public class RadioMic : MonoBehaviour
 
         if (rms < SilenceRmsThreshold)
         {
-            Reject("(silence: rms " + rms.ToString("0.0000") + ")");
+            Reject(RadioStatus.TooQuiet, "Too quiet. Speak louder or move closer to the mic.", "(silence: rms " + rms.ToString("0.0000") + ")");
             return;
         }
 
         var speech = new float[needed];
         Array.Copy(_captureBuffer, speech, needed);
 
-        OnPlayerSpeechUpdated?.Invoke("...");
+        Emit(RadioStatus.Decoding, "");
 
+        // Only the Whisper call is guarded here, so a bug in routing is never reported
+        // to the player as a speech error.
+        string text;
         _transcribing = true;
         try
         {
             var result = await _whisperManager.GetTextAsync(speech, SAMPLING_RATE, channels);
-            string text = (result != null && result.Result != null) ? result.Result.Trim() : "";
-
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                Reject("(nothing intelligible)");
-                return;
-            }
-
-            Debug.Log("[WHISPER]: \"" + text + "\"");
-            OnPlayerSpeechUpdated?.Invoke(text);
-
-            if (CommandRouter.Instance != null)
-            {
-                CommandRouter.Instance.RouteCommand(text, modeUsed == RadioMode.Conversation);
-            }
-            else
-            {
-                Debug.LogError("[RADIO]: no CommandRouter in scene.");
-                if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
-            }
+            text = (result != null && result.Result != null) ? result.Result.Trim() : null;
         }
         catch (Exception ex)
         {
-            Debug.LogError("[WHISPER]: transcription failed: " + ex.Message);
-            OnPlayerSpeechUpdated?.Invoke("Transcription error.");
-            if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
-        }
-        finally
-        {
+            Debug.LogException(ex);
             _transcribing = false;
-            ReleaseRecordingClip();
+            Reject(RadioStatus.Failed, "Radio error. Try again.", "(transcription failed)");
+            return;
+        }
+        _transcribing = false;
+        ReleaseRecordingClip();
+
+        // If the scene reloaded while Whisper was transcribing, this object is dead. Abort cleanly.
+        if (this == null) return;
+
+        if (text == null)
+        {
+            Reject(RadioStatus.ModelNotReady, "Speech system is not ready. Try again in a moment.", "(no result from Whisper)");
+            return;
+        }
+
+        if (CommandRouter.LooksLikeNoise(text))
+        {
+            Reject(RadioStatus.NotUnderstood, "Didn't catch that. Try again, short and clear.", "(nothing intelligible: \"" + text + "\")");
+            return;
+        }
+
+        Debug.Log("[WHISPER]: \"" + text + "\"");
+        Emit(RadioStatus.Heard, text);
+
+        CommandRouter router = CommandRouter.Instance;
+        if (router == null)
+        {
+            router = FindAnyObjectByType<CommandRouter>();
+        }
+
+        if (router != null)
+        {
+            router.RouteCommand(text, modeUsed == RadioMode.Conversation);
+        }
+        else
+        {
+            Debug.LogWarning("[RADIO]: no CommandRouter in scene. (Likely due to scene transition)");
+            if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
         }
     }
 
-    private void Reject(string reason)
+    /// <summary>
+    /// A typed order: shown and routed exactly like a transcript, so the crew, the
+    /// tutorial and the HUD treat it the same as speech.
+    /// </summary>
+    public void SubmitTyped(string text)
     {
-        if (LogAudioStats) Debug.Log("[RADIO]: discarded " + reason);
+        if (string.IsNullOrWhiteSpace(text)) return;
+        text = text.Trim();
+        Emit(RadioStatus.Heard, text);
+        var router = CommandRouter.Instance != null ? CommandRouter.Instance : FindAnyObjectByType<CommandRouter>();
+        if (router != null) router.RouteCommand(text, false);
+    }
 
-        OnPlayerSpeechUpdated?.Invoke("(silence)");
+    private void Reject(RadioStatus status, string hint, string logReason)
+    {
+        if (LogAudioStats) Debug.Log("[RADIO]: discarded " + logReason);
+
+        Emit(status, hint);
         if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
 
         ReleaseRecordingClip();

@@ -7,17 +7,8 @@
 >
     <Style src="ShipUI.uss" />
 
-    <ui:VisualElement class="container">
-        <!-- Top bar with Engine Status and Channel -->
-        <ui:VisualElement class="top-bar">
-            <ui:Label name="status-text" text="ENGINE: STOP" class="status-label" />
-            <ui:Label name="channel-text" text="FREQ: CH 1: CHIEF HARRIS" class="channel-label" />
-        </ui:VisualElement>
-
-        <!-- Bottom bar with STT log and AI Subtitle -->
-        <ui:VisualElement class="bottom-bar">
-            <ui:Label name="stt-log-text" text="[CHIEF HARRIS] Radio standing by..." class="stt-log-label" />
-            <ui:Label name="subtitle-text" text="" class="subtitle-label" />
-        </ui:VisualElement>
+    <!-- The rest of the HUD (radar, compass, hull, telegraph, rudder, radio, crew) is built by ShipHUD. -->
+    <ui:VisualElement class="container" picking-mode="Ignore">
+        <ui:Label name="status-text" text="ENGINE: STOP" class="status-label" />
     </ui:VisualElement>
 </ui:UXML>
