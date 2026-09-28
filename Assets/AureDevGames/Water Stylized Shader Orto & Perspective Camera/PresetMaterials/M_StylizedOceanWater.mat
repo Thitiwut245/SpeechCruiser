@@ -211,7 +211,7 @@ Material:
     - _SurfaceFoamDirection: 0
     - _SurfaceFoamDistorsion: 0.38
     - _SurfaceFoamSpeed: 0
-    - _SurfaceFoamTiling: 0.53
+    - _SurfaceFoamTiling: 0.35
     - _TileSize: 200
     - _Value: 1
     - _WORLD_SPACE_UV: 1
@@ -246,7 +246,7 @@ Material:
     - _ShallowColor: {r: 0, g: 0.57150817, b: 0.7056604, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 0.31764707}
-    - _SurfaceFoamColor: {r: 1.7129308, g: 1.7129308, b: 1.7129308, a: 0.2784314}
+    - _SurfaceFoamColor: {r: 1.25, g: 1.25, b: 1.25, a: 0.12}
     - _TopColor: {r: 0, g: 0.17848217, b: 0.5622641, a: 0.44705883}
     - _UV: {r: 0, g: 0, b: 0, a: 0}
     - _UVRipples: {r: 0, g: 0, b: 0, a: 0}

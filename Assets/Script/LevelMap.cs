@@ -104,7 +104,7 @@ public class LevelMap : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current[ToggleKey].wasPressedThisFrame) SetOpen(!_isOpen);
+        if (Keyboard.current != null && !TypedOrders.BlocksHotkeys && Keyboard.current[ToggleKey].wasPressedThisFrame) SetOpen(!_isOpen);
 
         // Charting runs whether or not the panel is visible. Gating it on _isOpen
         // would mean sailing with the map closed and then opening it to a blank
@@ -284,7 +284,7 @@ public class LevelMap : MonoBehaviour
         _panel = new VisualElement();
         _panel.style.position = Position.Absolute;
         _panel.style.right = MarginPixels;
-        _panel.style.top = MarginPixels;
+        _panel.style.top = MarginPixels + 60f; // below the hull widget, which shares the top-right corner
         _panel.style.paddingTop = 6f;
         _panel.style.paddingBottom = 6f;
         _panel.style.paddingLeft = 6f;

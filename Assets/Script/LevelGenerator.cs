@@ -55,6 +55,27 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Extra cells of length per difficulty level above 1.")]
     [SerializeField] private int CellsPerDifficulty = 5;
 
+    [Header("Departure")]
+    [Tooltip("Rows ahead of the dock kept free of hazards (3 cells wide), so the first order can't hit anything.")]
+    [SerializeField] private int StartClearRows = 5;
+
+    [Tooltip("Clear rows on the player's first voyage, while they are still learning the orders.")]
+    [SerializeField] private int FirstVoyageClearRows = 8;
+
+    [Tooltip("Hazard density multiplier on the player's first voyage.")]
+    [Range(0.1f, 1f)]
+    [SerializeField] private float FirstVoyageDensityScale = 0.6f;
+
+    [Tooltip("The solution path must be at least this many times longer than a straight run, so the route weaves.")]
+    [SerializeField] private float MinPathWeave = 1.3f;
+
+    [Tooltip("Weave required on the first voyage. Fewer hazards and a longer clear lane make straighter routes, " +
+             "so the normal requirement would reject every layout.")]
+    [SerializeField] private float FirstVoyageMinPathWeave = 1.05f;
+
+    [Tooltip("How much neighbouring wall pieces overlap, in world units, so no gap opens between them.")]
+    [SerializeField] private float WallOverlap = 3f;
+
     [Header("Navigation Guarantee")]
     [Tooltip("Clear water guaranteed through any gap, in world units. The hull is ~6 units wide; " +
              "hazard size and scatter are both capped to protect this no matter how big the art is.")]
@@ -97,6 +118,14 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Height the ship floats at. The generator owns this because it owns where the course starts.")]
     [SerializeField] private float ShipSpawnHeight = 1f;
 
+    [Header("Mooring")]
+    [Tooltip("Half the ship's width. The quay's near edge goes this far plus QuayGap to the ship's right.")]
+    [SerializeField] private float ShipHalfBeam = 3f;
+    [Tooltip("Water between the hull and the quay at the start.")]
+    [SerializeField] private float QuayGap = 1.2f;
+    [Tooltip("Slides the quay along the ship (+ = towards the bow).")]
+    [SerializeField] private float QuayOffsetZ = 0f;
+
     [Header("Difficulty")]
     [Range(0.1f, 0.4f)]
     [Tooltip("Base density of obstacles. Recommended 0.2 to 0.35.")]
@@ -110,6 +139,7 @@ public class LevelGenerator : MonoBehaviour
 
     private Transform _levelRoot;
     private int _currentDifficulty = 1;
+    private JobSpec _job = JobSpec.Normal;
     private bool _hazardTagMissing;
     private bool[,] _obstacleMap;
     private Vector2 _gridOrigin;
@@ -135,6 +165,11 @@ public class LevelGenerator : MonoBehaviour
     public Vector3 EndPosition { get; private set; }
 
     public bool IsLevelReady => _levelRoot != null;
+    
+    /// <summary>The sequence of world coordinates safely avoiding hazards.</summary>
+    public List<Vector3> SolutionWorldPath { get; private set; }
+
+    private List<Node> _finalPathNodes;
 
     // Node structure for A* Pathfinding
     private class Node
@@ -179,14 +214,15 @@ public class LevelGenerator : MonoBehaviour
 
         if (Seed >= 0) Random.InitState(Seed);
 
-        if (GameManager.Instance != null)
+        if (GameSession.Instance != null)
         {
-            _currentDifficulty = 1 + (GameManager.Instance.Credits / 1000);
+            _currentDifficulty = 1 + (GameSession.Instance.Credits / 1000);
         }
 
         ClearLevel();
 
-        int gridLength = BaseGridLength + ((_currentDifficulty - 1) * CellsPerDifficulty);
+        _job = GameSession.Instance != null ? GameSession.Instance.CurrentJob : JobSpec.Normal;
+        int gridLength = BaseGridLength + ((_currentDifficulty - 1) * CellsPerDifficulty) + _job.ExtraRows;
         Node[,] finalGrid = null;
 
         for (int attempt = 1; attempt <= MaxRetries; attempt++)
@@ -202,9 +238,12 @@ public class LevelGenerator : MonoBehaviour
             // RetracePath excludes the start node, so a dead-straight run up the
             // middle is (gridLength - 1) nodes. The 1.3x weaving requirement is
             // measured against that, not against gridLength.
-            if (path.Count < (gridLength - 1) * 1.3f) continue;
+            bool firstVoyage = GameSession.Instance != null && GameSession.Instance.IsFirstVoyage;
+            float weave = firstVoyage ? FirstVoyageMinPathWeave : MinPathWeave;
+            if (path.Count < (gridLength - 1) * weave) continue;
 
             finalGrid = grid;
+            _finalPathNodes = path;
             Debug.Log($"🌊 [LEVEL GEN]: difficulty {_currentDifficulty}, grid {GridWidth}x{gridLength}, " +
                       $"valid on attempt {attempt}, path {path.Count} cells.");
             break;
@@ -216,6 +255,7 @@ public class LevelGenerator : MonoBehaviour
             Debug.LogWarning($"⚠️ [LEVEL GEN]: no valid layout in {MaxRetries} attempts — falling back to open sea. " +
                              "Lower ObstacleDensity or widen the grid.");
             finalGrid = CreateEmptyGrid(GridWidth, gridLength);
+            _finalPathNodes = new List<Node>(); // Open water, path could just be straight line, but autopilot handles empty gracefully.
         }
 
         Build(finalGrid, gridLength);
@@ -267,18 +307,22 @@ public class LevelGenerator : MonoBehaviour
         int endX = width / 2;
         int endY = length - 1;
 
+        bool firstVoyage = GameSession.Instance != null && GameSession.Instance.IsFirstVoyage;
+        int clearRows = firstVoyage ? FirstVoyageClearRows : StartClearRows;
+        float densityScale = (firstVoyage ? FirstVoyageDensityScale : 1f) * _job.DensityScale;
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < length; y++)
             {
-                // Keep a 3x3 apron clear around the departure and arrival cells.
-                if (Mathf.Abs(x - startX) <= 1 && y <= 1) continue;
+                // A clear lane out of the dock, and a 3x3 apron around the arrival.
+                if (Mathf.Abs(x - startX) <= 1 && y <= clearRows) continue;
                 if (Mathf.Abs(x - endX) <= 1 && Mathf.Abs(y - endY) <= 1) continue;
 
                 // Choke points tighten towards the finish.
                 float depthFactor = (float)y / length;
                 float density = Mathf.Lerp(ObstacleDensity * 0.5f, ObstacleDensity * 1.5f, depthFactor);
-                density = Mathf.Clamp(density, 0.1f, 0.4f);
+                density = Mathf.Clamp(density, 0.1f, 0.4f) * densityScale;
 
                 if (Random.value <= density) grid[x, y].IsObstacle = true;
             }
@@ -307,41 +351,54 @@ public class LevelGenerator : MonoBehaviour
         int width = grid.GetLength(0);
         int length = grid.GetLength(1);
 
-        List<Node> openSet = new List<Node>();
-        HashSet<Node> closedSet = new HashSet<Node>();
+        // Membership lives in flag arrays: the old List.Contains made every step O(n).
+        var openSet = new List<Node>(width * 4);
+        var inOpen = new bool[width, length];
+        var closed = new bool[width, length];
 
         openSet.Add(startNode);
+        inOpen[startNode.X, startNode.Y] = true;
 
         while (openSet.Count > 0)
         {
-            Node currentNode = openSet[0];
+            int bestIndex = 0;
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].FCost < currentNode.FCost ||
-                    (openSet[i].FCost == currentNode.FCost && openSet[i].HCost < currentNode.HCost))
+                Node candidate = openSet[i];
+                Node best = openSet[bestIndex];
+                if (candidate.FCost < best.FCost || (candidate.FCost == best.FCost && candidate.HCost < best.HCost))
                 {
-                    currentNode = openSet[i];
+                    bestIndex = i;
                 }
             }
 
-            openSet.Remove(currentNode);
-            closedSet.Add(currentNode);
+            Node currentNode = openSet[bestIndex];
+            openSet[bestIndex] = openSet[openSet.Count - 1];
+            openSet.RemoveAt(openSet.Count - 1);
+            inOpen[currentNode.X, currentNode.Y] = false;
+            closed[currentNode.X, currentNode.Y] = true;
 
             if (currentNode == endNode) return RetracePath(startNode, endNode);
 
-            foreach (Node neighbor in GetNeighbors(grid, currentNode, width, length))
+            GetNeighbors(grid, currentNode, width, length, _neighbours);
+            foreach (Node neighbor in _neighbours)
             {
-                if (neighbor.IsObstacle || closedSet.Contains(neighbor)) continue;
+                if (neighbor.IsObstacle || closed[neighbor.X, neighbor.Y]) continue;
 
                 int moveCost = currentNode.GCost + GetDistance(currentNode, neighbor);
+                bool open = inOpen[neighbor.X, neighbor.Y];
 
-                if (moveCost < neighbor.GCost || !openSet.Contains(neighbor))
+                if (moveCost < neighbor.GCost || !open)
                 {
                     neighbor.GCost = moveCost;
                     neighbor.HCost = GetDistance(neighbor, endNode);
                     neighbor.Parent = currentNode;
 
-                    if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
+                    if (!open)
+                    {
+                        openSet.Add(neighbor);
+                        inOpen[neighbor.X, neighbor.Y] = true;
+                    }
                 }
             }
         }
@@ -364,9 +421,11 @@ public class LevelGenerator : MonoBehaviour
         return path;
     }
 
-    private List<Node> GetNeighbors(Node[,] grid, Node node, int width, int length)
+    private readonly List<Node> _neighbours = new List<Node>(4);
+
+    private static void GetNeighbors(Node[,] grid, Node node, int width, int length, List<Node> neighbors)
     {
-        List<Node> neighbors = new List<Node>();
+        neighbors.Clear();
 
         for (int x = -1; x <= 1; x++)
         {
@@ -387,8 +446,6 @@ public class LevelGenerator : MonoBehaviour
                 }
             }
         }
-
-        return neighbors;
     }
 
     private int GetDistance(Node nodeA, Node nodeB)
@@ -429,6 +486,7 @@ public class LevelGenerator : MonoBehaviour
         BuildSeaFloor(envCenter, envX, envZ);
         BuildWater(envCenter, envX, envZ);
         BuildHazards(grid, width, length, originX);
+        BuildBoundaryWalls(minX, maxX, lengthZ);
         BuildStartPort();
         BuildEndPort(minX, maxX);
 
@@ -468,6 +526,63 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>Random hazard art; reefs only when the job has no mines.</summary>
+    private GameObject PickHazardPrefab()
+    {
+        for (int tries = 0; tries < 8; tries++)
+        {
+            GameObject prefab = HazardPrefabs[Random.Range(0, HazardPrefabs.Length)];
+            if (prefab == null) continue;
+            if (!_job.Mines && IsMinePrefab(prefab)) continue;
+            return prefab;
+        }
+        return FindReefPrefab();
+    }
+
+    private static bool IsMinePrefab(GameObject prefab)
+    {
+        return prefab.name.IndexOf("mine", System.StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private GameObject FindReefPrefab()
+    {
+        foreach (var p in HazardPrefabs) if (p != null && !IsMinePrefab(p)) return p;
+        return HazardPrefabs.Length > 0 ? HazardPrefabs[0] : null;
+    }
+
+    /// <summary>
+    /// Reef walls down both sides of the channel and behind the start, so the only way to
+    /// the dock is through the hazard field. Pieces overlap, leaving no gap a hull fits through.
+    /// </summary>
+    private void BuildBoundaryWalls(float minX, float maxX, float lengthZ)
+    {
+        GameObject reef = FindReefPrefab();
+        if (reef == null) return;
+
+        float spacing = CellSize * 0.5f;
+        float footprint = spacing + WallOverlap;
+        float left = minX - CellSize;
+        float right = maxX + CellSize;
+        float south = -CellSize * 2f;
+        float north = lengthZ + CellSize;
+        int pieces = 0;
+
+        for (float z = south; z <= north + 0.01f; z += spacing)
+        {
+            BuildHazard(reef, new Vector3(left, 0f, z), footprint);
+            BuildHazard(reef, new Vector3(right, 0f, z), footprint);
+            pieces += 2;
+        }
+
+        for (float x = left + spacing; x < right - 0.01f; x += spacing)
+        {
+            BuildHazard(reef, new Vector3(x, 0f, south), footprint);
+            pieces++;
+        }
+
+        Debug.Log($"🧱 [LEVEL GEN]: {pieces} wall pieces close the channel (x {left:F0}..{right:F0}).");
+    }
+
     private void BuildHazards(Node[,] grid, int width, int length, float originX)
     {
         // Everything below protects MinChannelWidth. A hazard may never reach
@@ -483,7 +598,7 @@ public class LevelGenerator : MonoBehaviour
             {
                 if (!grid[x, y].IsObstacle) continue;
 
-                GameObject prefab = HazardPrefabs[Random.Range(0, HazardPrefabs.Length)];
+                GameObject prefab = PickHazardPrefab();
                 if (prefab == null) continue;
 
                 float footprint = Mathf.Min(nominal * Random.Range(HazardScaleJitter.x, HazardScaleJitter.y),
@@ -509,14 +624,10 @@ public class LevelGenerator : MonoBehaviour
 
     private void BuildHazard(GameObject prefab, Vector3 cell, float footprint)
     {
-        GameObject hazard = Instantiate(prefab, Vector3.zero, Quaternion.identity, _levelRoot);
+        GameObject hazard = Instantiate(prefab, Vector3.zero, prefab.transform.rotation, _levelRoot);
 
-        // Yaw first, then measure. Measuring the rotated bounds is what makes the
-        // channel guarantee exact: it is the rotated footprint that intrudes on
-        // the neighbouring lane, so that is what gets fitted. Fitting before the
-        // yaw would need the circumscribed diameter instead, shrinking every
-        // rock by up to 1.4x for a worst case it may not even be in.
-        hazard.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+        // Measuring the rotated bounds is what makes the channel guarantee exact: 
+        // it is the rotated footprint that intrudes on the neighbouring lane, so that is what gets fitted.
 
         Bounds bounds = MeasureBounds(hazard);
         float widest = Mathf.Max(bounds.size.x, bounds.size.z);
@@ -528,19 +639,27 @@ public class LevelGenerator : MonoBehaviour
         bounds = MeasureBounds(hazard);
 
         // Height is free — it costs nothing in channel width — so stretch it
-        // rather than let elongated art fit down to something invisible. Y scale
-        // and a Y rotation commute, so this cannot shear the mesh.
+        // rather than let elongated art fit down to something invisible.
+        // We must stretch the local axis that corresponds most closely to World UP,
+        // otherwise a prefab rotated 90 degrees would stretch horizontally instead.
         if (bounds.size.y > 0.0001f && bounds.size.y < MinHazardHeight)
         {
             Vector3 stretched = hazard.transform.localScale;
-            stretched.y *= MinHazardHeight / bounds.size.y;
+            
+            float dotY = Mathf.Abs(hazard.transform.up.y);
+            float dotX = Mathf.Abs(hazard.transform.right.y);
+            float dotZ = Mathf.Abs(hazard.transform.forward.y);
+            
+            if (dotY >= dotX && dotY >= dotZ) stretched.y *= MinHazardHeight / bounds.size.y;
+            else if (dotX >= dotY && dotX >= dotZ) stretched.x *= MinHazardHeight / bounds.size.y;
+            else stretched.z *= MinHazardHeight / bounds.size.y;
+
             hazard.transform.localScale = stretched;
             bounds = MeasureBounds(hazard);
         }
 
-        // Anchor by bounds so the pivot the artist happened to use is irrelevant.
-        float targetY = bounds.size.y * (0.5f - HazardSubmersion);
-        PlaceByBounds(hazard, new Vector3(cell.x, targetY, cell.z), bounds);
+        // Use the prefab's authored Y position directly, giving the artist full control
+        hazard.transform.position = new Vector3(cell.x, prefab.transform.position.y, cell.z);
 
         MakeHazardDeadly(hazard);
     }
@@ -569,6 +688,8 @@ public class LevelGenerator : MonoBehaviour
             colliders = new Collider[] { box };
         }
 
+        colliders = FitCollider(hazard, colliders);
+
         foreach (Collider col in colliders)
         {
             col.isTrigger = true;
@@ -581,6 +702,40 @@ public class LevelGenerator : MonoBehaviour
             body.isKinematic = true;
             body.useGravity = false;
         }
+    }
+
+    /// <summary>
+    /// Replaces the prefab's collision with a shape that matches what is drawn: a sphere
+    /// for a round mine, and a box at 85% of the drawn footprint for a rock, so a hit only
+    /// happens when the hull visibly touches the hazard.
+    /// </summary>
+    private Collider[] FitCollider(GameObject hazard, Collider[] existing)
+    {
+        Bounds bounds = MeasureBounds(hazard);
+        if (bounds.size.sqrMagnitude < 0.0001f) return existing;
+
+        foreach (var col in existing) Destroy(col);
+
+        Vector3 scale = hazard.transform.lossyScale;
+        Vector3 localCenter = hazard.transform.InverseTransformPoint(bounds.center);
+        bool mine = hazard.name.IndexOf("mine", System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+        if (mine)
+        {
+            var sphere = hazard.AddComponent<SphereCollider>();
+            float worldRadius = 0.45f * Mathf.Max(bounds.size.x, bounds.size.z);
+            sphere.center = localCenter;
+            sphere.radius = worldRadius / Mathf.Max(0.0001f, Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)));
+            return new Collider[] { sphere };
+        }
+
+        var box = hazard.AddComponent<BoxCollider>();
+        box.center = localCenter;
+        box.size = new Vector3(
+            0.85f * bounds.size.x / Mathf.Max(Mathf.Abs(scale.x), 0.0001f),
+            bounds.size.y / Mathf.Max(Mathf.Abs(scale.y), 0.0001f),
+            0.85f * bounds.size.z / Mathf.Max(Mathf.Abs(scale.z), 0.0001f));
+        return new Collider[] { box };
     }
 
     private void ApplyHazardTag(GameObject target)
@@ -604,10 +759,10 @@ public class LevelGenerator : MonoBehaviour
         GameObject port = Instantiate(StartPortPrefab, Vector3.zero, Quaternion.identity, _levelRoot);
         port.name = "StartPort";
 
-        // One cell astern of the spawn point, sitting on the water. Anchoring by
-        // bounds is what keeps it off the hull regardless of its pivot.
+        // Alongside the ship's starboard (right) side, sitting on the water, so the ship
+        // starts moored at the quay. Anchoring by bounds keeps it off the hull whatever the pivot.
         Bounds bounds = MeasureBounds(port);
-        Vector3 target = new Vector3(0f, bounds.size.y * 0.5f, -CellSize - (bounds.size.z * 0.5f));
+        Vector3 target = new Vector3((bounds.size.x * 0.5f) + ShipHalfBeam + QuayGap, bounds.size.y * 0.5f, QuayOffsetZ);
         PlaceByBounds(port, target, bounds);
     }
 
@@ -675,6 +830,17 @@ public class LevelGenerator : MonoBehaviour
 
         StartCell = new Vector2Int(width / 2, 0);
         EndCell = new Vector2Int(width / 2, length - 1);
+        
+        SolutionWorldPath = new List<Vector3>();
+        if (_finalPathNodes != null)
+        {
+            // Add Start Position explicitly since RetracePath excludes it
+            SolutionWorldPath.Add(WorldFromCell(StartCell.x, StartCell.y));
+            foreach (var node in _finalPathNodes)
+            {
+                SolutionWorldPath.Add(WorldFromCell(node.X, node.Y));
+            }
+        }
     }
 
     public bool IsObstacle(int column, int row)
