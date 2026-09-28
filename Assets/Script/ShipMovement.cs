@@ -125,6 +125,9 @@ public class ShipMovement : MonoBehaviour
 
     private float Sternward => _engine.Speed < -0.05f ? -1f : 1f;
 
+    /// <summary>+1 making way ahead (or stopped), -1 astern: the rudder turns the ship the other way going backwards.</summary>
+    public float RudderEffect => Sternward;
+
     private void UpdateRotation(float rudder)
     {
         float speed = _engine.Speed;

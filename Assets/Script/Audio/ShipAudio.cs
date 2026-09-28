@@ -126,8 +126,10 @@ public class ShipAudio : MonoBehaviour
         bool changed = gear != _lastGear;
         _lastGear = gear;
 
-        // Leaving Playing forces STOP; that isn't an order the player gave.
-        if (!changed || _state != GameState.Playing || Sfx == null) return;
+        // Leaving Playing forces STOP; that isn't an order the player gave. GameManager sets its
+        // state before it stops the engine, so read the live state, not the last event.
+        bool atSea = GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing;
+        if (!changed || !atSea || Sfx == null) return;
         AudioService.Instance.Play(Sfx.TelegraphBell, AudioBus.Effects, 0.7f);
     }
 

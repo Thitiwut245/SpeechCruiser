@@ -90,14 +90,24 @@ public class ShipHull : MonoBehaviour
         int aboardBefore = GameSession.Instance != null ? GameSession.Instance.CargoAboard : 0;
         OnHullHit?.Invoke(mine ? 2 : 1); // ShipyardManager drops the containers
         _lostThisHit = aboardBefore - (GameSession.Instance != null ? GameSession.Instance.CargoAboard : 0);
-        PushClear(other);
+        // A fatal hit doesn't ease the engine: the ship is going down, not answering the telegraph.
+        PushClear(other, easeEngine: _currentHealth > 1);
         if (mine) Detonate(other);
 
         TakeDamage(1);
     }
 
+    /// <summary>
+    /// Still touching a hazard when the grace window ends (the bounce carried the ship into
+    /// it, or it was entered while protected): that counts as a new hit.
+    /// </summary>
+    private void OnTriggerStay(Collider other)
+    {
+        if (!IsInvulnerable) OnTriggerEnter(other);
+    }
+
     /// <summary>Moves the ship out of the hazard along the contact normal, then bounces it away.</summary>
-    private void PushClear(Collider other)
+    private void PushClear(Collider other, bool easeEngine = true)
     {
         var nav = ShipNavigator.Instance;
         if (nav == null) return;
@@ -123,7 +133,7 @@ public class ShipHull : MonoBehaviour
             nav.Movement.KillTurn();
             nav.Movement.ApplyKnockback(away * BounceSpeed);
         }
-        if (nav.Engine != null) nav.Engine.AbsorbImpact(KeptSpeedOnHit);
+        if (nav.Engine != null && easeEngine) nav.Engine.AbsorbImpact(KeptSpeedOnHit);
     }
 
     /// <summary>A mine goes off once: the hazard is removed so it can't be hit again.</summary>
@@ -164,6 +174,10 @@ public class ShipHull : MonoBehaviour
 
         var nav = ShipNavigator.Instance;
 
+        // Announce first: GameManager ends the voyage (and stops the engine) before anything
+        // below touches the telegraph, so nothing mistakes the wreck for an engine order.
+        OnShipDestroyed?.Invoke();
+
         // Stop the ship for good. ShipMovement has to go too, or it keeps
         // translating and banking the wreck every frame.
         if (nav != null)
@@ -172,8 +186,6 @@ public class ShipHull : MonoBehaviour
             if (nav.Movement != null) nav.Movement.enabled = false;
             nav.enabled = false;
         }
-
-        OnShipDestroyed?.Invoke();
 
         // This component lives on a child trigger collider, so the wreck pose goes on the hull root.
         Transform wreck = nav != null ? nav.transform : transform;

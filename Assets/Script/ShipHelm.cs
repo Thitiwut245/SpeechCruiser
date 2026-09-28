@@ -137,6 +137,9 @@ public class ShipHelm : MonoBehaviour
             ? _autopilotMaxRudder * _autopilotDirection
             : error * AutopilotGain;
 
+        // Going astern the rudder swings the bow the other way, so the helmsman reverses it.
+        if (_movement != null) rudder *= _movement.RudderEffect;
+
         _targetRudderAngle = Mathf.Clamp(rudder, -_autopilotMaxRudder, _autopilotMaxRudder);
         _isRudderCommandActive = true;
     }
