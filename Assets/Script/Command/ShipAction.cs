@@ -34,6 +34,10 @@ public enum ShipAction
     QueryFuel,
     QueryHeading,
     QuerySpeed,
+    QueryDestination,
+
+    // --- Undo: restores the gear and rudder from before the last order ---
+    Belay,
 }
 
 /// <summary>
@@ -60,7 +64,7 @@ public static class ShipActionExtensions
         return ActionCategory.Engine;
     }
 
-    /// <summary>True if this action physically changes the ship. Only the Chief Engineer may execute these.</summary>
+    /// <summary>True if this action physically changes the ship: engine orders (Harris) and helm orders (Finn).</summary>
     public static bool IsMachinery(this ShipAction a)
     {
         switch (a)
@@ -71,6 +75,7 @@ public static class ShipActionExtensions
             case ShipAction.QueryFuel:
             case ShipAction.QueryHeading:
             case ShipAction.QuerySpeed:
+            case ShipAction.QueryDestination:
                 return false;
             default:
                 return true;
@@ -87,10 +92,42 @@ public static class ShipActionExtensions
             case ShipAction.QueryFuel:
             case ShipAction.QueryHeading:
             case ShipAction.QuerySpeed:
+            case ShipAction.QueryDestination:
                 return true;
             default:
                 return false;
         }
+    }
+
+    /// <summary>Absolute forward gears. Vetoed whenever the order says astern.</summary>
+    public static bool IsAheadGear(this ShipAction a)
+    {
+        switch (a)
+        {
+            case ShipAction.EngineDeadSlow:
+            case ShipAction.EngineSlow:
+            case ShipAction.EngineHalf:
+            case ShipAction.EngineFull:
+            case ShipAction.EngineFlank:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static bool IsAsternGear(this ShipAction a)
+    {
+        return a == ShipAction.EngineSlowAstern || a == ShipAction.EngineFullAstern;
+    }
+
+    public static bool IsPortTurn(this ShipAction a)
+    {
+        return a == ShipAction.TurnPort || a == ShipAction.HardPort;
+    }
+
+    public static bool IsStarboardTurn(this ShipAction a)
+    {
+        return a == ShipAction.TurnStarboard || a == ShipAction.HardStarboard;
     }
 
     /// <summary>True if this is a helm order (rudder), as opposed to an engine order.</summary>

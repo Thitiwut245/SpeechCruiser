@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 /// <summary>
 /// Speaks authored crew lines instantly — no model, no network, no waiting.
 ///
-/// Attach to the same GameObject as OllamaClient / RadioMic.
+/// Lives on the Services prefab with RadioMic and OpenAIClient.
 ///
 /// Optional voice audio: drop clips under a Resources folder using the convention
 ///   Resources/CrewVoice/&lt;Crew&gt;/&lt;Action&gt;_&lt;n&gt;.wav

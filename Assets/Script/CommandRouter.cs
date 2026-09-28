@@ -4,8 +4,8 @@ using UnityEngine.Serialization;
 
 public enum RadioChannel
 {
-    ChiefEngineer = 1, // Channel 1: engine room (Chief Harris)
-    Lookout = 2        // Channel 2: bow (Lookout Finn)
+    ChiefEngineer = 1, // Channel 1: Chief Harris, engine
+    Lookout = 2        // Channel 2: Finn, helm and lookout
 }
 
 public class CommandRouter : MonoBehaviour
@@ -17,10 +17,6 @@ public class CommandRouter : MonoBehaviour
     [SerializeField] private RadioChannel ActiveChannel = RadioChannel.ChiefEngineer;
 
     [Header("Routing")]
-    [Tooltip("If the lookout is handed a machinery order, pass it to the engine room instead of refusing. Turn off for strict role separation.")]
-    [FormerlySerializedAs("autoRelayMachineryToEngineer")]
-    [SerializeField] private bool AutoRelayMachineryToEngineer = true;
-
     [Tooltip("Send unmatched, non-question speech to the classifier before giving up.")]
     [FormerlySerializedAs("useClassifierFallback")]
     [SerializeField] private bool UseClassifierFallback = true;
@@ -35,7 +31,80 @@ public class CommandRouter : MonoBehaviour
 
     public event System.Action<string> OnChannelChanged;
 
+    /// <summary>An order was carried out or a question answered. The tutorial listens to this.</summary>
+    public event System.Action<ShipAction> OnActionExecuted;
+
+    // "Radio check" and "help" are handled before parsing: they are about the radio, not the ship.
+    private static readonly System.Text.RegularExpressions.Regex RadioCheckPattern = new System.Text.RegularExpressions.Regex(
+        @"\b(radio check|mic check|comms check|testing|can you hear me|do you hear me)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex HelpPattern = new System.Text.RegularExpressions.Regex(
+        @"\b(help|what can i say|what do i say|what can i do|commands|radio card|list of orders)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // After this many "say again" in a row, the crew suggests a simple order instead.
+    private const int MissesBeforeHint = 2;
+    private int _misses;
+
     public RadioChannel CurrentChannel => ActiveChannel;
+
+    // What the last order changed, so "belay that" can put it back.
+    private struct UndoRecord
+    {
+        public bool Valid;
+        public bool Engine;
+        public bool Helm;
+        public ShipEngine.TelegraphGear GearBefore;
+    }
+
+    private UndoRecord _undo;
+    private bool _classifierPending;
+
+    /// <summary>True while the classifier or the conversation model is still working on a reply.</summary>
+    public bool IsWaitingForReply
+    {
+        get
+        {
+            var chat = CrewChat.Active;
+            return _classifierPending || (chat != null && chat.IsBusy);
+        }
+    }
+
+    // A second read-back waits this long so both lines can be read.
+    private const float FollowUpDelaySeconds = 1.6f;
+
+    /// <summary>
+    /// Who answers for an action. Harris runs the engine; Finn has the helm and the lookout.
+    /// A general status report comes from whoever the radio is tuned to.
+    /// </summary>
+    public static RadioChannel OwnerOf(ShipAction action, RadioChannel tuned)
+    {
+        switch (action)
+        {
+            case ShipAction.TurnPort:
+            case ShipAction.TurnStarboard:
+            case ShipAction.HardPort:
+            case ShipAction.HardStarboard:
+            case ShipAction.RudderMidships:
+            case ShipAction.QueryHazard:
+            case ShipAction.QueryDestination:
+            case ShipAction.QueryHeading:
+                return RadioChannel.Lookout;
+            case ShipAction.QueryStatus:
+                return tuned;
+            default:
+                return RadioChannel.ChiefEngineer;
+        }
+    }
+
+    private static bool ChatReady
+    {
+        get
+        {
+            var chat = CrewChat.Active;
+            return chat != null && chat.Ready;
+        }
+    }
 
     private void Awake() 
     { 
@@ -55,8 +124,24 @@ public class CommandRouter : MonoBehaviour
 
     public void RouteCommand(string transcript, bool isConversation = false)
     {
-        if (IsNonsenseOrHallucination(transcript))
+        if (LooksLikeNoise(transcript))
         {
+            EndInstantTurn();
+            return;
+        }
+
+        if (RadioCheckPattern.IsMatch(transcript))
+        {
+            Say(ActiveChannel, CrewBarkLibrary.RadioCheck(ActiveChannel), "radiocheck");
+            OnActionExecuted?.Invoke(ShipAction.None);
+            EndInstantTurn();
+            return;
+        }
+
+        if (HelpPattern.IsMatch(transcript))
+        {
+            if (ShipHUD.Instance != null) ShipHUD.Instance.SetRadioCardOpen(true);
+            Say(ActiveChannel, CrewBarkLibrary.HelpCard(ActiveChannel), "help");
             EndInstantTurn();
             return;
         }
@@ -75,6 +160,7 @@ public class CommandRouter : MonoBehaviour
                       (parsed.Matches.Count > 0
                           ? parsed.Matches[0].Action + " @ " + parsed.TopConfidence.ToString("0.00")
                           : "no match") +
+                      DescribeFlags(parsed) +
                       " | target " + target + " | mode " + (isConversation ? "Conversation" : "Command"));
         }
 
@@ -85,16 +171,59 @@ public class CommandRouter : MonoBehaviour
             return;
         }
 
-        if (isConversation)
+        // A contradictory order is asked about, never guessed.
+        if (parsed.DirectionConflict)
+        {
+            Say(RadioChannel.ChiefEngineer, CrewBarkLibrary.AskAheadOrAstern(), "askdirection");
+            EndInstantTurn();
+            return;
+        }
+
+        if (parsed.SideConflict)
+        {
+            Say(RadioChannel.Lookout, CrewBarkLibrary.AskPortOrStarboard(RadioChannel.Lookout), "askside");
+            EndInstantTurn();
+            return;
+        }
+
+        // Orders are orders on either key; the talk key only changes where non-orders go.
+        if (parsed.HasConfidentOrder || (parsed.HasConfidentCommand && (!isConversation || !ChatReady)))
+        {
+            ApplyMatches(parsed, target);
+            EndInstantTurn();
+            return;
+        }
+
+        if (isConversation && ChatReady && !parsed.NoChange && !parsed.WasFillerOnly)
         {
             SendToConversation(target, transcript);
             return;
         }
 
-        if (parsed.HasConfidentCommand)
+        if (parsed.OrderInQuestion)
         {
-            ApplyMatches(parsed, target, transcript);
+            Say(target, CrewBarkLibrary.IsThatAnOrder(target), "isorder");
             EndInstantTurn();
+            return;
+        }
+
+        if (parsed.NoChange)
+        {
+            Say(target, CrewBarkLibrary.NoChange(target), "nochange");
+            EndInstantTurn();
+            return;
+        }
+
+        if (parsed.WasFillerOnly)
+        {
+            Say(target, CrewBarkLibrary.StandingBy(target), "standingby");
+            EndInstantTurn();
+            return;
+        }
+
+        if (isConversation)
+        {
+            SendToConversation(target, transcript);
             return;
         }
 
@@ -109,8 +238,10 @@ public class CommandRouter : MonoBehaviour
             string captured = transcript;
             RadioChannel capturedTarget = target;
 
+            _classifierPending = true;
             IntentClassifier.Instance.Classify(captured, (action, ok) =>
             {
+                _classifierPending = false;
                 if (ok && action != ShipAction.None)
                 {
                     ExecuteAndAcknowledge(capturedTarget, action, captured);
@@ -124,7 +255,7 @@ public class CommandRouter : MonoBehaviour
                 }
                 else
                 {
-                    if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(capturedTarget);
+                    SayAgainOrHint(capturedTarget);
                     EndInstantTurn();
                 }
             });
@@ -137,24 +268,45 @@ public class CommandRouter : MonoBehaviour
         }
         else
         {
-            if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(target);
+            SayAgainOrHint(target);
             EndInstantTurn();
         }
+    }
+
+    /// <summary>"Say again" — but after repeated misses, suggest a simple order and the radio card.</summary>
+    private void SayAgainOrHint(RadioChannel target)
+    {
+        _misses++;
+        if (_misses >= MissesBeforeHint)
+        {
+            _misses = 0;
+            Say(target, CrewBarkLibrary.TryHint(target), "tryhint");
+            return;
+        }
+        if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(target);
     }
 
     private void UpdateChannelUI()
     {
         string title = ActiveChannel == RadioChannel.Lookout
-            ? "CH 2: LOOKOUT FINN"
-            : "CH 1: CHIEF HARRIS";
+            ? "CH 2: FINN (STEERING + LOOKOUT)"
+            : "CH 1: CHIEF HARRIS (ENGINE)";
 
         OnChannelChanged?.Invoke(title);
     }
 
-    private void ApplyMatches(CommandParser.Result parsed, RadioChannel target, string rawSpeech)
+    private void ApplyMatches(CommandParser.Result parsed, RadioChannel target)
     {
-        ShipAction spoken = ShipAction.None;
-        float? degrees = CommandParser.ExtractDegrees(rawSpeech);
+        if (parsed.Matches.Count > 0 && parsed.Matches[0].Action == ShipAction.Belay)
+        {
+            Belay();
+            return;
+        }
+
+        var gearBefore = CurrentGear();
+        bool engineChanged = false, helmChanged = false;
+        var readBacks = new System.Collections.Generic.List<ShipAction>(3);
+        ShipAction query = ShipAction.None;
 
         for (int i = 0; i < parsed.Matches.Count; i++)
         {
@@ -162,32 +314,131 @@ public class CommandRouter : MonoBehaviour
             if (m.Confidence < CommandParser.AcceptHigh) continue;
 
             ShipAction resolved = Resolve(m.Action, target);
-            bool executed = TryExecute(resolved, target, degrees);
-
-            if (spoken == ShipAction.None && (executed || resolved.IsQuery())) spoken = resolved;
+            if (TryExecute(resolved, parsed.Degrees))
+            {
+                if (resolved.IsHelm()) helmChanged = true;
+                else engineChanged = true;
+                readBacks.Add(resolved);
+            }
+            else if (resolved.IsQuery() && query == ShipAction.None)
+            {
+                query = resolved;
+            }
         }
 
-        if (spoken == ShipAction.None)
+        RememberUndo(gearBefore, engineChanged, helmChanged);
+        _misses = 0;
+        foreach (var done in readBacks) OnActionExecuted?.Invoke(done);
+        if (query != ShipAction.None) OnActionExecuted?.Invoke(query);
+
+        // Every order that ran gets read back, engine first, then helm, then any answer.
+        readBacks.Sort((a, b) => a.IsHelm().CompareTo(b.IsHelm()));
+        if (query != ShipAction.None) readBacks.Add(query);
+
+        if (readBacks.Count == 0)
         {
             if (CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
             return;
         }
 
-        Acknowledge(target, spoken);
+        Acknowledge(target, readBacks[0]);
+        if (readBacks.Count > 1) StartCoroutine(FollowUpReadBacks(target, readBacks));
+    }
+
+    private System.Collections.IEnumerator FollowUpReadBacks(RadioChannel target, System.Collections.Generic.List<ShipAction> readBacks)
+    {
+        for (int i = 1; i < readBacks.Count; i++)
+        {
+            yield return new WaitForSecondsRealtime(FollowUpDelaySeconds);
+            Acknowledge(target, readBacks[i]);
+        }
     }
 
     private void ExecuteAndAcknowledge(RadioChannel target, ShipAction action, string rawSpeech)
     {
+        if (action == ShipAction.Belay)
+        {
+            Belay();
+            return;
+        }
+
         ShipAction resolved = Resolve(action, target);
         float? degrees = CommandParser.ExtractDegrees(rawSpeech);
+        var gearBefore = CurrentGear();
 
-        if (!TryExecute(resolved, target, degrees) && !resolved.IsQuery())
+        bool executed = TryExecute(resolved, degrees);
+        if (executed) RememberUndo(gearBefore, !resolved.IsHelm(), resolved.IsHelm());
+
+        if (!executed && !resolved.IsQuery())
         {
             if (CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
             return;
         }
 
+        _misses = 0;
+        OnActionExecuted?.Invoke(resolved);
         Acknowledge(target, resolved);
+    }
+
+    private static ShipEngine.TelegraphGear CurrentGear()
+    {
+        var nav = ShipNavigator.Instance;
+        return nav != null ? nav.currentGear : ShipEngine.TelegraphGear.Stop;
+    }
+
+    private void RememberUndo(ShipEngine.TelegraphGear gearBefore, bool engineChanged, bool helmChanged)
+    {
+        if (!engineChanged && !helmChanged) return;
+
+        _undo = new UndoRecord
+        {
+            Valid = true,
+            Engine = engineChanged,
+            Helm = helmChanged,
+            GearBefore = gearBefore,
+        };
+    }
+
+    /// <summary>"Belay that": the engine goes back to its previous gear and the rudder to midships.</summary>
+    private void Belay()
+    {
+        var nav = ShipNavigator.Instance;
+        if (!_undo.Valid || nav == null)
+        {
+            Say(ActiveChannel, CrewBarkLibrary.NothingToBelay(), "belaynone");
+            return;
+        }
+
+        if (_undo.Engine) nav.SetGear(_undo.GearBefore);
+        if (_undo.Helm) nav.RudderMidships();
+
+        string[] lines = _undo.Engine && _undo.Helm ? CrewBarkLibrary.BelayEngineAndHelm()
+                       : _undo.Engine ? CrewBarkLibrary.BelayEngine()
+                       : CrewBarkLibrary.BelayHelm();
+
+        if (LogRouting) Debug.Log("[ROUTER]: belay -> gear " + (_undo.Engine ? _undo.GearBefore.ToString() : "unchanged") + (_undo.Helm ? ", rudder midships" : ""));
+
+        RadioChannel speaker = _undo.Engine ? RadioChannel.ChiefEngineer : RadioChannel.Lookout;
+        _undo = default(UndoRecord);
+        Say(speaker, lines, "belay");
+    }
+
+    private void Say(RadioChannel crew, string[] lines, string key)
+    {
+        if (CrewVoice.Instance == null) return;
+        CrewVoice.Instance.SpeakFrom(crew, lines, ShipTelemetry.Capture(), crew + ":" + key);
+    }
+
+    private static string DescribeFlags(CommandParser.Result parsed)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (parsed.Degrees.HasValue) sb.Append(" ").Append(parsed.Degrees.Value).Append("deg");
+        if (parsed.DirectionConflict) sb.Append(" [ahead/astern?]");
+        if (parsed.SideConflict) sb.Append(" [port/starboard?]");
+        if (parsed.OrderInQuestion) sb.Append(" [order in question]");
+        if (parsed.NoChange) sb.Append(" [no change]");
+        if (parsed.WasFillerOnly) sb.Append(" [filler]");
+        return sb.ToString();
     }
 
     private ShipAction Resolve(ShipAction action, RadioChannel target)
@@ -199,18 +450,10 @@ public class CommandRouter : MonoBehaviour
         return action;
     }
 
-    private bool TryExecute(ShipAction action, RadioChannel target, float? degrees)
+    // Orders reach their owner whichever channel is tuned; the channel only picks who you chat with.
+    private bool TryExecute(ShipAction action, float? degrees)
     {
-        if (!action.IsMachinery()) return false; 
-
-        if (target == RadioChannel.Lookout)
-        {
-            if (!AutoRelayMachineryToEngineer) return false;
-
-            SetChannel(RadioChannel.ChiefEngineer);
-            if (LogRouting) Debug.Log("[ROUTER]: relayed " + action + " from lookout to engine room.");
-        }
-
+        if (!action.IsMachinery()) return false;
         return CommandParser.Execute(action, degrees);
     }
 
@@ -218,7 +461,7 @@ public class CommandRouter : MonoBehaviour
     {
         if (CrewVoice.Instance == null) return;
 
-        RadioChannel speaker = action.IsMachinery() ? RadioChannel.ChiefEngineer : target;
+        RadioChannel speaker = OwnerOf(action, target);
 
         var telemetry = ShipTelemetry.Capture();
         string line = CrewVoice.Instance.Speak(speaker, action, telemetry);
@@ -232,7 +475,7 @@ public class CommandRouter : MonoBehaviour
 
         if (chat == null || !chat.Ready)
         {
-            if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(target);
+            SayAgainOrHint(target);
             EndInstantTurn();
             return;
         }
@@ -245,7 +488,8 @@ public class CommandRouter : MonoBehaviour
         if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
     }
 
-    private bool IsNonsenseOrHallucination(string text)
+    /// <summary>True for empty transcripts and the phrases Whisper invents from silence.</summary>
+    public static bool LooksLikeNoise(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return true;
         
