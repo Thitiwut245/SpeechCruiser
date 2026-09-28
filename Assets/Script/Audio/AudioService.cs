@@ -227,6 +227,7 @@ public class AudioService : Singleton<AudioService>
             case RadioStatus.Busy:
             case RadioStatus.NoMic:
             case RadioStatus.ModelNotReady:
+            case RadioStatus.NotAtSea:
                 Play(Library.RadioBusy, AudioBus.Radio, 0.55f);
                 break;
             case RadioStatus.TooShort:

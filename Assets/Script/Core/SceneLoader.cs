@@ -77,6 +77,7 @@ public class SceneLoader : Singleton<SceneLoader>
     private IEnumerator LoadRoutine(SceneId id)
     {
         IsLoading = true;
+        RadioEpoch.Advance(); // anything the radio is still working on belongs to the old scene
         _overlay.pickingMode = PickingMode.Position; // swallow clicks during the transition
 
         yield return Fade(0f, 1f);

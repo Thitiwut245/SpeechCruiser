@@ -148,6 +148,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
     private IEnumerator ConverseCoroutine(RadioChannel crew, string speech)
     {
         _busy = true;
+        int epoch = RadioEpoch.Current;
 
         var telemetry = ShipTelemetry.Capture();
         string crewName = CrewVoice.DisplayName(crew);
@@ -185,6 +186,15 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
             float started = Time.realtimeSinceStartup;
             yield return request.SendWebRequest();
             float elapsed = Time.realtimeSinceStartup - started;
+
+            // Asked on an earlier voyage: don't answer into the new scene, and don't touch
+            // TimeController, which the scene load already reset.
+            if (!RadioEpoch.IsCurrent(epoch))
+            {
+                Debug.Log("[RADIO]: dropped a " + crewName + " reply from the previous scene.");
+                _busy = false;
+                yield break;
+            }
 
             if (request.result == UnityWebRequest.Result.Success)
             {

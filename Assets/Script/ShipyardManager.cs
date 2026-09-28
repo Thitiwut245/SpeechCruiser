@@ -63,6 +63,7 @@ public class ShipyardManager : MonoBehaviour
     private float _toastUntil;
     private CinemachinePositionComposer _composer;
     private CinemachineCamera _vcam;
+    private RadioMic _mic;
 
     private readonly List<GameObject> _spawnedContainers = new List<GameObject>();
 
@@ -105,6 +106,8 @@ public class ShipyardManager : MonoBehaviour
         _composer = FindAnyObjectByType<CinemachinePositionComposer>();
 
         if (GameSession.Instance != null) GameSession.Instance.OnProgressUpdated += RefreshUI;
+        _mic = FindAnyObjectByType<RadioMic>();
+        if (_mic != null) _mic.OnRadioStatus += HandleRadioStatus;
         ShipHull.OnHullHit += DropCargo;
         ShipHull.OnHealthChanged += HandleHullChanged;
 
@@ -124,6 +127,7 @@ public class ShipyardManager : MonoBehaviour
     {
         // GameSession outlives this scene, so this unsubscribe is what prevents a leak.
         if (GameSession.Instance != null) GameSession.Instance.OnProgressUpdated -= RefreshUI;
+        if (_mic != null) _mic.OnRadioStatus -= HandleRadioStatus; // RadioMic outlives this scene
         ShipHull.OnHullHit -= DropCargo;
         ShipHull.OnHealthChanged -= HandleHullChanged;
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleStateChanged;
@@ -184,6 +188,12 @@ public class ShipyardManager : MonoBehaviour
             _statusText.text = string.IsNullOrEmpty(summary) ? "Welcome aboard, Captain" : summary;
             RefreshUI();
         }
+    }
+
+    private void HandleRadioStatus(RadioStatus status, string text)
+    {
+        if (status == RadioStatus.NotAtSea && _storePanel != null && _storePanel.resolvedStyle.display == DisplayStyle.Flex)
+            ShowToast("The radio works at sea. Press SET SAIL first.");
     }
 
     private void HandleHullChanged(int current, int max)

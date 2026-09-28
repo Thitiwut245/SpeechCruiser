@@ -344,4 +344,21 @@ public class CommandParserTests
     {
         Assert.AreEqual(claims, CrewPersona.ClaimsOrderCarriedOut(reply), reply);
     }
+
+    // Whisper's sound tags are not speech.
+    [TestCase("(chimes)")]
+    [TestCase("[Music]")]
+    [TestCase("(wind blowing) [BLANK_AUDIO]")]
+    [TestCase("*coughs*")]
+    public void SoundTagsAloneAreNoise(string transcript)
+    {
+        Assert.IsTrue(CommandRouter.LooksLikeNoise(transcript));
+    }
+
+    [TestCase("(wind blowing) turn left")]
+    [TestCase("slow ahead")]
+    public void SpeechWithSoundTagsIsNotNoise(string transcript)
+    {
+        Assert.IsFalse(CommandRouter.LooksLikeNoise(transcript));
+    }
 }

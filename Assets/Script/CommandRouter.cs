@@ -237,10 +237,17 @@ public class CommandRouter : MonoBehaviour
         {
             string captured = transcript;
             RadioChannel capturedTarget = target;
+            int epoch = RadioEpoch.Current;
 
             _classifierPending = true;
             IntentClassifier.Instance.Classify(captured, (action, ok) =>
             {
+                // The classifier outlives the scene; this router may be gone, or be the old one.
+                if (this == null || !RadioEpoch.IsCurrent(epoch))
+                {
+                    Debug.Log("[ROUTER]: dropped a classifier result from the previous scene.");
+                    return;
+                }
                 _classifierPending = false;
                 if (ok && action != ShipAction.None)
                 {
@@ -337,7 +344,7 @@ public class CommandRouter : MonoBehaviour
 
         if (readBacks.Count == 0)
         {
-            if (CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
+            if (AtSea && CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
             return;
         }
 
@@ -371,7 +378,7 @@ public class CommandRouter : MonoBehaviour
 
         if (!executed && !resolved.IsQuery())
         {
-            if (CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
+            if (AtSea && CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
             return;
         }
 
@@ -451,9 +458,19 @@ public class CommandRouter : MonoBehaviour
     }
 
     // Orders reach their owner whichever channel is tuned; the channel only picks who you chat with.
+    /// <summary>True while a voyage is under way. Orders only move the ship then.</summary>
+    private static bool AtSea => GameManager.Instance == null || GameManager.Instance.CurrentState == GameState.Playing;
+
     private bool TryExecute(ShipAction action, float? degrees)
     {
         if (!action.IsMachinery()) return false;
+        // The radio is off while moored, so only a late result can get here; it must not
+        // spin up the engine in the shipyard or after the voyage ended.
+        if (!AtSea)
+        {
+            Debug.Log("[ROUTER]: ignored " + action + " outside a voyage.");
+            return false;
+        }
         return CommandParser.Execute(action, degrees);
     }
 
@@ -488,6 +505,9 @@ public class CommandRouter : MonoBehaviour
         if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
     }
 
+    private static readonly System.Text.RegularExpressions.Regex SoundTagPattern =
+        new System.Text.RegularExpressions.Regex(@"\([^)]*\)|\[[^\]]*\]|\*[^*]*\*");
+
     /// <summary>True for empty transcripts and the phrases Whisper invents from silence.</summary>
     public static bool LooksLikeNoise(string text)
     {
@@ -508,8 +528,11 @@ public class CommandRouter : MonoBehaviour
             return true;
         }
 
+        // Whisper describes non-speech in brackets: "(chimes)", "[Music]", "*coughs*".
+        // What is left once those are gone is what was actually said.
+        string spoken = SoundTagPattern.Replace(text, " ");
         string charsOnly = "";
-        foreach (char c in text)
+        foreach (char c in spoken)
         {
             if (char.IsLetterOrDigit(c)) charsOnly += c;
         }

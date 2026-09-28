@@ -19,6 +19,10 @@ public enum RadioStatus
     ModelNotReady,
     Cut,
     Failed,
+    /// <summary>The transmission was dropped: the game paused or the scene changed mid-sentence.</summary>
+    Cancelled,
+    /// <summary>The radio key was pressed while the ship is moored or the voyage is over.</summary>
+    NotAtSea,
 }
 
 public class RadioMic : MonoBehaviour
@@ -69,6 +73,7 @@ public class RadioMic : MonoBehaviour
     private float[] _captureBuffer;
     private bool _isRecording;
     private float _recordStartTime;
+    private int _recordingEpoch;
     private bool _transcribing;
     private RadioMode _currentMode = RadioMode.None;
 
@@ -144,10 +149,9 @@ public class RadioMic : MonoBehaviour
 
     private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
     {
-        _isRecording = false;
-        _transcribing = false;
-        _currentMode = RadioMode.None;
-        ReleaseRecordingClip();
+        // A decode still running keeps _transcribing true until it ends; its result is
+        // dropped by the epoch check, so it can't reach the new scene.
+        if (_isRecording) CancelRecording("Transmission cancelled.");
 
         if (CommandPttAction != null)
         {
@@ -186,8 +190,13 @@ public class RadioMic : MonoBehaviour
 
     private void Update()
     {
-        // No new transmissions while paused (menus, tutorial); a recording in progress may still finish.
-        if (!_isRecording && TimeController.Instance != null && TimeController.Instance.IsPaused) return;
+        // Pausing mid-sentence drops the transmission: nothing said in a menu reaches the crew.
+        bool paused = TimeController.Instance != null && TimeController.Instance.IsPaused;
+        if (paused)
+        {
+            if (_isRecording) CancelRecording("Transmission cancelled: the game was paused.");
+            return;
+        }
 
         bool cmdPressed = false, cmdReleased = false;
         bool convPressed = false, convReleased = false;
@@ -327,8 +336,17 @@ public class RadioMic : MonoBehaviour
         return Microphone.devices; 
     }
 
+    /// <summary>The radio only works at sea: in the shipyard, during loading and on the report it stays off.</summary>
+    private static bool AtSea => GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing;
+
     private void StartRecording(RadioMode mode)
     {
+        if (!AtSea)
+        {
+            Emit(RadioStatus.NotAtSea, "The radio works at sea. Press SET SAIL first.");
+            return;
+        }
+
         if (_activeDevice == null)
         {
             Debug.LogError("[RADIO]: no microphone selected.");
@@ -360,6 +378,7 @@ public class RadioMic : MonoBehaviour
         _isRecording = true;
         _inputLevel = 0f;
         _recordStartTime = Time.realtimeSinceStartup;
+        _recordingEpoch = RadioEpoch.Current;
         _recordingClip = Microphone.Start(_activeDevice, false, MaxRecordDuration, SAMPLING_RATE);
 
         if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(true);
@@ -371,6 +390,7 @@ public class RadioMic : MonoBehaviour
         if (!_isRecording) return;
 
         RadioMode modeUsed = _currentMode;
+        int epoch = _recordingEpoch;
         _currentMode = RadioMode.None;
         _isRecording = false;
 
@@ -430,6 +450,10 @@ public class RadioMic : MonoBehaviour
         var speech = new float[needed];
         Array.Copy(_captureBuffer, speech, needed);
 
+        // The samples are copied, so the clip can go now. Releasing it after the await would
+        // destroy whatever newer recording had taken its place.
+        ReleaseRecordingClip();
+
         Emit(RadioStatus.Decoding, "");
 
         // Only the Whisper call is guarded here, so a bug in routing is never reported
@@ -449,10 +473,14 @@ public class RadioMic : MonoBehaviour
             return;
         }
         _transcribing = false;
-        ReleaseRecordingClip();
 
-        // If the scene reloaded while Whisper was transcribing, this object is dead. Abort cleanly.
-        if (this == null) return;
+        // Spoken on an earlier voyage (the scene changed while Whisper worked): drop it.
+        // TimeController was already reset by the scene load, so leave it alone.
+        if (this == null || !RadioEpoch.IsCurrent(epoch))
+        {
+            Debug.Log("[RADIO]: dropped a transcript from the previous scene: \"" + text + "\"");
+            return;
+        }
 
         if (text == null)
         {
@@ -497,6 +525,20 @@ public class RadioMic : MonoBehaviour
         Emit(RadioStatus.Heard, text);
         var router = CommandRouter.Instance != null ? CommandRouter.Instance : FindAnyObjectByType<CommandRouter>();
         if (router != null) router.RouteCommand(text, false);
+    }
+
+    /// <summary>Stops a recording without sending it, and frees the microphone device.</summary>
+    private void CancelRecording(string hint)
+    {
+        if (!_isRecording) return;
+
+        _isRecording = false;
+        _currentMode = RadioMode.None;
+        if (_activeDevice != null) Microphone.End(_activeDevice);
+        ReleaseRecordingClip();
+        if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
+        Debug.Log("[RADIO]: " + hint);
+        Emit(RadioStatus.Cancelled, hint);
     }
 
     private void Reject(RadioStatus status, string hint, string logReason)
