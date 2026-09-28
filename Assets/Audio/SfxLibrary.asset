@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ce3512c30be76e4f9a1ed9244d99e36, type: 3}
+  m_Name: SfxLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::SfxLibrary
+  RadioKeyOn: {fileID: 8300000, guid: 0dbc012f9a26c4b42b77af2d83607668, type: 3}
+  RadioKeyOff: {fileID: 8300000, guid: 32835e3f4461cf041b49a7d25e5babf1, type: 3}
+  RadioRoger: {fileID: 8300000, guid: 62f65d20950fa4a40a757f6bb41d4b29, type: 3}
+  RadioStaticLoop: {fileID: 8300000, guid: 6882157319945bf4c8d114ab87e0af5f, type: 3}
+  RadioBusy: {fileID: 8300000, guid: fbd5b530debde0c449f4b6107252c7fa, type: 3}
+  RadioError: {fileID: 8300000, guid: cd6775d1aca70cd4b8e8c85781b84f3b, type: 3}
+  VoiceSyllables:
+  - {fileID: 8300000, guid: 25efe1484ca540e408083e065404b2f5, type: 3}
+  - {fileID: 8300000, guid: 4ac7b9d60544eba499d517fde5ac0314, type: 3}
+  - {fileID: 8300000, guid: b14a51f5cc48abd4b919160a7c4f66a5, type: 3}
+  - {fileID: 8300000, guid: 7f3e7c57370495a47a89d2d14927cda1, type: 3}
+  - {fileID: 8300000, guid: 04ad7d5cf17da2244837e309e959dbab, type: 3}
+  - {fileID: 8300000, guid: 95d82098b31183541989f6f6bd9d4d7e, type: 3}
+  - {fileID: 8300000, guid: 7773c00bccefd8a438252aa152861e8d, type: 3}
+  - {fileID: 8300000, guid: 82b111652adaca14290663669857ba8f, type: 3}
+  TelegraphBell: {fileID: 8300000, guid: 3b6a2b1aa6503d746b88b514085aa1c0, type: 3}
+  EngineLoop: {fileID: 8300000, guid: 1b7c25f46f34fb14395bb70f5c5f8115, type: 3}
+  WashLoop: {fileID: 8300000, guid: 487ce4f7d4d51d34ab9c95ed3392d686, type: 3}
+  HullCrunch: {fileID: 8300000, guid: 569749a33f63dcb4eab53544a3611637, type: 3}
+  MineExplosion: {fileID: 8300000, guid: c4593b7fb85f1864789f9e73921543b6, type: 3}
+  CargoSplash: {fileID: 8300000, guid: 05d39cf62befb8a4baa8e4eb40cdfd8c, type: 3}
+  Klaxon: {fileID: 8300000, guid: cdc40ff78fb3e6f408cea2b975dd1d89, type: 3}
+  ShipHorn: {fileID: 8300000, guid: 03821b50de247bc4eb998ff406410a4a, type: 3}
+  AlertWarn: {fileID: 8300000, guid: 5a7843e19aaeb5145969a39b621bd38d, type: 3}
+  AlertClosing: {fileID: 8300000, guid: a88a697b07090814ab576a3fca9bd0e3, type: 3}
+  AlertBrace: {fileID: 8300000, guid: 6a2b126f1ce768b448166c8b99770ce4, type: 3}
+  UiClick: {fileID: 8300000, guid: d80ae5e4632f18b489fff066478368a9, type: 3}
+  VictorySting: {fileID: 8300000, guid: be10c5e5ff92a2b4f9e0ef36090bb6d2, type: 3}
+  FailSting: {fileID: 8300000, guid: 2a71b548a942dbf4f894083bad79bb41, type: 3}
+  MusicCalm: {fileID: 8300000, guid: a2a1e8310408bda4984d25c5d54d8d72, type: 3}
+  MusicTension: {fileID: 8300000, guid: a22467173723f754bab2067127762912, type: 3}
