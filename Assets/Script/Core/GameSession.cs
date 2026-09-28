@@ -13,15 +13,19 @@ public struct JobSpec
     public int ExtraRows;
     /// <summary>Whether naval mines appear, or reefs only.</summary>
     public bool Mines;
+    /// <summary>How much longer than a straight run the safe route must be: how much it winds.</summary>
+    public float MinWeave;
 
     public static readonly JobSpec Easy = new JobSpec
-    { Name = "EASY", Containers = 5, Reward = 300, DensityScale = 0.75f, ExtraRows = 0, Mines = false };
+    { Name = "EASY", Containers = 5, Reward = 300, DensityScale = 0.75f, ExtraRows = 0, Mines = false, MinWeave = 1.1f };
 
     public static readonly JobSpec Normal = new JobSpec
-    { Name = "NORMAL", Containers = 10, Reward = 700, DensityScale = 1f, ExtraRows = 0, Mines = true };
+    { Name = "NORMAL", Containers = 10, Reward = 700, DensityScale = 1f, ExtraRows = 0, Mines = true, MinWeave = 1.2f };
 
     public static readonly JobSpec Hard = new JobSpec
-    { Name = "HARD", Containers = 15, Reward = 1500, DensityScale = 1.25f, ExtraRows = 6, Mines = true };
+    { Name = "HARD", Containers = 15, Reward = 1500, DensityScale = 1.25f, ExtraRows = 6, Mines = true, MinWeave = 1.3f };
+
+    public bool IsSameJob(JobSpec other) => Name == other.Name;
 }
 
 /// <summary>What happened on the last voyage. The results screen reads it.</summary>
@@ -103,14 +107,40 @@ public class GameSession : Singleton<GameSession>
         }
     }
 
+    /// <summary>Cargoes delivered this session. Routes get longer as this grows (see DifficultyTier).</summary>
     public int MissionsCompleted { get; private set; }
 
-    /// <summary>True until the player has delivered a cargo once.</summary>
-    public bool IsFirstVoyage => MissionsCompleted == 0;
+    /// <summary>Voyages started this session, delivered or not.</summary>
+    public int VoyagesStarted { get; private set; }
+
+    /// <summary>Voyages on which an Easy job gets the gentle learning layout.</summary>
+    public const int GentleVoyages = 2;
+
+    /// <summary>Deliveries per step of extra route length, and the most steps there can be.</summary>
+    public const int DeliveriesPerTier = 3;
+    public const int MaxTier = 3;
+
+    /// <summary>
+    /// The learning layout (long clear runway, fewer hazards, gentle route): only for an Easy
+    /// job, and only on the first voyages started. Sinking doesn't earn it back, and a Hard job
+    /// never gets it.
+    /// </summary>
+    public bool UseGentleLayout => IsGentle(CurrentJob);
+
+    /// <summary>Whether this job would get the gentle layout on the next voyage.</summary>
+    public bool IsGentle(JobSpec job) => job.IsSameJob(JobSpec.Easy) && VoyagesStarted < GentleVoyages;
+
+    /// <summary>1 at the start; +1 every few deliveries, capped. Credits play no part.</summary>
+    public int DifficultyTier => 1 + Mathf.Min(MissionsCompleted / DeliveriesPerTier, MaxTier - 1);
 
     public void RecordMissionCompleted()
     {
         MissionsCompleted++;
+    }
+
+    public void RecordVoyageStarted()
+    {
+        VoyagesStarted++;
     }
 
     public event Action OnProgressUpdated;

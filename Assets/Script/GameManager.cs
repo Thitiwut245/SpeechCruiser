@@ -60,6 +60,7 @@ public class GameManager : Singleton<GameManager>
             _missionStartTime = Time.time;
             _hits = 0;
             _mineHits = 0;
+            if (GameSession.Instance != null) GameSession.Instance.RecordVoyageStarted();
         }
 
         CurrentState = newState;

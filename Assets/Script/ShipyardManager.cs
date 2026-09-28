@@ -232,12 +232,27 @@ public class ShipyardManager : MonoBehaviour
             }
         }
 
+        SetRouteText("route-easy", JobSpec.Easy);
+        SetRouteText("route-normal", JobSpec.Normal);
+        SetRouteText("route-hard", JobSpec.Hard);
+
         _engineLevelText.text = "ENGINE  Mk " + session.EngineLevel;
         _helmLevelText.text = "RUDDER  Mk " + session.HelmLevel;
         SetBuyButton(_upgradeEngineBtn, session.EngineUpgradeCost, session.Credits);
         SetBuyButton(_upgradeHelmBtn, session.HelmUpgradeCost, session.Credits);
 
         RefreshStartButton();
+    }
+
+    private void SetRouteText(string labelName, JobSpec job)
+    {
+        var label = _document.rootVisualElement.Q<Label>(labelName);
+        if (label == null || LevelGenerator.Instance == null) return;
+
+        var session = GameSession.Instance;
+        string text = Mathf.RoundToInt(LevelGenerator.Instance.RouteLength(job)) + " m route";
+        if (session != null && session.IsGentle(job)) text += " · learning layout";
+        label.text = text;
     }
 
     private static void SetBuyButton(Button button, int cost, int credits)

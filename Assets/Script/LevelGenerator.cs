@@ -49,29 +49,29 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Cells across (X). An odd number gives a symmetric map with a true centre lane.")]
     [SerializeField] private int GridWidth = 15;
 
-    [Tooltip("Cells long (Z) at difficulty 1.")]
+    [Tooltip("Cells long (Z) at difficulty tier 1.")]
     [SerializeField] private int BaseGridLength = 30;
 
-    [Tooltip("Extra cells of length per difficulty level above 1.")]
+    [Tooltip("Extra cells of length per difficulty tier above 1. The tier grows with deliveries (GameSession.DifficultyTier).")]
     [SerializeField] private int CellsPerDifficulty = 5;
 
     [Header("Departure")]
     [Tooltip("Rows ahead of the dock kept free of hazards (3 cells wide), so the first order can't hit anything.")]
     [SerializeField] private int StartClearRows = 5;
 
-    [Tooltip("Clear rows on the player's first voyage, while they are still learning the orders.")]
+    [Tooltip("Clear rows in the gentle learning layout (Easy job, first voyages).")]
     [SerializeField] private int FirstVoyageClearRows = 8;
 
-    [Tooltip("Hazard density multiplier on the player's first voyage.")]
+    [Tooltip("Hazard density multiplier in the gentle learning layout.")]
     [Range(0.1f, 1f)]
     [SerializeField] private float FirstVoyageDensityScale = 0.6f;
 
-    [Tooltip("The solution path must be at least this many times longer than a straight run, so the route weaves.")]
-    [SerializeField] private float MinPathWeave = 1.3f;
-
-    [Tooltip("Weave required on the first voyage. Fewer hazards and a longer clear lane make straighter routes, " +
-             "so the normal requirement would reject every layout.")]
+    [Tooltip("Weave required in the gentle learning layout. Each job sets its own otherwise (JobSpec.MinWeave).")]
     [SerializeField] private float FirstVoyageMinPathWeave = 1.05f;
+
+    [Tooltip("How much the weave requirement relaxes after each rejected layout, so a sparse job still gets " +
+             "a real course instead of running out of attempts.")]
+    [SerializeField] private float WeaveRelaxPerAttempt = 0.03f;
 
     [Tooltip("How much neighbouring wall pieces overlap, in world units, so no gap opens between them.")]
     [SerializeField] private float WallOverlap = 3f;
@@ -131,7 +131,7 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Base density of obstacles. Recommended 0.2 to 0.35.")]
     [SerializeField] private float ObstacleDensity = 0.25f;
 
-    [Tooltip("Attempts at a valid layout before falling back to open sea.")]
+    [Tooltip("Attempts at a winding layout. After the last one the best connected layout found is used.")]
     [SerializeField] private int MaxRetries = 10;
 
     [Tooltip("Fixed seed for reproducible levels. Leave at -1 for a different level every mission.")]
@@ -139,6 +139,7 @@ public class LevelGenerator : MonoBehaviour
 
     private Transform _levelRoot;
     private int _currentDifficulty = 1;
+    private bool _gentle;
     private JobSpec _job = JobSpec.Normal;
     private bool _hazardTagMissing;
     private bool[,] _obstacleMap;
@@ -207,6 +208,19 @@ public class LevelGenerator : MonoBehaviour
         MaxRetries = Mathf.Max(1, MaxRetries);
     }
 
+    /// <summary>Rows in the route for this job at the player's current difficulty tier.</summary>
+    public int RouteRows(JobSpec job)
+    {
+        int tier = GameSession.Instance != null ? GameSession.Instance.DifficultyTier : 1;
+        return BaseGridLength + (tier - 1) * CellsPerDifficulty + job.ExtraRows;
+    }
+
+    /// <summary>Distance from the dock to the destination for this job, in metres (world units).</summary>
+    public float RouteLength(JobSpec job)
+    {
+        return (RouteRows(job) - 1) * CellSize;
+    }
+
     [ContextMenu("Regenerate Now")]
     public void GenerateLevel()
     {
@@ -214,48 +228,62 @@ public class LevelGenerator : MonoBehaviour
 
         if (Seed >= 0) Random.InitState(Seed);
 
-        if (GameSession.Instance != null)
-        {
-            _currentDifficulty = 1 + (GameSession.Instance.Credits / 1000);
-        }
-
         ClearLevel();
 
-        _job = GameSession.Instance != null ? GameSession.Instance.CurrentJob : JobSpec.Normal;
-        int gridLength = BaseGridLength + ((_currentDifficulty - 1) * CellsPerDifficulty) + _job.ExtraRows;
+        var session = GameSession.Instance;
+        _job = session != null ? session.CurrentJob : JobSpec.Normal;
+        _currentDifficulty = session != null ? session.DifficultyTier : 1;
+        _gentle = session != null && session.UseGentleLayout;
+
+        int gridLength = RouteRows(_job);
+        float targetWeave = _gentle ? FirstVoyageMinPathWeave : _job.MinWeave;
+        // RetracePath excludes the start node, so a dead-straight run is (gridLength - 1) nodes.
+        float straight = gridLength - 1;
+
         Node[,] finalGrid = null;
+        Node[,] bestGrid = null;
+        List<Node> bestPath = null;
 
         for (int attempt = 1; attempt <= MaxRetries; attempt++)
         {
             Node[,] grid = CreateAndScatterGrid(GridWidth, gridLength);
+            List<Node> path = FindPathAStar(grid, grid[GridWidth / 2, 0], grid[GridWidth / 2, gridLength - 1]);
+            if (path == null) continue; // blocked: never usable
 
-            Node startNode = grid[GridWidth / 2, 0];
-            Node endNode = grid[GridWidth / 2, gridLength - 1];
+            // Keep the most winding connected layout in case none reaches the target.
+            if (bestPath == null || path.Count > bestPath.Count)
+            {
+                bestGrid = grid;
+                bestPath = path;
+            }
 
-            List<Node> path = FindPathAStar(grid, startNode, endNode);
-            if (path == null) continue;
-
-            // RetracePath excludes the start node, so a dead-straight run up the
-            // middle is (gridLength - 1) nodes. The 1.3x weaving requirement is
-            // measured against that, not against gridLength.
-            bool firstVoyage = GameSession.Instance != null && GameSession.Instance.IsFirstVoyage;
-            float weave = firstVoyage ? FirstVoyageMinPathWeave : MinPathWeave;
-            if (path.Count < (gridLength - 1) * weave) continue;
+            float required = Mathf.Max(1f, targetWeave - WeaveRelaxPerAttempt * (attempt - 1));
+            if (path.Count < straight * required) continue;
 
             finalGrid = grid;
             _finalPathNodes = path;
-            Debug.Log($"🌊 [LEVEL GEN]: difficulty {_currentDifficulty}, grid {GridWidth}x{gridLength}, " +
-                      $"valid on attempt {attempt}, path {path.Count} cells.");
+            Debug.Log($"🌊 [LEVEL GEN]: {_job.Name}{(_gentle ? " (gentle)" : "")}, tier {_currentDifficulty}, grid {GridWidth}x{gridLength}, " +
+                      $"weave {path.Count / straight:0.00} (needed {required:0.00}) on attempt {attempt}.");
             break;
+        }
+
+        if (finalGrid == null && bestGrid != null)
+        {
+            // Every layout was straighter than wanted, but it still has its hazards and a
+            // guaranteed way through: far better than an empty sea.
+            finalGrid = bestGrid;
+            _finalPathNodes = bestPath;
+            Debug.Log($"🌊 [LEVEL GEN]: {_job.Name}, no layout reached weave {targetWeave:0.00}; using the best found " +
+                      $"({bestPath.Count / straight:0.00}).");
         }
 
         if (finalGrid == null)
         {
-            // Open water beats a broken level: same ocean, same ports, no hazards.
-            Debug.LogWarning($"⚠️ [LEVEL GEN]: no valid layout in {MaxRetries} attempts — falling back to open sea. " +
-                             "Lower ObstacleDensity or widen the grid.");
+            // Only possible if every attempt was completely blocked.
+            Debug.LogError($"❌ [LEVEL GEN]: no connected layout in {MaxRetries} attempts — falling back to open sea. " +
+                           "Lower ObstacleDensity or widen the grid.");
             finalGrid = CreateEmptyGrid(GridWidth, gridLength);
-            _finalPathNodes = new List<Node>(); // Open water, path could just be straight line, but autopilot handles empty gracefully.
+            _finalPathNodes = new List<Node>();
         }
 
         Build(finalGrid, gridLength);
@@ -307,9 +335,8 @@ public class LevelGenerator : MonoBehaviour
         int endX = width / 2;
         int endY = length - 1;
 
-        bool firstVoyage = GameSession.Instance != null && GameSession.Instance.IsFirstVoyage;
-        int clearRows = firstVoyage ? FirstVoyageClearRows : StartClearRows;
-        float densityScale = (firstVoyage ? FirstVoyageDensityScale : 1f) * _job.DensityScale;
+        int clearRows = _gentle ? FirstVoyageClearRows : StartClearRows;
+        float densityScale = (_gentle ? FirstVoyageDensityScale : 1f) * _job.DensityScale;
 
         for (int x = 0; x < width; x++)
         {
