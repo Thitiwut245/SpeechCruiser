@@ -435,6 +435,44 @@ public class CommandParserTests
         AssertOrders(speech, expected);
     }
 
+    // "Stay" alone isn't an order: "stay on course" holds the course, it doesn't stop the ship.
+    [TestCase("stay on course", ShipAction.RudderMidships)]
+    [TestCase("Stay straight", ShipAction.RudderMidships)]
+    [TestCase("stay left", ShipAction.TurnPort)]
+    [TestCase("Stay here", ShipAction.EngineStop)]
+    public void StayIsNotABareStop(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
+    [TestCase("Wait!", true)]
+    [TestCase("Wait, wait!", true)]
+    [TestCase("wait wait wait", true)]
+    [TestCase("Hold on a second", true)]
+    [TestCase("Hold on, hold on!", true)]
+    [TestCase("Please wait", true)]
+    [TestCase("Harris, wait", true)]
+    [TestCase("wait, turn left", false)]
+    [TestCase("no wait", false)]
+    public void WaitShortcut(string speech, bool expected)
+    {
+        Assert.AreEqual(expected, CommandRouter.IsWait(speech), speech);
+    }
+
+    [TestCase("Continue.", true)]
+    [TestCase("Please continue", true)]
+    [TestCase("Yes, continue", true)]
+    [TestCase("Continue sailing", true)]
+    [TestCase("Harris, continue", true)]
+    [TestCase("Go on then", true)]
+    [TestCase("keep going", true)]
+    [TestCase("go ahead", false)]
+    [TestCase("continue and turn left", false)]
+    public void ContinueShortcut(string speech, bool expected)
+    {
+        Assert.AreEqual(expected, CommandRouter.IsContinue(speech), speech);
+    }
+
     // Key names come from the physical key, whatever the keyboard layout.
     [TestCase("<Keyboard>/t", "T")]
     [TestCase("<Keyboard>/y", "Y")]

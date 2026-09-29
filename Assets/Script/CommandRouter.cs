@@ -42,15 +42,28 @@ public class CommandRouter : MonoBehaviour
         @"\b(help|what can i say|what do i say|what can i do|what should i do|what do i do|what now|commands|radio card|list of orders)\b",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-    // Said on their own, these mean "keep the ship moving": the last forward speed, or on as she is.
+    // Lead-ins and names allowed in front of the two shortcuts below: "Harris, please continue".
+    private const string ShortcutLeadIn = @"^\W*(?:(?:ok|okay|yes|yeah|please|now|finn|fin|harris|chief|lookout|engineer)\W+)*";
+    private const string ShortcutTail = @"(?:\W+(?:please|sir|captain|now|then|there))*\W*$";
+
+    // Said on their own, these mean "keep the ship moving" (see Resume).
     private static readonly System.Text.RegularExpressions.Regex ContinuePattern = new System.Text.RegularExpressions.Regex(
-        @"^\W*(ok(ay)?\W+)?(continue|keep going|carry on|go on|keep moving|keep sailing|resume|move on|go ahead)(\W+(please|sir|captain|now))*\W*$",
+        ShortcutLeadIn + @"(?:continue|keep going|carry on|go on|keep moving|keep sailing|resume|move on)(?:\W+(?:sailing|going|moving|on))?" + ShortcutTail,
         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-    // A bare "wait!" or "hold on!" at sea means stop.
+    // A bare "wait!" or "hold on!" at sea means stop, repeated or not: "Wait, wait!", "Hold on a second".
     private static readonly System.Text.RegularExpressions.Regex WaitPattern = new System.Text.RegularExpressions.Regex(
-        @"^\W*(wait|hold on|hold it|wait a (moment|second|minute)|wait wait)(\W+(please|sir|captain))*\W*$",
+        ShortcutLeadIn + @"(?:(?:wait|hold on|hold it)\W*)+(?:a (?:moment|second|sec|minute))?" + ShortcutTail,
         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>"Continue", "keep going"… on its own. Public for the tests.</summary>
+    public static bool IsContinue(string transcript) => ContinuePattern.IsMatch(transcript);
+
+    /// <summary>"Wait!", "hold on"… on its own. Public for the tests.</summary>
+    public static bool IsWait(string transcript) => WaitPattern.IsMatch(transcript);
+
+    /// <summary>Resuming from a stop never picks more than half ahead: a "continue" shouldn't launch her at flank.</summary>
+    private const ShipEngine.TelegraphGear MaxResumeGear = ShipEngine.TelegraphGear.Half;
 
     // The last forward gear, so "continue" after a stop picks up where the ship was.
     private ShipEngine.TelegraphGear _lastAheadGear = ShipEngine.TelegraphGear.Slow;
@@ -151,14 +164,16 @@ public class CommandRouter : MonoBehaviour
             return;
         }
 
-        if (ContinuePattern.IsMatch(transcript))
+        // In a chat, "go on…" and "wait…" are conversation, not engine orders.
+        bool chatting = isConversation && ChatReady;
+        if (!chatting && IsContinue(transcript))
         {
             Resume();
             EndInstantTurn();
             return;
         }
 
-        if (WaitPattern.IsMatch(transcript)) transcript = "stop";
+        if (!chatting && IsWait(transcript)) transcript = "stop";
 
         var parsed = CommandParser.Parse(transcript);
 
@@ -335,13 +350,16 @@ public class CommandRouter : MonoBehaviour
     /// <summary>"Continue": already going ahead, Harris keeps her there; stopped or astern, back to the last forward speed.</summary>
     private void Resume()
     {
-        if (CurrentGear() > ShipEngine.TelegraphGear.Stop)
+        var gear = CurrentGear();
+        // Already moving either way: keep her as she is. Backing off a rock, "keep going" means keep backing.
+        if (gear != ShipEngine.TelegraphGear.Stop)
         {
-            Say(RadioChannel.ChiefEngineer, CrewBarkLibrary.KeepGoing(), "keepgoing");
+            Say(RadioChannel.ChiefEngineer, gear > ShipEngine.TelegraphGear.Stop ? CrewBarkLibrary.KeepGoing() : CrewBarkLibrary.KeepGoingAstern(), "keepgoing");
             OnActionExecuted?.Invoke(ShipAction.None);
             return;
         }
-        ExecuteAndAcknowledge(RadioChannel.ChiefEngineer, ActionFor(_lastAheadGear), "");
+        var resume = _lastAheadGear > MaxResumeGear ? MaxResumeGear : _lastAheadGear;
+        ExecuteAndAcknowledge(RadioChannel.ChiefEngineer, ActionFor(resume), "");
     }
 
     private static ShipAction ActionFor(ShipEngine.TelegraphGear gear)

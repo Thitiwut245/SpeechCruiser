@@ -75,8 +75,10 @@ public static class CommandVocabulary
             "all stopped",
             // plain English for beginners
             "brake", "brakes", "break", "hit the brakes", "use the brakes", "stop the boat",
-            "dont move", "do not move", "stay", "stay here", "stay still", "keep still",
-            "hold position", "stop moving"),
+            // not a bare "stay": "stay on course" and "stay left" are helm orders
+            "dont move", "do not move", "stay here", "stay still", "stay put", "keep still",
+            "hold position", "stop moving",
+            "turn off engine", "turn off the engine", "engine off", "switch off engine", "switch off the engine"),
 
         new Entry(ShipAction.EngineDeadSlow,
             "dead slow", "dead slow ahead", "creep", "creep ahead", "crawl",
@@ -162,6 +164,7 @@ public static class CommandVocabulary
 
         new Entry(ShipAction.RudderMidships,
             "midships", "amidships", "rudder amidships", "rudder midships", "steady",
+            "stay on course", "stay the course", "stay straight", "keep course", "keep the course", "stay on track",
             "steady as she goes", "steady on", "hold course", "hold your course",
             "center rudder", "centre rudder", "straight", "straighten out",
             "mid ship", "mid ships", "middle", "center", "centre",

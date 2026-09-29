@@ -375,6 +375,12 @@ public static class CrewBarkLibrary
     // On a good line the crew still talk: a word when a warned hazard is passed, progress
     // calls on the way, the dock sighting, and a report after a long quiet spell.
 
+    /// <summary>Harris, told to "keep going" while going astern: she stays astern.</summary>
+    public static string[] KeepGoingAstern()
+    {
+        return new[] { "Aye, keeping her astern, Sir. Say \"stop\" when we're clear. Over." };
+    }
+
     /// <summary>A question with nothing to answer it: teach the questions that work.</summary>
     public static string[] QuestionHint(RadioChannel crew)
     {
