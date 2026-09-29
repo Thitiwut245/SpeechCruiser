@@ -590,6 +590,9 @@ public class CommandRouter : MonoBehaviour
         new System.Text.RegularExpressions.Regex(@"\([^)]*\)|\[[^\]]*\]|\*[^*]*\*");
 
     /// <summary>True for empty transcripts and the phrases Whisper invents from silence.</summary>
+    // Whisper sometimes returns its own initial prompt (Services.prefab) when it hears nothing.
+    private const string WhisperPromptStart = "captain to crew";
+
     public static bool LooksLikeNoise(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return true;
@@ -605,6 +608,14 @@ public class CommandRouter : MonoBehaviour
         }
 
         if (lower == "thank you." || lower == "thank you") 
+        {
+            return true;
+        }
+
+        // Whisper's usual phrases for silence, and its own initial prompt read back.
+        string bare = lower.Trim('.', '!', '?', ' ');
+        if (bare == "bye" || bare == "thanks for watching" || bare == "thank you for watching" ||
+            bare.Contains("please subscribe") || bare.StartsWith(WhisperPromptStart))
         {
             return true;
         }

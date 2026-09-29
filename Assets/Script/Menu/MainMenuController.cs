@@ -107,6 +107,10 @@ public class MainMenuController : MonoBehaviour
         {
             int n = session.MissionsCompleted;
             _careerLabel.text = "Your career: $" + session.Credits + " · " + n + (n == 1 ? " delivery" : " deliveries");
+            // A voyage left unfinished last time (the game was closed at sea): say what it cost.
+            string last = session.LastMissionSummary;
+            if (!string.IsNullOrEmpty(last) && (last.StartsWith("VOYAGE ABANDONED") || last.StartsWith("TUTORIAL VOYAGE LEFT")))
+                _careerLabel.text += "\nLast time: " + last.Substring(0, 1) + last.Substring(1).ToLowerInvariant();
         }
         _confirmNewCareer = false;
         _newCareerButton.text = "New Career";

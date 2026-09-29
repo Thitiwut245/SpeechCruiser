@@ -40,7 +40,7 @@ public class PauseMenuController : MonoBehaviour
         _resumeButton.clicked += Close;
         _settingButton.clicked += OnSettingClicked;
         _mainMenuButton.clicked += OnMainMenuClicked;
-        _quitButton.clicked += SceneLoader.QuitGame;
+        _quitButton.clicked += OnQuitClicked;
         _replayTutorialButton.clicked += OnReplayTutorialClicked;
 
         _container.style.display = DisplayStyle.None;
@@ -51,7 +51,7 @@ public class PauseMenuController : MonoBehaviour
         _resumeButton.clicked -= Close;
         _settingButton.clicked -= OnSettingClicked;
         _mainMenuButton.clicked -= OnMainMenuClicked;
-        _quitButton.clicked -= SceneLoader.QuitGame;
+        _quitButton.clicked -= OnQuitClicked;
         _replayTutorialButton.clicked -= OnReplayTutorialClicked;
         _settings.Dispose();
 
@@ -98,9 +98,32 @@ public class PauseMenuController : MonoBehaviour
     private void ShowMainPanel()
     {
         _confirmAbandon = false;
+        _confirmQuit = false;
         _mainMenuButton.text = "Main Menu";
+        _quitButton.text = "Quit";
         _settings.Hide();
         _mainPanel.style.display = DisplayStyle.Flex;
+    }
+
+    // Quitting at sea is abandoning too (the next launch would charge it), so it asks the same way.
+    private bool _confirmQuit;
+
+    private void OnQuitClicked()
+    {
+        if (AtSea && !_confirmQuit)
+        {
+            _confirmQuit = true;
+            _quitButton.text = AbandonQuestion("Quit and lose the voyage?");
+            return;
+        }
+        if (AtSea) GameSession.Instance.AbandonVoyage();
+        SceneLoader.QuitGame();
+    }
+
+    private static string AbandonQuestion(string question)
+    {
+        int cost = GameSession.Instance.AbandonCost;
+        return question + (cost > 0 ? " (-$" + cost + ")" : " (free: tutorial)");
     }
 
     private void OnReplayTutorialClicked()
@@ -114,7 +137,7 @@ public class PauseMenuController : MonoBehaviour
         if (AtSea && !_confirmAbandon)
         {
             _confirmAbandon = true;
-            _mainMenuButton.text = "Abandon voyage? (-$" + GameSession.Instance.CurrentJob.TowingFee + ")";
+            _mainMenuButton.text = AbandonQuestion("Abandon voyage?");
             return;
         }
         if (AtSea) GameSession.Instance.AbandonVoyage();

@@ -174,6 +174,14 @@ public class GameSession : Singleton<GameSession>
     /// <summary>Leaving a voyage before it ends counts as losing the ship. Returns the fee charged.</summary>
     public int AbandonVoyage()
     {
+        // The tutorial voyage is practice: leaving it costs nothing.
+        if (!HasSeenTutorial)
+        {
+            ClearCargo();
+            LastMissionSummary = "TUTORIAL VOYAGE LEFT. NO CHARGE: TRY AGAIN ANY TIME";
+            MarkAtSea(false);
+            return 0;
+        }
         int fee = ChargeFee(CurrentJob.TowingFee);
         HullHealth = AbandonedHullHealth;
         ClearCargo();
@@ -181,6 +189,9 @@ public class GameSession : Singleton<GameSession>
         MarkAtSea(false);
         return fee;
     }
+
+    /// <summary>What abandoning now would actually cost (the tow, capped at the credits; nothing on the tutorial voyage).</summary>
+    public int AbandonCost => HasSeenTutorial ? Mathf.Min(CurrentJob.TowingFee, Mathf.Max(0, _credits)) : 0;
 
     protected override void Awake()
     {

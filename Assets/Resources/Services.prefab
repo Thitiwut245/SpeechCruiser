@@ -66,7 +66,8 @@ MonoBehaviour:
   noContext: 1
   singleSegment: 0
   enableTokens: 0
-  initialPrompt: 
+  initialPrompt: 'Captain to crew. Port, starboard, midships, slow ahead, half ahead,
+    full ahead, astern, stop, any danger, where is the dock.'
   stepSec: 3
   keepSec: 0.2
   lengthSec: 10
