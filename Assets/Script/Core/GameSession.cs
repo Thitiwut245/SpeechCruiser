@@ -158,6 +158,9 @@ public class GameSession : Singleton<GameSession>
     /// <summary>A career has been played before (the title screen offers to start a new one). Opening the shipyard isn't enough.</summary>
     public bool HasSavedCareer => PlayerPrefs.GetInt(CareerPref + "voyages", 0) > 0;
 
+    /// <summary>Anything saved at all, even an upgrade bought before the first voyage: New Career can clear it.</summary>
+    public bool HasAnySave => PlayerPrefs.HasKey(CareerPref + "voyages");
+
     /// <summary>What a voyage left unfinished (game closed at sea) costs on the next launch.</summary>
     public const int AbandonedHullHealth = 1;
 

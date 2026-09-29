@@ -30,7 +30,7 @@ public class GameManager : Singleton<GameManager>
     public float ParSeconds { get; private set; }
 
     /// <summary>Par for the level currently built: the shipyard shows it before sailing.</summary>
-    public float ParFor(LevelGenerator level) => level != null ? Mathf.Round(level.SolutionLength / Mathf.Max(ParSpeed, 0.1f)) : 0f;
+    public float ParFor(LevelGenerator level) => level != null ? Mathf.Round(level.SmoothedSolutionLength / Mathf.Max(ParSpeed, 0.1f)) : 0f;
 
     public float OnTimeShare => OnTimeBonusShare;
 
@@ -71,7 +71,9 @@ public class GameManager : Singleton<GameManager>
         if (newState == GameState.Playing && CurrentState != GameState.Playing)
         {
             _missionStartTime = Time.time;
-            ParSeconds = ParFor(LevelGenerator.Instance);
+            // The tutorial voyage stops and reverses on purpose: no par to miss.
+            bool drill = GameSession.Instance != null && !GameSession.Instance.HasSeenTutorial;
+            ParSeconds = drill ? 0f : ParFor(LevelGenerator.Instance);
             _hits = 0;
             _mineHits = 0;
             if (GameSession.Instance != null)

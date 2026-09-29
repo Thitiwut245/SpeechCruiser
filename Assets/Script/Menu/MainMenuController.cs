@@ -101,7 +101,7 @@ public class MainMenuController : MonoBehaviour
         var session = GameSession.Instance;
         bool saved = session != null && session.HasSavedCareer;
         _playButton.text = saved ? "Continue" : "Set Sail";
-        _newCareerButton.style.display = saved ? DisplayStyle.Flex : DisplayStyle.None;
+        _newCareerButton.style.display = session != null && session.HasAnySave ? DisplayStyle.Flex : DisplayStyle.None;
         _careerLabel.style.display = saved ? DisplayStyle.Flex : DisplayStyle.None;
         if (saved)
         {

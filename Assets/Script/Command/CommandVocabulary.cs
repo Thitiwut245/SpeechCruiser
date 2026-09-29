@@ -59,7 +59,7 @@ public static class CommandVocabulary
 
     /// <summary>Names that address a specific crew member rather than forming part of an order.</summary>
     public static readonly string[] LookoutNames = { "finn", "fin", "fen", "lookout", "look out", "bow" };
-    public static readonly string[] EngineerNames = { "harris", "chief", "engineer", "harrison", "haris", "engine room" };
+    public static readonly string[] EngineerNames = { "harris", "chief", "engineer", "harrison", "haris", "harry", "hari", "engine room" };
 
     /// <summary>
     /// Ordered only for readability — matching considers every entry and picks the
@@ -149,6 +149,8 @@ public static class CommandVocabulary
             "turn starboard", "starboard", "to starboard", "come starboard",
             "starboard side", "turn right", "right", "right rudder", "starboard rudder",
             "helm to starboard", "come right",
+            // r/l swapped by an accent or by Whisper
+            "turn light", "go light", "light rudder",
             "more right", "more starboard", "go right", "go starboard", "go to starboard",
             "right more", "starboard more", "right side", "to right",
             // observed Whisper mishears for "starboard"

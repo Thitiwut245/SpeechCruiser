@@ -397,6 +397,14 @@ public static class CommandParser
         bool belay = BelayMarkers.Contains(marker.Groups["m"].Value.ToLowerInvariant());
 
         Result afterResult = ParseClause(after);
+
+        // A trailing "sorry" is politeness, not a cancel: "turn left, sorry" still turns left.
+        // "Sorry, turn right" (an order after it) is still a correction.
+        if (marker.Groups["m"].Value.ToLowerInvariant() == "sorry" &&
+            afterResult.Matches.Count == 0 && !afterResult.NeedsClarification && !afterResult.OrderInQuestion)
+        {
+            return ParseClause(before);
+        }
         if (afterResult.Matches.Count > 0 || afterResult.NeedsClarification || afterResult.OrderInQuestion)
         {
             if (afterResult.AddressedCrew == null) afterResult.AddressedCrew = FindAddressedCrew(Normalize(rawSpeech));

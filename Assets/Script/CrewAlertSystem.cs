@@ -74,6 +74,7 @@ public class CrewAlertSystem : MonoBehaviour
     // The hazard Finn warned about, and one that left the course but may not be past yet.
     private Collider _warnedHazard;
     private Collider _pendingPassed;
+    private Vector3 _pendingHeading;
 
     // Progress along the route this voyage.
     private float _routeLength = -1f;
@@ -168,7 +169,11 @@ public class CrewAlertSystem : MonoBehaviour
         // the radar too, and that is not a pass.
         if (threat ? radar.ThreatId != _threatId : _threatStage > 0)
         {
-            if (_threatStage > 0 && !_hitSinceWarning) _pendingPassed = _warnedHazard;
+            if (_threatStage > 0 && !_hitSinceWarning)
+            {
+                _pendingPassed = _warnedHazard;
+                _pendingHeading = ShipNavigator.Instance != null ? ShipNavigator.Instance.transform.forward : Vector3.forward;
+            }
             _threatId = threat ? radar.ThreatId : 0;
             _threatStage = 0;
             _warnedHazard = null;
@@ -209,6 +214,9 @@ public class CrewAlertSystem : MonoBehaviour
         Vector3 to = hazard.bounds.center - nav.transform.position;
         to.y = 0f;
         if (to.magnitude > 120f) { _pendingPassed = null; return false; }
+
+        // Turned round and sailing away from it: that's not a pass either.
+        if (Vector3.Angle(nav.transform.forward, _pendingHeading) > 90f) { _pendingPassed = null; return false; }
 
         // Stopped or backing away in front of it is not a pass: she has to go by it, bow first.
         if (nav.currentSpeed < 0.5f) return false;

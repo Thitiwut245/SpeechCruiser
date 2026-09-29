@@ -190,7 +190,49 @@ public class LevelGenerator : MonoBehaviour
     /// <summary>The sequence of world coordinates safely avoiding hazards.</summary>
     public List<Vector3> SolutionWorldPath { get; private set; }
 
-    /// <summary>Length of the guaranteed channel through the level, in world units. The par time is set from it.</summary>
+    /// <summary>
+    /// Length of the channel as a helmsman would sail it: the grid path steps from cell to cell,
+    /// so it is pulled tight wherever there is clear water between two of its points.
+    /// The par time is set from this.
+    /// </summary>
+    public float SmoothedSolutionLength
+    {
+        get
+        {
+            var path = SolutionWorldPath;
+            if (path == null || path.Count < 2) return 0f;
+            float length = 0f;
+            int i = 0;
+            while (i < path.Count - 1)
+            {
+                int j = path.Count - 1;
+                while (j > i + 1 && !ClearLine(path[i], path[j])) j--;
+                length += Vector3.Distance(path[i], path[j]);
+                i = j;
+            }
+            return length;
+        }
+    }
+
+    // No hazard cell (or its neighbour on either side of the line) between two points.
+    private bool ClearLine(Vector3 a, Vector3 b)
+    {
+        float step = CellSize * 0.25f;
+        int samples = Mathf.CeilToInt(Vector3.Distance(a, b) / step);
+        Vector3 side = Vector3.Cross(Vector3.up, (b - a).normalized) * (CellSize * 0.35f);
+        for (int s = 0; s <= samples; s++)
+        {
+            Vector3 p = Vector3.Lerp(a, b, s / (float)Mathf.Max(1, samples));
+            foreach (var q in new[] { p, p + side, p - side })
+            {
+                var cell = CellFromWorld(q);
+                if (IsObstacle(cell.x, cell.y)) return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>Length of the guaranteed channel through the level, in world units (cell to cell).</summary>
     public float SolutionLength
     {
         get

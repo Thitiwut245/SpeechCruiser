@@ -439,7 +439,8 @@ public class RadioMic : MonoBehaviour
         _inputLevel = 0f;
         _recordStartTime = Time.realtimeSinceStartup;
         _recordingEpoch = RadioEpoch.Current;
-        _recordingClip = Microphone.Start(_activeDevice, false, MaxRecordDuration, SAMPLING_RATE);
+        // A second longer than the cut: a clip that fills up reads back as position 0 ("no sound").
+        _recordingClip = Microphone.Start(_activeDevice, false, MaxRecordDuration + 1, SAMPLING_RATE);
 
         if (!test && TimeController.Instance != null) TimeController.Instance.SetPTTActive(true);
         Emit(RadioStatus.Recording, "");

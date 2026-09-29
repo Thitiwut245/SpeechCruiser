@@ -908,6 +908,7 @@ public class ShipHUD : MonoBehaviour
 
     private string OrderKey => _radioMic != null ? _radioMic.OrderKeyName : "T";
     private string TalkKey => _radioMic != null ? _radioMic.TalkKeyName : "Y";
+    private static string ChartKey { get { var map = Object.FindAnyObjectByType<LevelMap>(); return map != null ? map.ToggleKeyName : "M"; } }
     private static bool ToggleToTalk => SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk;
 
     /// <summary>Key names and subtitle size follow the player's settings.</summary>
@@ -916,7 +917,7 @@ public class ShipHUD : MonoBehaviour
         if (_radioCardTitle != null)
             _radioCardTitle.text = "RADIO CARD · " + (ToggleToTalk ? "press " : "hold ") + OrderKey + " and say an order · F1 to close";
         if (_keyStrip != null)
-            _keyStrip.text = OrderKey + ": order · " + TalkKey + ": talk · Enter: type · Tab: channel · M: chart · F1: orders · Esc: pause";
+            _keyStrip.text = OrderKey + ": order · " + TalkKey + ": talk · Enter: type · Tab: channel · " + ChartKey + ": chart · F1: orders · Esc: pause";
 
         float scale = SettingsService.Instance != null ? SettingsService.Instance.SubtitleScale : 1f;
         if (_crewSubtitleText != null) _crewSubtitleText.style.fontSize = Hud.Subtitle * scale;

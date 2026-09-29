@@ -473,6 +473,22 @@ public class CommandParserTests
         Assert.AreEqual(expected, CommandRouter.IsContinue(speech), speech);
     }
 
+    // Politeness and accents: a trailing "sorry" keeps the order, r/l swaps still steer.
+    [TestCase("Turn left, sorry", ShipAction.TurnPort)]
+    [TestCase("Sorry, turn right", ShipAction.TurnStarboard)]
+    [TestCase("turn light", ShipAction.TurnStarboard)]
+    [TestCase("hard light", ShipAction.HardStarboard)]
+    public void PolitenessAndAccents(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
+    [Test]
+    public void HarryIsHarris()
+    {
+        Assert.AreEqual(RadioChannel.ChiefEngineer, CommandParser.Parse("Harry, status report").AddressedCrew);
+    }
+
     // Key names come from the physical key, whatever the keyboard layout.
     [TestCase("<Keyboard>/t", "T")]
     [TestCase("<Keyboard>/y", "Y")]
