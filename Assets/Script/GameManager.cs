@@ -15,9 +15,6 @@ public enum GameState
 /// </summary>
 public class GameManager : Singleton<GameManager>
 {
-    [Tooltip("Towing fee when the ship is lost. Never takes credits below zero.")]
-    [SerializeField] private int TowingFee = 150;
-
     [Tooltip("Hull points a towed ship comes home with.")]
     [SerializeField] private int TowedHullHealth = 1;
 
@@ -133,7 +130,8 @@ public class GameManager : Singleton<GameManager>
         // Losing the ship costs something: the cargo, a towing fee, and a barely patched hull.
         var session = GameSession.Instance;
         var result = BeginResult(false);
-        int fee = session.ChargeFee(TowingFee);
+        // The tow costs more on bigger jobs (JobSpec.TowingFee); never below zero credits.
+        int fee = session.ChargeFee(session.CurrentJob.TowingFee);
         session.HullHealth = TowedHullHealth;
         session.LastMissionSummary = $"SHIP LOST. CARGO GONE, TOWED HOME: -${fee}";
         result.TowingFee = fee;

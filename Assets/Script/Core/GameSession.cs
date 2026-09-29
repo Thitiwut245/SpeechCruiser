@@ -15,15 +15,22 @@ public struct JobSpec
     public bool Mines;
     /// <summary>How much longer than a straight run the safe route must be: how much it winds.</summary>
     public float MinWeave;
+    /// <summary>Deliveries needed before this job is offered.</summary>
+    public int UnlockDeliveries;
+    /// <summary>What a tow home costs when the ship is lost on this job.</summary>
+    public int TowingFee;
 
     public static readonly JobSpec Easy = new JobSpec
-    { Name = "EASY", Containers = 5, Reward = 300, DensityScale = 0.75f, ExtraRows = 0, Mines = false, MinWeave = 1.1f };
+    { Name = "EASY", Containers = 5, Reward = 300, DensityScale = 0.75f, ExtraRows = 0, Mines = false, MinWeave = 1.1f,
+      UnlockDeliveries = 0, TowingFee = 100 };
 
     public static readonly JobSpec Normal = new JobSpec
-    { Name = "NORMAL", Containers = 10, Reward = 700, DensityScale = 1f, ExtraRows = 0, Mines = true, MinWeave = 1.2f };
+    { Name = "NORMAL", Containers = 10, Reward = 700, DensityScale = 1f, ExtraRows = 0, Mines = true, MinWeave = 1.2f,
+      UnlockDeliveries = 2, TowingFee = 200 };
 
     public static readonly JobSpec Hard = new JobSpec
-    { Name = "HARD", Containers = 15, Reward = 1500, DensityScale = 1.25f, ExtraRows = 6, Mines = true, MinWeave = 1.3f };
+    { Name = "HARD", Containers = 15, Reward = 1500, DensityScale = 1.25f, ExtraRows = 6, Mines = true, MinWeave = 1.3f,
+      UnlockDeliveries = 5, TowingFee = 400 };
 
     public bool IsSameJob(JobSpec other) => Name == other.Name;
 }
@@ -71,7 +78,15 @@ public class GameSession : Singleton<GameSession>
     public int HelmLevel => _helmLevel;
 
     public JobSpec CurrentJob { get; private set; } = JobSpec.Easy;
-    public int CurrentReward => CurrentJob.Reward;
+    public int CurrentReward => RewardFor(CurrentJob);
+
+    /// <summary>Longer routes at higher tiers pay more: +15% per tier above the first.</summary>
+    public const float TierPayBonus = 0.15f;
+
+    public int RewardFor(JobSpec job) => Mathf.RoundToInt(job.Reward * (1f + TierPayBonus * (DifficultyTier - 1)));
+
+    /// <summary>Normal opens after 2 deliveries and Hard after 5, so the first voyages are Easy ones.</summary>
+    public bool IsUnlocked(JobSpec job) => MissionsCompleted >= job.UnlockDeliveries;
     public int CurrentContainerCount => CurrentJob.Containers;
 
     /// <summary>Hull points carried between missions; -1 means a fresh, undamaged hull.</summary>
@@ -92,8 +107,9 @@ public class GameSession : Singleton<GameSession>
     public MissionResult LastResult { get; set; }
 
     public const int RepairCostPerHullPoint = 50;
-    public const int EngineBaseCost = 100;
-    public const int HelmBaseCost = 100;
+    // Mk 2 costs the base, Mk 3 twice that: $750 per upgrade line, something worth saving for.
+    public const int EngineBaseCost = 250;
+    public const int HelmBaseCost = 250;
 
     public int EngineUpgradeCost => EngineBaseCost * _engineLevel;
     public int HelmUpgradeCost => HelmBaseCost * _helmLevel;
@@ -158,6 +174,7 @@ public class GameSession : Singleton<GameSession>
         VoyagesStarted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "voyages", 0));
         string job = PlayerPrefs.GetString(CareerPref + "job", JobSpec.Easy.Name);
         CurrentJob = job == JobSpec.Hard.Name ? JobSpec.Hard : job == JobSpec.Normal.Name ? JobSpec.Normal : JobSpec.Easy;
+        if (!IsUnlocked(CurrentJob)) CurrentJob = JobSpec.Easy;
     }
 
     private void SaveCareer()

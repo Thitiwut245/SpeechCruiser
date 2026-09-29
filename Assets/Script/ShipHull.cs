@@ -215,11 +215,14 @@ public class ShipHull : MonoBehaviour
         wreck.rotation = endRotation;
     }
 
-    public void RepairShip()
+    public void RepairShip() => RepairPoints(MaxHealth);
+
+    /// <summary>Restores up to <paramref name="points"/> hull points (the shipyard sells them one at a time).</summary>
+    public void RepairPoints(int points)
     {
         _isDestroyed = false;
-        _currentHealth = MaxHealth;
-        if (GameSession.Instance != null) GameSession.Instance.HullHealth = MaxHealth;
+        _currentHealth = Mathf.Min(MaxHealth, Mathf.Max(_currentHealth, 0) + Mathf.Max(0, points));
+        if (GameSession.Instance != null) GameSession.Instance.HullHealth = _currentHealth;
         OnHealthChanged?.Invoke(_currentHealth, MaxHealth);
 
         var nav = ShipNavigator.Instance;

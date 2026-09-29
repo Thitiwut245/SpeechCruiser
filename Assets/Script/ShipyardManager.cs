@@ -167,6 +167,7 @@ public class ShipyardManager : MonoBehaviour
 
     private void SelectJob(JobSpec job)
     {
+        if (GameSession.Instance != null && !GameSession.Instance.IsUnlocked(job)) job = JobSpec.Easy;
         _selectedJob = job;
         _confirmDamagedStart = false;
 
@@ -261,44 +262,74 @@ public class ShipyardManager : MonoBehaviour
             _hullText.text = hull.CurrentHealth + "/" + hull.MaxHealthAmount;
 
             int missing = hull.MaxHealthAmount - hull.CurrentHealth;
-            int repairCost = missing * GameSession.RepairCostPerHullPoint;
+            int affordable = RepairablePoints(hull, session.Credits);
             if (missing <= 0)
             {
                 _repairBtn.text = "FULL";
                 _repairBtn.SetEnabled(false);
             }
+            else if (affordable > 0)
+            {
+                // Short of money, repair what can be paid for, one point at a time.
+                _repairBtn.text = (affordable < missing ? "REPAIR " + affordable + "  $" : "REPAIR  $") + affordable * GameSession.RepairCostPerHullPoint;
+                _repairBtn.SetEnabled(true);
+            }
             else
             {
-                _repairBtn.text = session.Credits >= repairCost ? "REPAIR  $" + repairCost : "NEED $" + (repairCost - session.Credits);
-                _repairBtn.SetEnabled(session.Credits >= repairCost);
+                _repairBtn.text = "NEED $" + (GameSession.RepairCostPerHullPoint - session.Credits);
+                _repairBtn.SetEnabled(false);
             }
         }
 
-        SetRouteText("route-easy", JobSpec.Easy);
-        SetRouteText("route-normal", JobSpec.Normal);
-        SetRouteText("route-hard", JobSpec.Hard);
+        SetJobCard(_jobEasyBtn, "route-easy", JobSpec.Easy);
+        SetJobCard(_jobNormalBtn, "route-normal", JobSpec.Normal);
+        SetJobCard(_jobHardBtn, "route-hard", JobSpec.Hard);
 
         _engineLevelText.text = "ENGINE  Mk " + session.EngineLevel;
         _helmLevelText.text = "RUDDER  Mk " + session.HelmLevel;
-        SetBuyButton(_upgradeEngineBtn, session.EngineUpgradeCost, session.Credits);
-        SetBuyButton(_upgradeHelmBtn, session.HelmUpgradeCost, session.Credits);
+        SetBuyButton(_upgradeEngineBtn, session.EngineUpgradeCost, session.Credits, session.EngineLevel >= GameSession.MaxUpgradeLevel);
+        SetBuyButton(_upgradeHelmBtn, session.HelmUpgradeCost, session.Credits, session.HelmLevel >= GameSession.MaxUpgradeLevel);
 
         RefreshStartButton();
     }
 
-    private void SetRouteText(string labelName, JobSpec job)
+    /// <summary>Pay at the current tier, route length, and whether the job is open yet.</summary>
+    private void SetJobCard(Button card, string routeLabel, JobSpec job)
     {
-        var label = _document.rootVisualElement.Q<Label>(labelName);
-        if (label == null || LevelGenerator.Instance == null) return;
-
+        var label = _document.rootVisualElement.Q<Label>(routeLabel);
         var session = GameSession.Instance;
+        if (label == null || LevelGenerator.Instance == null || session == null) return;
+
+        var pay = card.Q<Label>(className: "card-pay");
+        if (pay != null) pay.text = "$" + session.RewardFor(job);
+
+        bool open = session.IsUnlocked(job);
+        card.SetEnabled(open);
+        if (!open)
+        {
+            int more = job.UnlockDeliveries - session.MissionsCompleted;
+            label.text = "Opens after " + job.UnlockDeliveries + " deliveries (" + more + " to go)";
+            return;
+        }
         string text = Mathf.RoundToInt(LevelGenerator.Instance.RouteLength(job)) + " m route";
-        if (session != null && session.IsGentle(job)) text += " · learning layout";
+        if (session.IsGentle(job)) text += " · learning layout";
         label.text = text;
     }
 
-    private static void SetBuyButton(Button button, int cost, int credits)
+    private static int RepairablePoints(ShipHull hull, int credits)
     {
+        int missing = hull.MaxHealthAmount - hull.CurrentHealth;
+        return Mathf.Clamp(credits / GameSession.RepairCostPerHullPoint, 0, missing);
+    }
+
+    private static void SetBuyButton(Button button, int cost, int credits, bool maxed)
+    {
+        if (maxed)
+        {
+            button.text = "MAX";
+            button.SetEnabled(false);
+            return;
+        }
         bool affordable = credits >= cost;
         button.text = affordable ? "BUY  $" + cost : "NEED $" + (cost - credits) + " MORE";
         button.SetEnabled(affordable);
@@ -309,7 +340,9 @@ public class ShipyardManager : MonoBehaviour
         if (_startDetail == null) return;
 
         string name = _selectedJob.Name.Substring(0, 1) + _selectedJob.Name.Substring(1).ToLowerInvariant();
-        _startDetail.text = $"{name} run · {_selectedJob.Containers} containers · up to ${_selectedJob.Reward}";
+        int reward = GameSession.Instance != null ? GameSession.Instance.RewardFor(_selectedJob) : _selectedJob.Reward;
+        int bonus = GameManager.Instance != null ? Mathf.RoundToInt(reward * GameManager.Instance.OnTimeShare) : 0;
+        _startDetail.text = $"{name} run · {_selectedJob.Containers} containers · ${reward} (+${bonus} on time)";
 
         var hull = Hull();
         bool damaged = hull != null && hull.CurrentHealth < hull.MaxHealthAmount;
@@ -361,14 +394,13 @@ public class ShipyardManager : MonoBehaviour
         var hull = Hull();
         if (hull == null) return;
 
-        int missing = hull.MaxHealthAmount - hull.CurrentHealth;
-        int cost = missing * GameSession.RepairCostPerHullPoint;
-        if (missing <= 0 || GameSession.Instance.Credits < cost) return;
+        int points = RepairablePoints(hull, GameSession.Instance.Credits);
+        if (points <= 0) return;
 
-        GameSession.Instance.SpendCredits(cost);
-        hull.RepairShip();
+        GameSession.Instance.SpendCredits(points * GameSession.RepairCostPerHullPoint);
+        hull.RepairPoints(points);
         _confirmDamagedStart = false;
-        ShowToast("Hull repaired");
+        ShowToast(hull.CurrentHealth >= hull.MaxHealthAmount ? "Hull repaired" : "Hull patched: " + hull.CurrentHealth + "/" + hull.MaxHealthAmount);
         RefreshUI();
     }
 
