@@ -58,6 +58,10 @@ public class ShipyardManager : MonoBehaviour
 
     private JobSpec _selectedJob = JobSpec.Easy;
     private bool _loading;
+    private static ShipyardManager _instance;
+
+    /// <summary>Cargo is being loaded after SET SAIL: the radio check is over, the voyage is starting.</summary>
+    public static bool IsLoadingCargo => _instance != null && _instance._loading;
     private bool _skipLoading;
     private bool _confirmDamagedStart;
     private float _toastUntil;
@@ -106,6 +110,7 @@ public class ShipyardManager : MonoBehaviour
         _composer = FindAnyObjectByType<CinemachinePositionComposer>();
 
         if (GameSession.Instance != null) GameSession.Instance.OnProgressUpdated += RefreshUI;
+        _instance = this;
         _mic = FindAnyObjectByType<RadioMic>();
         if (_mic != null) _mic.OnRadioStatus += HandleRadioStatus;
         ShipHull.OnHullHit += DropCargo;
@@ -128,6 +133,7 @@ public class ShipyardManager : MonoBehaviour
         // GameSession outlives this scene, so this unsubscribe is what prevents a leak.
         if (GameSession.Instance != null) GameSession.Instance.OnProgressUpdated -= RefreshUI;
         if (_mic != null) _mic.OnRadioStatus -= HandleRadioStatus; // RadioMic outlives this scene
+        if (_instance == this) _instance = null;
         ShipHull.OnHullHit -= DropCargo;
         ShipHull.OnHealthChanged -= HandleHullChanged;
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleStateChanged;
@@ -190,10 +196,36 @@ public class ShipyardManager : MonoBehaviour
         }
     }
 
+    // The key runs a radio check in the shipyard: say how it went in the toast.
     private void HandleRadioStatus(RadioStatus status, string text)
     {
-        if (status == RadioStatus.NotAtSea && _storePanel != null && _storePanel.resolvedStyle.display == DisplayStyle.Flex)
-            ShowToast("The radio works at sea. Press SET SAIL first.");
+        if (_storePanel == null || _storePanel.resolvedStyle.display != DisplayStyle.Flex) return;
+        string line = RadioCheckText(status, text, _mic);
+        if (line != null) ShowToast(line, status == RadioStatus.Tested ? 5f : 3f);
+    }
+
+    /// <summary>
+    /// What the title screen and the shipyard show during a radio check; null for statuses
+    /// that don't need words. Shared so both screens say the same thing.
+    /// </summary>
+    public static string RadioCheckText(RadioStatus status, string text, RadioMic mic)
+    {
+        bool toggle = SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk;
+        string key = mic != null ? mic.OrderKeyName : "T";
+        switch (status)
+        {
+            case RadioStatus.Recording:
+                return "Radio check: listening..." + (toggle ? " Press " + key + " again to finish." : " Let go of " + key + " to finish.");
+            case RadioStatus.Decoding:
+                return "Radio check: listening back...";
+            case RadioStatus.Tested:
+                return RadioMic.TestHeardPrefix + "\"" + text + "\". Orders work at sea.";
+            case RadioStatus.Heard:
+            case RadioStatus.Cancelled:
+                return null;
+            default:
+                return string.IsNullOrEmpty(text) ? null : text;
+        }
     }
 
     private void HandleHullChanged(int current, int max)
@@ -304,10 +336,10 @@ public class ShipyardManager : MonoBehaviour
         }
     }
 
-    private void ShowToast(string message)
+    private void ShowToast(string message, float seconds = 2.5f)
     {
         _toastText.text = message;
-        _toastUntil = Time.unscaledTime + 2.5f;
+        _toastUntil = Time.unscaledTime + seconds;
     }
 
     private void OnUpgradeEngine()

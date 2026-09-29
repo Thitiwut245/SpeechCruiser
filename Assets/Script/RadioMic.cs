@@ -21,8 +21,10 @@ public enum RadioStatus
     Failed,
     /// <summary>The transmission was dropped: the game paused or the scene changed mid-sentence.</summary>
     Cancelled,
-    /// <summary>The radio key was pressed while the ship is moored or the voyage is over.</summary>
+    /// <summary>The radio key was pressed while the radio can't be used at all (a scene is loading, the report is up).</summary>
     NotAtSea,
+    /// <summary>A radio check on the title screen or in the shipyard: the text is what was heard. Nothing is sent to the crew.</summary>
+    Tested,
 }
 
 public class RadioMic : MonoBehaviour
@@ -348,14 +350,42 @@ public class RadioMic : MonoBehaviour
         return Microphone.devices; 
     }
 
-    /// <summary>The radio only works at sea: in the shipyard, during loading and on the report it stays off.</summary>
+    /// <summary>Orders reach the crew only at sea.</summary>
     private static bool AtSea => GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing;
+
+    /// <summary>
+    /// On the title screen and in the shipyard the key runs a radio check: the player hears
+    /// whether the microphone works before sailing, and nothing is sent to the crew.
+    /// </summary>
+    private static bool CanTest
+    {
+        get
+        {
+            if (SceneLoader.Instance != null && SceneLoader.Instance.IsLoading) return false;
+            var game = GameManager.Instance;
+            if (game == null) return true; // title screen
+            return game.CurrentState == GameState.Shipyard && !ShipyardManager.IsLoadingCargo;
+        }
+    }
+
+    public const string TestHeardPrefix = "Radio check OK. I heard: ";
+
+    // The transmission being recorded is a radio check, not an order.
+    private bool _testing;
+
+    /// <summary>A radio check is recording or decoding. It never slows time.</summary>
+    public bool IsTesting => _testing && (_isRecording || _transcribing);
 
     private void StartRecording(RadioMode mode)
     {
-        if (!AtSea)
+        bool test = !AtSea;
+        if (test && !CanTest)
         {
-            Emit(RadioStatus.NotAtSea, "The radio works at sea. Press SET SAIL first.");
+            string why = ShipyardManager.IsLoadingCargo ? "Loading cargo. The radio works as soon as you're at sea."
+                : GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Shipyard
+                    ? "The radio works at sea. Continue to the shipyard, then SET SAIL."
+                    : "One moment, the radio is changing over.";
+            Emit(RadioStatus.NotAtSea, why);
             return;
         }
 
@@ -387,13 +417,14 @@ public class RadioMic : MonoBehaviour
         ReleaseRecordingClip();
 
         _currentMode = mode;
+        _testing = test;
         _isRecording = true;
         _inputLevel = 0f;
         _recordStartTime = Time.realtimeSinceStartup;
         _recordingEpoch = RadioEpoch.Current;
         _recordingClip = Microphone.Start(_activeDevice, false, MaxRecordDuration, SAMPLING_RATE);
 
-        if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(true);
+        if (!test && TimeController.Instance != null) TimeController.Instance.SetPTTActive(true);
         Emit(RadioStatus.Recording, "");
     }
 
@@ -402,6 +433,7 @@ public class RadioMic : MonoBehaviour
         if (!_isRecording) return;
 
         RadioMode modeUsed = _currentMode;
+        bool testing = _testing;
         int epoch = _recordingEpoch;
         _currentMode = RadioMode.None;
         _isRecording = false;
@@ -507,6 +539,12 @@ public class RadioMic : MonoBehaviour
         }
 
         Debug.Log("[WHISPER]: \"" + text + "\"");
+        if (testing)
+        {
+            if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
+            Emit(RadioStatus.Tested, text);
+            return;
+        }
         Emit(RadioStatus.Heard, text);
 
         CommandRouter router = CommandRouter.Instance;

@@ -230,6 +230,9 @@ public class AudioService : Singleton<AudioService>
             case RadioStatus.NotAtSea:
                 Play(Library.RadioBusy, AudioBus.Radio, 0.55f);
                 break;
+            case RadioStatus.Tested:
+                Play(Library.RadioRoger, AudioBus.Radio, 0.7f);
+                break;
             case RadioStatus.TooShort:
             case RadioStatus.TooQuiet:
             case RadioStatus.NoAudio:

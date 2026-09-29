@@ -52,11 +52,22 @@ public class MissionResultsPanel : MonoBehaviour
         _continue.clicked += Continue;
 
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged += HandleStateChanged;
+        _mic = FindAnyObjectByType<RadioMic>();
+        if (_mic != null) _mic.OnRadioStatus += HandleRadioStatus;
     }
 
     private void OnDestroy()
     {
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleStateChanged;
+        if (_mic != null) _mic.OnRadioStatus -= HandleRadioStatus; // RadioMic outlives this scene
+    }
+
+    private RadioMic _mic;
+
+    // The radio is off on the report: say why instead of only beeping.
+    private void HandleRadioStatus(RadioStatus status, string text)
+    {
+        if (_shown && status == RadioStatus.NotAtSea && _tip != null) _tip.text = text;
     }
 
     private void HandleStateChanged(GameState state)

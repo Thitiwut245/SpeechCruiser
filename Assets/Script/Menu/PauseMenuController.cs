@@ -105,7 +105,10 @@ public class PauseMenuController : MonoBehaviour
 
     private void OnMainMenuClicked()
     {
-        Close();
+        // Hide the menu but keep the game paused through the fade: the scene load resets
+        // time itself, so the ship can't sail on (or be hit) while the screen goes dark.
+        IsOpen = false;
+        _container.style.display = DisplayStyle.None;
         SceneLoader.Instance.Load(SceneId.Menu);
     }
 }

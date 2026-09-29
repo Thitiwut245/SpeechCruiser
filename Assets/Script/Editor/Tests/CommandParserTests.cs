@@ -371,6 +371,17 @@ public class CommandParserTests
         Assert.AreEqual("Full ahead, Sir. 9.6 knots. Over.", CrewBarkLibrary.Fill("Full ahead, Sir. {12} knots. Over.", t));
     }
 
+    // A radio check off-voyage says what was heard, and that orders work at sea.
+    [Test]
+    public void RadioCheckSaysWhatWasHeard()
+    {
+        Assert.AreEqual("Radio check OK. I heard: \"radio check\". Orders work at sea.",
+            ShipyardManager.RadioCheckText(RadioStatus.Tested, "radio check", null));
+        Assert.AreEqual("Radio check: listening... Let go of T to finish.",
+            ShipyardManager.RadioCheckText(RadioStatus.Recording, "", null));
+        Assert.IsNull(ShipyardManager.RadioCheckText(RadioStatus.Heard, "slow ahead", null));
+    }
+
     // Progress calls on a good line: every placeholder is filled, and the dock is placed in plain words.
     [Test]
     public void ProgressCallsFillEveryPlaceholder()

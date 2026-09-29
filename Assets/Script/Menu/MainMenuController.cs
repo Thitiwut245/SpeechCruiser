@@ -3,7 +3,8 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// Title screen in the Menu scene: Play / Settings / Quit, plus a radio status line:
-/// warming up, ready, no microphone, or speech system failed.
+/// warming up, ready, no microphone, or speech system failed. The order key runs a radio
+/// check here, and the line says what was heard.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
 public class MainMenuController : MonoBehaviour
@@ -16,6 +17,10 @@ public class MainMenuController : MonoBehaviour
     private SettingsPanelController _settings;
 
     private RadioMic _radioMic;
+
+    // A radio-check message, shown instead of the status until this time (unscaled).
+    private string _checkLine;
+    private float _checkUntil;
 
     private void OnEnable()
     {
@@ -41,21 +46,37 @@ public class MainMenuController : MonoBehaviour
         _settingButton.clicked -= OnSettingClicked;
         _quitButton.clicked -= SceneLoader.QuitGame;
         _settings.Dispose();
+        if (_radioMic != null) _radioMic.OnRadioStatus -= HandleRadioStatus; // RadioMic outlives this scene
     }
 
     private void Start()
     {
         _radioMic = FindAnyObjectByType<RadioMic>();
+        if (_radioMic != null) _radioMic.OnRadioStatus += HandleRadioStatus;
+    }
+
+    private void HandleRadioStatus(RadioStatus status, string text)
+    {
+        string line = ShipyardManager.RadioCheckText(status, text, _radioMic);
+        if (line == null) return;
+        _checkLine = line;
+        // Recording and decoding stay up until the next status replaces them.
+        _checkUntil = Time.unscaledTime + (status == RadioStatus.Recording || status == RadioStatus.Decoding ? 30f
+                                         : status == RadioStatus.Tested ? 6f : 4f);
     }
 
     private void Update()
     {
         if (_radioStatusLabel == null) return;
 
-        if (_radioMic == null || !_radioMic.HasMicrophone)
+        if (_checkLine != null && Time.unscaledTime < _checkUntil)
+            _radioStatusLabel.text = _checkLine;
+        else if (_radioMic == null || !_radioMic.HasMicrophone)
             _radioStatusLabel.text = "No microphone found. Plug one in, then check Settings.";
         else if (_radioMic.IsModelReady)
-            _radioStatusLabel.text = "Radio ready";
+            _radioStatusLabel.text = "Radio ready. Test it: " +
+                (SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk ? "press " : "hold ") +
+                _radioMic.OrderKeyName + " and say \"radio check\".";
         else if (_radioMic.IsModelLoading)
             _radioStatusLabel.text = "Radio warming up...";
         else

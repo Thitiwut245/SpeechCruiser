@@ -1107,22 +1107,30 @@ public class ShipHUD : MonoBehaviour
         switch (status)
         {
             case RadioStatus.Recording:
+                if (_radioFlash != null) _radioFlash.style.display = DisplayStyle.None;
+                return;
+
             case RadioStatus.Decoding:
             case RadioStatus.Heard:
-                if (_radioFlash != null) _radioFlash.style.display = DisplayStyle.None;
+                // "Message cut" arrives the same frame the cut message starts decoding: let it be read.
+                if (_radioFlash != null && _flashStatus != RadioStatus.Cut) _radioFlash.style.display = DisplayStyle.None;
                 return;
 
             case RadioStatus.NoMic:
             case RadioStatus.Failed:
             case RadioStatus.ModelNotReady:
+                _flashStatus = status;
                 ShowFlash(text, RadioRed);
                 return;
 
             default:
+                _flashStatus = status;
                 ShowFlash(text, RadioAmber);
                 return;
         }
     }
+
+    private RadioStatus _flashStatus = RadioStatus.Recording;
 
     private void ShowFlash(string text, Color color)
     {

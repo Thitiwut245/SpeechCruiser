@@ -55,7 +55,7 @@ public class TimeController : Singleton<TimeController>
     /// classifier or chat request counts once.
     /// </summary>
     private bool WantsSlowMo =>
-        _pttActive || _aiRequests > 0 || _typing || (_mic != null && (_mic.IsRecording || _mic.IsTranscribing));
+        _pttActive || _aiRequests > 0 || _typing || (_mic != null && (_mic.IsRecording || _mic.IsTranscribing) && !_mic.IsTesting);
 
     private void OnEnable()
     {
