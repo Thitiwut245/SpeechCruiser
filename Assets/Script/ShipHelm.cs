@@ -146,12 +146,8 @@ public class ShipHelm : MonoBehaviour
 
     private void UpdateRudder()
     {
-        float speedMultiplier = 1f;
-        if (GameSession.Instance != null)
-        {
-            speedMultiplier += (GameSession.Instance.HelmLevel - 1) * 0.3f; // 30% faster rudder per level
-        }
-        float actualRudderSpeed = RudderSpeed * speedMultiplier;
+        // The rudder upgrade swings the blade faster too (ShipMovement applies it to the turn itself).
+        float actualRudderSpeed = RudderSpeed * (GameSession.Instance != null ? GameSession.Instance.HelmTurnFactor : 1f);
 
         _currentRudderAngle = Mathf.MoveTowards(_currentRudderAngle, _targetRudderAngle, actualRudderSpeed * Time.deltaTime);
 

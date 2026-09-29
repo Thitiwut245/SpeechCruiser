@@ -190,6 +190,18 @@ public class LevelGenerator : MonoBehaviour
     /// <summary>The sequence of world coordinates safely avoiding hazards.</summary>
     public List<Vector3> SolutionWorldPath { get; private set; }
 
+    /// <summary>Length of the guaranteed channel through the level, in world units. The par time is set from it.</summary>
+    public float SolutionLength
+    {
+        get
+        {
+            float length = 0f;
+            if (SolutionWorldPath == null) return 0f;
+            for (int i = 1; i < SolutionWorldPath.Count; i++) length += Vector3.Distance(SolutionWorldPath[i - 1], SolutionWorldPath[i]);
+            return length;
+        }
+    }
+
     private List<Node> _finalPathNodes;
 
     // Node structure for A* Pathfinding

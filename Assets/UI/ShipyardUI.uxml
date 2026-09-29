@@ -61,14 +61,14 @@
             <ui:VisualElement class="card upgrade-card">
                 <ui:VisualElement class="card-main">
                     <ui:Label name="engine-level-text" text="ENGINE  Mk 1" class="card-title" />
-                    <ui:Label text="+20% top speed and acceleration" class="card-desc" />
+                    <ui:Label text="+20% speed, brakes to match · max Mk 3" class="card-desc" />
                 </ui:VisualElement>
                 <ui:Button name="upgrade-engine-btn" text="$100" class="buy-btn" />
             </ui:VisualElement>
             <ui:VisualElement class="card upgrade-card">
                 <ui:VisualElement class="card-main">
                     <ui:Label name="helm-level-text" text="RUDDER  Mk 1" class="card-title" />
-                    <ui:Label text="+30% faster turning response" class="card-desc" />
+                    <ui:Label text="+15% faster turns, tighter circle · max Mk 3" class="card-desc" />
                 </ui:VisualElement>
                 <ui:Button name="upgrade-helm-btn" text="$100" class="buy-btn" />
             </ui:VisualElement>

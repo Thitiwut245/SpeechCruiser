@@ -21,6 +21,22 @@ public class GameManager : Singleton<GameManager>
     [Tooltip("Hull points a towed ship comes home with.")]
     [SerializeField] private int TowedHullHealth = 1;
 
+    [Tooltip("Par speed along the guaranteed channel, units/s. Between half (5) and full (8) ahead at Mk 1, so " +
+             "beating par takes open-water speed or a better engine.")]
+    [SerializeField] private float ParSpeed = 6f;
+
+    [Tooltip("Share of the pay added when the cargo arrives inside par time.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float OnTimeBonusShare = 0.2f;
+
+    /// <summary>Par time for this voyage, in seconds (0 until the voyage starts).</summary>
+    public float ParSeconds { get; private set; }
+
+    /// <summary>Par for the level currently built: the shipyard shows it before sailing.</summary>
+    public float ParFor(LevelGenerator level) => level != null ? Mathf.Round(level.SolutionLength / Mathf.Max(ParSpeed, 0.1f)) : 0f;
+
+    public float OnTimeShare => OnTimeBonusShare;
+
     public GameState CurrentState { get; private set; } = GameState.Shipyard;
 
     public event Action<GameState> OnStateChanged;
@@ -58,6 +74,7 @@ public class GameManager : Singleton<GameManager>
         if (newState == GameState.Playing && CurrentState != GameState.Playing)
         {
             _missionStartTime = Time.time;
+            ParSeconds = ParFor(LevelGenerator.Instance);
             _hits = 0;
             _mineHits = 0;
             if (GameSession.Instance != null) GameSession.Instance.RecordVoyageStarted();
@@ -93,7 +110,10 @@ public class GameManager : Singleton<GameManager>
         var result = BeginResult(true);
         int loaded = Mathf.Max(1, session.CargoLoaded);
         int pay = Mathf.RoundToInt(session.CurrentReward * (float)session.CargoAboard / loaded);
-        session.AddCredits(pay);
+        // Speed pays: arriving inside par adds a share of what was earned.
+        result.ParSeconds = ParSeconds;
+        result.OnTimeBonus = ParSeconds > 0f && result.Seconds <= ParSeconds ? Mathf.RoundToInt(pay * OnTimeBonusShare) : 0;
+        session.AddCredits(pay + result.OnTimeBonus);
         session.RecordMissionCompleted();
         session.LastMissionSummary = $"DELIVERED {session.CargoAboard}/{session.CargoLoaded} CONTAINERS: +${pay}";
         result.Pay = pay;

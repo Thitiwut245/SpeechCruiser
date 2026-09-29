@@ -48,6 +48,9 @@ public class MissionResult
     public int RepairCost;
     public int CreditsBefore;
     public int CreditsAfter;
+    /// <summary>Par time for the route; delivering inside it earns OnTimeBonus.</summary>
+    public float ParSeconds;
+    public int OnTimeBonus;
 }
 
 /// <summary>
@@ -95,6 +98,15 @@ public class GameSession : Singleton<GameSession>
     public int EngineUpgradeCost => EngineBaseCost * _engineLevel;
     public int HelmUpgradeCost => HelmBaseCost * _helmLevel;
 
+    /// <summary>Both upgrades stop at Mk 3: past that the ship outruns the channels.</summary>
+    public const int MaxUpgradeLevel = 3;
+
+    /// <summary>Engine: +20% speed per level. Braking scales with it, so she stops in the same time.</summary>
+    public float EngineSpeedFactor => 1f + 0.2f * (_engineLevel - 1);
+
+    /// <summary>Rudder: +15% turn rate and swing per level, so the ship turns tighter.</summary>
+    public float HelmTurnFactor => 1f + 0.15f * (_helmLevel - 1);
+
     /// <summary>Cargo makes the ship slower to speed up: -2% per container aboard.</summary>
     public float CargoAccelerationFactor => 1f - 0.02f * CargoAboard;
 
@@ -139,8 +151,8 @@ public class GameSession : Singleton<GameSession>
     {
         if (!HasSavedCareer) return;
         _credits = PlayerPrefs.GetInt(CareerPref + "credits", _credits);
-        _engineLevel = Mathf.Max(1, PlayerPrefs.GetInt(CareerPref + "engine", _engineLevel));
-        _helmLevel = Mathf.Max(1, PlayerPrefs.GetInt(CareerPref + "helm", _helmLevel));
+        _engineLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "engine", _engineLevel), 1, MaxUpgradeLevel);
+        _helmLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "helm", _helmLevel), 1, MaxUpgradeLevel);
         _hullHealth = PlayerPrefs.GetInt(CareerPref + "hull", -1);
         MissionsCompleted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "delivered", 0));
         VoyagesStarted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "voyages", 0));
@@ -262,6 +274,7 @@ public class GameSession : Singleton<GameSession>
     public bool TryBuyUpgrade(string upgradeType, int cost)
     {
         if (_credits < cost) return false;
+        if ((upgradeType == "Engine" ? _engineLevel : _helmLevel) >= MaxUpgradeLevel) return false;
 
         if (upgradeType == "Engine") _engineLevel++;
         else if (upgradeType == "Helm") _helmLevel++;

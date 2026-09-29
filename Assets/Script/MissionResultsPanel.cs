@@ -127,7 +127,16 @@ public class MissionResultsPanel : MonoBehaviour
 
         AddRow("Hits", result.Hits == 0 ? "None" : result.Hits + (result.MineHits > 0 ? "  (" + result.MineHits + " mine" + (result.MineHits == 1 ? "" : "s") + ")" : ""),
                result.Hits == 0 ? "good" : "bad");
-        AddRow("Time at sea", FormatTime(result.Seconds), null);
+        if (result.Delivered && result.ParSeconds > 0f)
+        {
+            bool onTime = result.OnTimeBonus > 0;
+            AddRow("Time at sea", FormatTime(result.Seconds) + "  (par " + FormatTime(result.ParSeconds) + ")", onTime ? "good" : null);
+            AddRow("On-time bonus", onTime ? "+$" + result.OnTimeBonus : "missed", onTime ? "good" : null);
+        }
+        else
+        {
+            AddRow("Time at sea", FormatTime(result.Seconds), null);
+        }
         AddRow("Hull", result.HullAfter + " / " + result.HullMax +
                        (result.RepairCost > 0 ? "   repair costs $" + result.RepairCost : "   no repairs needed"),
                result.RepairCost > 0 ? "bad" : "good");
@@ -182,7 +191,9 @@ public class MissionResultsPanel : MonoBehaviour
             return "Tip: go slower near rocks. At \"slow ahead\" you have much more time to turn.";
         if (r.Hits > 0)
             return "Tip: turn as soon as Finn warns you. The ship needs a few seconds to swing around.";
-        return "Clean run! A harder job pays more, and the engine upgrade gets you there faster.";
+        if (r.OnTimeBonus == 0 && r.ParSeconds > 0f)
+            return "Clean run! Beat the par time for a bonus: use full speed on open water, or upgrade the engine.";
+        return "Clean run and on time! A harder job pays more.";
     }
 
     private void Continue()

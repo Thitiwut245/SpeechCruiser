@@ -145,9 +145,11 @@ public class ShipMovement : MonoBehaviour
         // and reverses when the ship is making way astern.
         float bite = Mathf.Lerp(PivotAuthority, 1f, Mathf.Clamp01(Mathf.Abs(speed) / FullAuthoritySpeed));
         float cargo = GameSession.Instance != null ? GameSession.Instance.CargoTurnFactor : 1f;
-        float target = rudder * TurningPower * cargo * bite * Sternward;
+        // The rudder upgrade turns the ship itself faster, not just the rudder blade.
+        float helm = GameSession.Instance != null ? GameSession.Instance.HelmTurnFactor : 1f;
+        float target = rudder * TurningPower * helm * cargo * bite * Sternward;
 
-        _turnRate = Mathf.MoveTowards(_turnRate, target, YawAccel * Time.deltaTime);
+        _turnRate = Mathf.MoveTowards(_turnRate, target, YawAccel * helm * Time.deltaTime);
         if (Mathf.Abs(_turnRate) < 0.01f) return;
 
         transform.Rotate(0f, _turnRate * Time.deltaTime, 0f, Space.World);

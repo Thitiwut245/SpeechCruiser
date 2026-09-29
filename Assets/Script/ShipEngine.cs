@@ -121,21 +121,19 @@ public class ShipEngine : MonoBehaviour
     {
         _targetSpeed = GetSpeedForGear(CurrentGear);
 
-        // Apply Upgrade Multiplier to Acceleration
-        float accelMultiplier = 1f;
-        if (GameSession.Instance != null)
-        {
-            accelMultiplier += (GameSession.Instance.EngineLevel - 1) * 0.2f;
-            accelMultiplier *= GameSession.Instance.CargoAccelerationFactor;
-        }
+        // The engine upgrade scales speed, acceleration and braking together, so a faster
+        // ship still stops in the same time instead of sliding twice as far.
+        float engine = GameSession.Instance != null ? GameSession.Instance.EngineSpeedFactor : 1f;
+        float accelMultiplier = engine;
+        if (GameSession.Instance != null) accelMultiplier *= GameSession.Instance.CargoAccelerationFactor;
 
         // Three regimes: pushing against the motion brakes hard, speeding up uses the
         // engine, and anything else is the hull coasting down on its own.
         bool pushingAgainst = Mathf.Abs(CurrentSpeed) > 0.05f && Mathf.Abs(_targetSpeed) > 0.05f &&
                               Mathf.Sign(_targetSpeed) != Mathf.Sign(CurrentSpeed);
-        float rate = pushingAgainst ? AsternBrakeRate
+        float rate = pushingAgainst ? AsternBrakeRate * engine
                    : Mathf.Abs(_targetSpeed) > Mathf.Abs(CurrentSpeed) ? AccelerationRate * accelMultiplier
-                   : DecelerationRate;
+                   : DecelerationRate * engine;
         CurrentSpeed = Mathf.MoveTowards(CurrentSpeed, _targetSpeed, rate * Time.deltaTime);
 
         IsEngineRunning = Mathf.Abs(CurrentSpeed) > 0.05f;
@@ -172,14 +170,8 @@ public class ShipEngine : MonoBehaviour
             case TelegraphGear.FullAstern: baseSpeed = SpeedFullAstern; break;
         }
 
-        // Apply Upgrade Multiplier (each level adds 20% speed)
-        float multiplier = 1f;
-        if (GameSession.Instance != null)
-        {
-            multiplier += (GameSession.Instance.EngineLevel - 1) * 0.2f;
-        }
-
-        return baseSpeed * multiplier;
+        // Engine upgrade: +20% per level (capped at Mk 3 in GameSession).
+        return baseSpeed * (GameSession.Instance != null ? GameSession.Instance.EngineSpeedFactor : 1f);
     }
 
     private void UpdateTelegraphDisplay()
