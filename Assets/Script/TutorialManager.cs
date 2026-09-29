@@ -266,7 +266,7 @@ public class TutorialManager : MonoBehaviour
             new Step
             {
                 Title = "Go straight",
-                Text = "The rudder bar shows how the ship is turning. Straighten up when you point where you want to go.",
+                Text = "Each \"left\" turns the ship about 30 degrees, then Finn steadies her. Say \"straight\" to stop a turn early.",
                 Try = "Say: \"straight\"  (or \"midships\")",
                 Highlight = "rudder",
                 Done = () => Ran(a => a == ShipAction.RudderMidships),
@@ -289,7 +289,7 @@ public class TutorialManager : MonoBehaviour
             new Step
             {
                 Title = "Stop",
-                Text = "A big ship drifts! After \"stop\" she keeps moving for about 8 seconds, so stop early. \"Full astern\" brakes faster.",
+                Text = "A big ship drifts! From full speed she keeps moving for about 8 seconds after \"stop\", so stop early. \"Full astern\" brakes faster.",
                 Try = "Say: \"stop\"",
                 Highlight = "telegraph",
                 Done = () => Ran(a => a == ShipAction.EngineStop),

@@ -20,6 +20,10 @@ public class PauseMenuController : MonoBehaviour
 
     public bool IsOpen { get; private set; }
 
+    // Main Menu mid-voyage abandons it, so it takes a second click.
+    private bool _confirmAbandon;
+    private static bool AtSea => GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing;
+
     private void OnEnable()
     {
         var root = GetComponent<UIDocument>().rootVisualElement;
@@ -93,6 +97,8 @@ public class PauseMenuController : MonoBehaviour
 
     private void ShowMainPanel()
     {
+        _confirmAbandon = false;
+        _mainMenuButton.text = "Main Menu";
         _settings.Hide();
         _mainPanel.style.display = DisplayStyle.Flex;
     }
@@ -105,6 +111,14 @@ public class PauseMenuController : MonoBehaviour
 
     private void OnMainMenuClicked()
     {
+        if (AtSea && !_confirmAbandon)
+        {
+            _confirmAbandon = true;
+            _mainMenuButton.text = "Abandon voyage? (-$" + GameSession.Instance.CurrentJob.TowingFee + ")";
+            return;
+        }
+        if (AtSea) GameSession.Instance.AbandonVoyage();
+
         // Hide the menu but keep the game paused through the fade: the scene load resets
         // time itself, so the ship can't sail on (or be hit) while the screen goes dark.
         IsOpen = false;

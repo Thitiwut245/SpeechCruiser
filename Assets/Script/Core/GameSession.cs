@@ -69,7 +69,9 @@ public class MissionResult
 public class GameSession : Singleton<GameSession>
 {
     [Header("Player Progress")]
-    [SerializeField] private int _credits = 500;
+    [SerializeField] private int _credits = StartingCredits;
+
+    public const int StartingCredits = 500;
     [SerializeField] private int _engineLevel = 1;
     [SerializeField] private int _helmLevel = 1;
 
@@ -151,10 +153,34 @@ public class GameSession : Singleton<GameSession>
     // ------------------------------------------------------------ saved career
 
     private const string CareerPref = "career.";
-    private static readonly string[] CareerKeys = { "credits", "engine", "helm", "hull", "delivered", "voyages", "job" };
+    private static readonly string[] CareerKeys = { "credits", "engine", "helm", "hull", "delivered", "voyages", "job", "atsea" };
 
-    /// <summary>A career has been played before (the title screen offers to start a new one).</summary>
-    public bool HasSavedCareer => PlayerPrefs.HasKey(CareerPref + "voyages");
+    /// <summary>A career has been played before (the title screen offers to start a new one). Opening the shipyard isn't enough.</summary>
+    public bool HasSavedCareer => PlayerPrefs.GetInt(CareerPref + "voyages", 0) > 0;
+
+    /// <summary>What a voyage left unfinished (game closed at sea) costs on the next launch.</summary>
+    public const int AbandonedHullHealth = 1;
+
+    /// <summary>
+    /// Set while a voyage is under way. If the game closes before the voyage ends, the next
+    /// launch counts it as lost: the tow is charged and the hull comes home patched.
+    /// </summary>
+    public void MarkAtSea(bool atSea)
+    {
+        PlayerPrefs.SetInt(CareerPref + "atsea", atSea ? 1 : 0);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>Leaving a voyage before it ends counts as losing the ship. Returns the fee charged.</summary>
+    public int AbandonVoyage()
+    {
+        int fee = ChargeFee(CurrentJob.TowingFee);
+        HullHealth = AbandonedHullHealth;
+        ClearCargo();
+        LastMissionSummary = "VOYAGE ABANDONED. CARGO LOST, TOWED HOME: -$" + fee;
+        MarkAtSea(false);
+        return fee;
+    }
 
     protected override void Awake()
     {
@@ -165,7 +191,9 @@ public class GameSession : Singleton<GameSession>
 
     private void LoadCareer()
     {
-        if (!HasSavedCareer) return;
+        // Anything saved loads (an upgrade bought before the first voyage counts); the title
+        // only offers Continue once a voyage has been sailed.
+        if (!PlayerPrefs.HasKey(CareerPref + "voyages")) return;
         _credits = PlayerPrefs.GetInt(CareerPref + "credits", _credits);
         _engineLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "engine", _engineLevel), 1, MaxUpgradeLevel);
         _helmLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "helm", _helmLevel), 1, MaxUpgradeLevel);
@@ -175,6 +203,9 @@ public class GameSession : Singleton<GameSession>
         string job = PlayerPrefs.GetString(CareerPref + "job", JobSpec.Easy.Name);
         CurrentJob = job == JobSpec.Hard.Name ? JobSpec.Hard : job == JobSpec.Normal.Name ? JobSpec.Normal : JobSpec.Easy;
         if (!IsUnlocked(CurrentJob)) CurrentJob = JobSpec.Easy;
+
+        // The game was closed mid-voyage last time: that voyage is lost.
+        if (PlayerPrefs.GetInt(CareerPref + "atsea", 0) == 1) AbandonVoyage();
     }
 
     private void SaveCareer()
@@ -193,8 +224,11 @@ public class GameSession : Singleton<GameSession>
     public void StartNewCareer()
     {
         foreach (var key in CareerKeys) PlayerPrefs.DeleteKey(CareerPref + key);
+        // A new career is a new learner: the drill comes back too.
+        PlayerPrefs.DeleteKey("tutorial_done");
+        PlayerPrefs.DeleteKey("tutorial_step");
         PlayerPrefs.Save();
-        _credits = 500;
+        _credits = StartingCredits;
         _engineLevel = 1;
         _helmLevel = 1;
         _hullHealth = -1;

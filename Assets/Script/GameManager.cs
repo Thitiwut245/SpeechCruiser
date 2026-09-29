@@ -74,7 +74,11 @@ public class GameManager : Singleton<GameManager>
             ParSeconds = ParFor(LevelGenerator.Instance);
             _hits = 0;
             _mineHits = 0;
-            if (GameSession.Instance != null) GameSession.Instance.RecordVoyageStarted();
+            if (GameSession.Instance != null)
+            {
+                GameSession.Instance.RecordVoyageStarted();
+                GameSession.Instance.MarkAtSea(true);
+            }
         }
 
         CurrentState = newState;
@@ -112,7 +116,8 @@ public class GameManager : Singleton<GameManager>
         result.OnTimeBonus = ParSeconds > 0f && result.Seconds <= ParSeconds ? Mathf.RoundToInt(pay * OnTimeBonusShare) : 0;
         session.AddCredits(pay + result.OnTimeBonus);
         session.RecordMissionCompleted();
-        session.LastMissionSummary = $"DELIVERED {session.CargoAboard}/{session.CargoLoaded} CONTAINERS: +${pay}";
+        session.MarkAtSea(false);
+        session.LastMissionSummary = $"DELIVERED {session.CargoAboard}/{session.CargoLoaded} CONTAINERS: +${pay + result.OnTimeBonus}";
         result.Pay = pay;
         FinishResult(result);
         session.ClearCargo();
@@ -133,6 +138,7 @@ public class GameManager : Singleton<GameManager>
         // The tow costs more on bigger jobs (JobSpec.TowingFee); never below zero credits.
         int fee = session.ChargeFee(session.CurrentJob.TowingFee);
         session.HullHealth = TowedHullHealth;
+        session.MarkAtSea(false);
         session.LastMissionSummary = $"SHIP LOST. CARGO GONE, TOWED HOME: -${fee}";
         result.TowingFee = fee;
         result.CargoDelivered = 0;

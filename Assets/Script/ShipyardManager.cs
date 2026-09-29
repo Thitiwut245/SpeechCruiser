@@ -420,6 +420,7 @@ public class ShipyardManager : MonoBehaviour
         }
 
         _confirmDamagedStart = false;
+        if (_mic != null) _mic.EndRadioCheck();
         _loading = true;
         _skipLoading = false;
 

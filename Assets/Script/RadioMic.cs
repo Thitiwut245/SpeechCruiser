@@ -373,6 +373,15 @@ public class RadioMic : MonoBehaviour
     // The transmission being recorded is a radio check, not an order.
     private bool _testing;
 
+    /// <summary>
+    /// SET SAIL ends a radio check still being recorded, so the next press at sea is an order,
+    /// not the end of the check.
+    /// </summary>
+    public void EndRadioCheck()
+    {
+        if (_isRecording && _testing) CancelRecording("Radio check ended: you're setting sail.");
+    }
+
     /// <summary>A radio check is recording or decoding. It never slows time.</summary>
     public bool IsTesting => _testing && (_isRecording || _transcribing);
 
@@ -539,6 +548,12 @@ public class RadioMic : MonoBehaviour
         }
 
         Debug.Log("[WHISPER]: \"" + text + "\"");
+        // A check still decoding when the voyage began is dropped: the radio is for orders now.
+        if (testing && AtSea)
+        {
+            Debug.Log("[RADIO]: radio check finished after sailing; dropped \"" + text + "\"");
+            return;
+        }
         if (testing)
         {
             if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
