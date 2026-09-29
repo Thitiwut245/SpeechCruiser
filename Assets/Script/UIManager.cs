@@ -248,7 +248,13 @@ public class UIManager : MonoBehaviour
     // Read every frame so the distance counts down instead of freezing at first sight.
     private void Update()
     {
-        if (ShipHUD.Instance != null)
+        // Paused, the lines wait: reading time only runs while the game does.
+        if (TimeController.Instance != null && TimeController.Instance.IsPaused)
+        {
+            _crewLineAt += Time.unscaledDeltaTime;
+            _playerLineAt += Time.unscaledDeltaTime;
+        }
+        else if (ShipHUD.Instance != null)
         {
             FadeLine(ShipHUD.Instance.CrewSubtitleText, ref _crewLineAt, _crewLineHold);
             FadeLine(ShipHUD.Instance.CrewSttLogText, ref _playerLineAt, _playerLineHold);

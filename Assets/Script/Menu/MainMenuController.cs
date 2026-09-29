@@ -24,6 +24,7 @@ public class MainMenuController : MonoBehaviour
 
     // A radio-check message, shown instead of the status until this time (unscaled).
     private string _checkLine;
+    private RadioStatus _lastStatus = RadioStatus.Heard;
     private float _checkUntil;
 
     private void OnEnable()
@@ -66,12 +67,14 @@ public class MainMenuController : MonoBehaviour
 
     private void HandleRadioStatus(RadioStatus status, string text)
     {
+        // "Message cut" arrives the same frame the cut message starts decoding: keep it up.
+        bool keepCut = status == RadioStatus.Decoding && _lastStatus == RadioStatus.Cut;
+        _lastStatus = status;
+        if (keepCut) return;
         string line = ShipyardManager.RadioCheckText(status, text, _radioMic);
         if (line == null) return;
         _checkLine = line;
-        // Recording and decoding stay up until the next status replaces them.
-        _checkUntil = Time.unscaledTime + (status == RadioStatus.Recording || status == RadioStatus.Decoding ? 30f
-                                         : status == RadioStatus.Tested ? 6f : 4f);
+        _checkUntil = Time.unscaledTime + ShipyardManager.RadioLineSeconds(status);
     }
 
     private void Update()

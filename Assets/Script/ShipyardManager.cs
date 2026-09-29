@@ -201,14 +201,23 @@ public class ShipyardManager : MonoBehaviour
     private void HandleRadioStatus(RadioStatus status, string text)
     {
         if (_storePanel == null || _storePanel.resolvedStyle.display != DisplayStyle.Flex) return;
+        // "Message cut" arrives the same frame the cut message starts decoding: keep it up.
+        if (status == RadioStatus.Decoding && _lastRadioStatus == RadioStatus.Cut) { _lastRadioStatus = status; return; }
+        _lastRadioStatus = status;
         string line = RadioCheckText(status, text, _mic);
-        if (line != null) ShowToast(line, status == RadioStatus.Tested ? 5f : 3f);
+        if (line != null) ShowToast(line, RadioLineSeconds(status));
     }
 
     /// <summary>
     /// What the title screen and the shipyard show during a radio check; null for statuses
     /// that don't need words. Shared so both screens say the same thing.
     /// </summary>
+    private RadioStatus _lastRadioStatus = RadioStatus.Heard;
+
+    /// <summary>How long a radio-check line stays up: listening lines until the next status replaces them.</summary>
+    public static float RadioLineSeconds(RadioStatus status) =>
+        status == RadioStatus.Recording || status == RadioStatus.Decoding ? 30f : status == RadioStatus.Tested ? 6f : 4f;
+
     public static string RadioCheckText(RadioStatus status, string text, RadioMic mic)
     {
         bool toggle = SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk;

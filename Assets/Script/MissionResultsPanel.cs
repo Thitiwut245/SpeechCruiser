@@ -64,10 +64,16 @@ public class MissionResultsPanel : MonoBehaviour
 
     private RadioMic _mic;
 
-    // The radio is off on the report: say why instead of only beeping.
+    // The radio is off on the report: say why instead of only beeping, then put the tip back.
+    private string _tipText;
+    private float _restoreTipAt = -1f;
+
     private void HandleRadioStatus(RadioStatus status, string text)
     {
-        if (_shown && status == RadioStatus.NotAtSea && _tip != null) _tip.text = text;
+        if (!_shown || status != RadioStatus.NotAtSea || _tip == null) return;
+        if (_restoreTipAt < 0f) _tipText = _tip.text;
+        _tip.text = text;
+        _restoreTipAt = Time.unscaledTime + 4f;
     }
 
     private void HandleStateChanged(GameState state)
@@ -85,6 +91,12 @@ public class MissionResultsPanel : MonoBehaviour
 
     private void Update()
     {
+        if (_restoreTipAt > 0f && Time.unscaledTime >= _restoreTipAt)
+        {
+            _restoreTipAt = -1f;
+            if (_tip != null && _tipText != null) _tip.text = _tipText;
+        }
+
         if (!_shown && _showAt > 0f && Time.unscaledTime >= _showAt)
         {
             _showAt = -1f;

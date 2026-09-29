@@ -851,7 +851,7 @@ public class ShipHUD : MonoBehaviour
         var ask = CardColumn(bottom, "ASK", Hud.Text);
         CardLine(ask, "\"any danger?\"", "Finn reports rocks and mines");
         CardLine(ask, "\"where is the dock?\"", "direction and distance");
-        CardLine(ask, "\"how much fuel?\"", "Harris reports");
+        CardLine(ask, "\"what's our heading?\"", "Finn names the direction");
 
         var radio = CardColumn(bottom, "RADIO", Hud.Text);
         CardLine(radio, "\"belay that\"", "undo the last order");

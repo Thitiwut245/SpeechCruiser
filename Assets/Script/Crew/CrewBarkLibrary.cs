@@ -115,10 +115,11 @@ public static class CrewBarkLibrary
                     : new[] { "No dock on the chart yet, Sir. Over." };
 
             case ShipAction.QueryStatus:
-                return new[] { "Telegraph {0}, making {1} knots, fuel {2}%. Over.", "Engine room reports {0}, {1} knots, {2}% fuel. Over." };
+                return new[] { "Telegraph {0}, making {1} knots. Over.", "Engine room reports {0}, {1} knots. Over." };
 
             case ShipAction.QueryFuel:
-                return new[] { "Fuel at {2}%, Sir. Over.", "We're carrying {2}% in the bunkers. Over." };
+                // Tanks are filled at every dock and no route empties them.
+                return new[] { "Plenty for this run, Sir. We fill up at every dock. Over.", "Tanks are fine, Captain, {2}% left. Over." };
 
             case ShipAction.QuerySpeed:
                 return new[] { "Making {1} knots, telegraph {0}. Over.", "{1} knots through the water, Sir. Over." };
@@ -249,20 +250,12 @@ public static class CrewBarkLibrary
     // Refusals, confusion, and unprompted alerts
     // ==================================================================
 
-    /// <summary>An order could not be carried out (no ship to give it to).</summary>
+    /// <summary>An order could not be carried out (no ship to give it to). Orders reach the right crew member on any channel, so this is never about stations.</summary>
     public static string[] Redirect(RadioChannel crew)
     {
-        if (crew == RadioChannel.Lookout)
-        {
-            return new[]
-            {
-                "That's Chief Harris's station, Sir! I've only got eyes up here. Over.",
-                "Can't touch the engine from the bow, Sir — call the Chief! Over.",
-                "Not my station, Sir! Try channel one. Over.",
-            };
-        }
-
-        return new[] { "Say again, Bridge? Over." };
+        return crew == RadioChannel.Lookout
+            ? new[] { "Can't do that right now, Sir! Over." }
+            : new[] { "Can't do that right now, Captain. Over." };
     }
 
     /// <summary>Nothing recognisable came through.</summary>
@@ -425,7 +418,7 @@ public static class CrewBarkLibrary
     {
         return crew == RadioChannel.Lookout
             ? new[] { "Lookout here. Water's clear for now, Sir. Dock {6} metres {13}. Over.", "All quiet up front, Captain. Dock {6} metres {13}. Over." }
-            : new[] { "Engine room here. All steady at {1} knots, Captain. Over.", "Harris here. Engine's running sweet, {1} knots. Fuel {2}%. Over." };
+            : new[] { "Engine room here. All steady at {1} knots, Captain. Over.", "Harris here. Engine's running sweet, {1} knots. Over." };
     }
 
     /// <summary>Harris warns about fuel without being asked.</summary>
