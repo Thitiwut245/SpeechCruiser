@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 
@@ -368,5 +369,28 @@ public class CommandParserTests
     {
         var t = new ShipTelemetry { OrderedKn = 9.6f, Gear = "FULL AHEAD (9.6 kn)" };
         Assert.AreEqual("Full ahead, Sir. 9.6 knots. Over.", CrewBarkLibrary.Fill("Full ahead, Sir. {12} knots. Over.", t));
+    }
+
+    // Progress calls on a good line: every placeholder is filled, and the dock is placed in plain words.
+    [Test]
+    public void ProgressCallsFillEveryPlaceholder()
+    {
+        var t = new ShipTelemetry
+        {
+            SpeedKn = 7, FuelPct = 80, DestinationKnown = true, DestinationDistanceM = 420,
+            DestinationRelative = "fine on the port bow", DestinationWhere = "ahead on the left",
+        };
+        var sets = new List<string[]>
+        {
+            CrewBarkLibrary.HazardPassed(), CrewBarkLibrary.Progress(1), CrewBarkLibrary.Progress(2),
+            CrewBarkLibrary.Progress(3), CrewBarkLibrary.DockSighted(),
+            CrewBarkLibrary.QuietReport(RadioChannel.Lookout), CrewBarkLibrary.QuietReport(RadioChannel.ChiefEngineer),
+        };
+        foreach (var lines in sets)
+            foreach (var line in lines)
+                StringAssert.DoesNotContain("{", CrewBarkLibrary.Fill(line, t), line);
+
+        Assert.AreEqual("A quarter of the way, Captain. The dock is 420 metres ahead on the left. Over.",
+            CrewBarkLibrary.Fill(CrewBarkLibrary.Progress(1)[0], t));
     }
 }

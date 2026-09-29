@@ -39,6 +39,8 @@ public struct ShipTelemetry
     public int DestinationBearing;
     /// <summary>Where the dock lies from the bow: "dead ahead", "on the port bow", "astern"...</summary>
     public string DestinationRelative;
+    /// <summary>The same in plain words: "dead ahead", "ahead on the left"...</summary>
+    public string DestinationWhere;
 
     private static int RoundTo(float v, int step)
     {
@@ -62,6 +64,7 @@ public struct ShipTelemetry
             HazardSecondsToImpact = float.PositiveInfinity,
             DestinationKnown = false,
             DestinationRelative = "",
+            DestinationWhere = "",
         };
 
         var nav = ShipNavigator.Instance;
@@ -103,7 +106,9 @@ public struct ShipTelemetry
             t.DestinationKnown = true;
             t.DestinationDistanceM = Mathf.Max(RoundTo(toDock.magnitude, 10), 10);
             t.DestinationBearing = Mathf.RoundToInt(bearing) % 360;
-            t.DestinationRelative = RelativeBearing(Mathf.DeltaAngle(nav.transform.eulerAngles.y, bearing));
+            float relative = Mathf.DeltaAngle(nav.transform.eulerAngles.y, bearing);
+            t.DestinationRelative = RelativeBearing(relative);
+            t.DestinationWhere = PlainDirection(relative);
         }
 
         return t;

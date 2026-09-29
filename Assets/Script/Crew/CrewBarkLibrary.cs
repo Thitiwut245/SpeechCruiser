@@ -379,6 +379,49 @@ public static class CrewBarkLibrary
         return new[] { "Brace! Brace! We're going to hit it!", "Brace for impact, Sir!" };
     }
 
+    // On a good line the crew still talk: a word when a warned hazard is passed, progress
+    // calls on the way, the dock sighting, and a report after a long quiet spell.
+
+    /// <summary>Finn, after a hazard he warned about goes by without a hit.</summary>
+    public static string[] HazardPassed()
+    {
+        return new[]
+        {
+            "Clear of it, Captain. Nice steering! Over.",
+            "We're past it, Sir. Water's clear. Over.",
+            "Good turn, Captain! That one's behind us. Over.",
+        };
+    }
+
+    /// <summary>Finn, as the ship passes a quarter, half and three quarters of the way.</summary>
+    public static string[] Progress(int quarter)
+    {
+        switch (quarter)
+        {
+            case 1: return new[] { "A quarter of the way, Captain. The dock is {6} metres {13}. Over." };
+            case 2: return new[] { "Halfway there, Sir! {6} metres to the dock. Over.", "We're halfway, Captain. Dock {6} metres {13}. Over." };
+            default: return new[] { "Nearly there, Captain! Dock {6} metres {13}. Over." };
+        }
+    }
+
+    /// <summary>Finn sees the dock. Plain advice for beginners: slow down early.</summary>
+    public static string[] DockSighted()
+    {
+        return new[]
+        {
+            "Dock in sight, Captain! {6} metres {13}. Slow down soon: say \"slow ahead\". Over.",
+            "I see the dock, Sir! {6} metres {13}. Ease the speed so we stop at the gold line. Over.",
+        };
+    }
+
+    /// <summary>A report after a long quiet spell at sea.</summary>
+    public static string[] QuietReport(RadioChannel crew)
+    {
+        return crew == RadioChannel.Lookout
+            ? new[] { "Lookout here. Water's clear for now, Sir. Dock {6} metres {13}. Over.", "All quiet up front, Captain. Dock {6} metres {13}. Over." }
+            : new[] { "Engine room here. All steady at {1} knots, Captain. Over.", "Harris here. Engine's running sweet, {1} knots. Fuel {2}%. Over." };
+    }
+
     /// <summary>Harris warns about fuel without being asked.</summary>
     public static string[] AlertFuelLow()
     {
@@ -427,7 +470,7 @@ public static class CrewBarkLibrary
     ///   {0} telegraph gear   {1} speed kn   {2} fuel %   {3} compass   {4} hazard m
     ///   {5} dock relative to the bow   {6} dock distance m   {7} dock bearing (three digits)
     ///   {8} hazard kind ("Mine")   {9} where it is ("ahead on the left")   {10} which way to turn
-    ///   {11} hazard kind in lower case
+    ///   {11} hazard kind in lower case   {12} ordered speed kn   {13} dock direction in plain words
     /// </summary>
     public static string Fill(string template, ShipTelemetry t)
     {
@@ -447,7 +490,8 @@ public static class CrewBarkLibrary
             .Replace("{9}", t.HazardWhere ?? "")
             .Replace("{10}", t.HazardAvoid ?? "")
             .Replace("{11}", (t.HazardKind ?? "hazard").ToLowerInvariant())
-            .Replace("{12}", t.OrderedKn.ToString("0.#"));
+            .Replace("{12}", t.OrderedKn.ToString("0.#"))
+            .Replace("{13}", t.DestinationWhere ?? "");
     }
 
     /// <summary>Reads current danger level so barks can shift register.</summary>

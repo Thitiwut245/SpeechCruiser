@@ -14,6 +14,17 @@ public class UIManager : MonoBehaviour
 
     private string _currentChannelName = "CH 1: CHIEF HARRIS";
 
+    [Header("Subtitles")]
+    [Tooltip("Seconds a crew line or your transcript stays up, plus ReadSecondsPerChar per character.")]
+    [SerializeField] private float SubtitleHoldSeconds = 4f;
+    [SerializeField] private float ReadSecondsPerChar = 0.05f;
+    [Tooltip("Seconds the line takes to fade out.")]
+    [SerializeField] private float SubtitleFadeSeconds = 1f;
+
+    // Real time each line was shown (slow motion doesn't stretch reading time); infinity holds it.
+    private float _crewLineAt = float.PositiveInfinity, _crewLineHold;
+    private float _playerLineAt = float.PositiveInfinity, _playerLineHold;
+
     private void Awake() 
     { 
         Instance = this; 
@@ -155,6 +166,8 @@ public class UIManager : MonoBehaviour
         if (ShipHUD.Instance.CrewSttLogText != null && !ShipHUD.Instance.CrewSttLogText.text.StartsWith("You:"))
         {
             ShipHUD.Instance.CrewSttLogText.text = $"[{channelName}] Radio tuned.";
+            _playerLineAt = Time.unscaledTime;
+            _playerLineHold = SubtitleHoldSeconds;
         }
     }
 
@@ -169,6 +182,8 @@ public class UIManager : MonoBehaviour
     {
         if (ShipHUD.Instance == null) return;
         if (ShipHUD.Instance.CrewSttLogText != null) ShipHUD.Instance.CrewSttLogText.text = $"You: \"{speech}\"";
+        _playerLineAt = Time.unscaledTime;
+        _playerLineHold = HoldFor(speech);
     }
 
     public void UpdateAISubtitle(string aiResponse, string crewRole)
@@ -176,6 +191,32 @@ public class UIManager : MonoBehaviour
         if (ShipHUD.Instance == null) return;
         if (ShipHUD.Instance.CrewSubtitleText != null) ShipHUD.Instance.CrewSubtitleText.text = $"<b>[{crewRole}]:</b> {aiResponse}";
         ShipHUD.Instance.SetSpeaker(crewRole);
+        // "..." means a reply is on its way: it stays until the reply replaces it.
+        _crewLineAt = aiResponse == "..." ? float.PositiveInfinity : Time.unscaledTime;
+        _crewLineHold = HoldFor(aiResponse);
+    }
+
+    private float HoldFor(string line) => SubtitleHoldSeconds + ReadSecondsPerChar * (line != null ? line.Length : 0);
+
+    /// <summary>Fades a line once it has been up long enough to read, then clears it.</summary>
+    private void FadeLine(Label label, ref float shownAt, float hold)
+    {
+        if (label == null) return;
+        float age = Time.unscaledTime - shownAt;
+        if (age < hold)
+        {
+            label.style.opacity = 1f;
+            return;
+        }
+        float fade = Mathf.Clamp01((age - hold) / Mathf.Max(SubtitleFadeSeconds, 0.01f));
+        if (fade >= 1f)
+        {
+            label.text = "";
+            label.style.opacity = 1f;
+            shownAt = float.PositiveInfinity;
+            return;
+        }
+        label.style.opacity = 1f - fade;
     }
 
     public void UpdateShipStatus(string speedStatus)
@@ -207,6 +248,12 @@ public class UIManager : MonoBehaviour
     // Read every frame so the distance counts down instead of freezing at first sight.
     private void Update()
     {
+        if (ShipHUD.Instance != null)
+        {
+            FadeLine(ShipHUD.Instance.CrewSubtitleText, ref _crewLineAt, _crewLineHold);
+            FadeLine(ShipHUD.Instance.CrewSttLogText, ref _playerLineAt, _playerLineHold);
+        }
+
         var radar = RadarSystem.Instance;
         if (radar != null && radar.IsThreat)
         {
