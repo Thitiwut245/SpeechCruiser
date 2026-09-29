@@ -42,6 +42,19 @@ public class CommandRouter : MonoBehaviour
         @"\b(help|what can i say|what do i say|what can i do|commands|radio card|list of orders)\b",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
+    // Said on their own, these mean "keep the ship moving": the last forward speed, or on as she is.
+    private static readonly System.Text.RegularExpressions.Regex ContinuePattern = new System.Text.RegularExpressions.Regex(
+        @"^\W*(ok(ay)?\W+)?(continue|keep going|carry on|go on|keep moving|keep sailing|resume|move on|go ahead)(\W+(please|sir|captain|now))*\W*$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // A bare "wait!" or "hold on!" at sea means stop.
+    private static readonly System.Text.RegularExpressions.Regex WaitPattern = new System.Text.RegularExpressions.Regex(
+        @"^\W*(wait|hold on|hold it|wait a (moment|second|minute)|wait wait)(\W+(please|sir|captain))*\W*$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // The last forward gear, so "continue" after a stop picks up where the ship was.
+    private ShipEngine.TelegraphGear _lastAheadGear = ShipEngine.TelegraphGear.Slow;
+
     // After this many "say again" in a row, the crew suggests a simple order instead.
     private const int MissesBeforeHint = 2;
     private int _misses;
@@ -138,15 +151,25 @@ public class CommandRouter : MonoBehaviour
             return;
         }
 
-        if (HelpPattern.IsMatch(transcript))
+        if (ContinuePattern.IsMatch(transcript))
+        {
+            Resume();
+            EndInstantTurn();
+            return;
+        }
+
+        if (WaitPattern.IsMatch(transcript)) transcript = "stop";
+
+        var parsed = CommandParser.Parse(transcript);
+
+        // "Help! Turn right!" turns right: the orders card only opens when no order was heard.
+        if (HelpPattern.IsMatch(transcript) && !parsed.HasConfidentOrder)
         {
             if (ShipHUD.Instance != null) ShipHUD.Instance.SetRadioCardOpen(true);
             Say(ActiveChannel, CrewBarkLibrary.HelpCard(ActiveChannel), "help");
             EndInstantTurn();
             return;
         }
-
-        var parsed = CommandParser.Parse(transcript);
 
         RadioChannel target = parsed.AddressedCrew ?? ActiveChannel;
         if (parsed.AddressedCrew.HasValue && parsed.AddressedCrew.Value != ActiveChannel)
@@ -293,6 +316,36 @@ public class CommandRouter : MonoBehaviour
             return;
         }
         if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(target);
+    }
+
+    private void Update()
+    {
+        var gear = CurrentGear();
+        if (gear > ShipEngine.TelegraphGear.Stop) _lastAheadGear = gear;
+    }
+
+    /// <summary>"Continue": already going ahead, Harris keeps her there; stopped or astern, back to the last forward speed.</summary>
+    private void Resume()
+    {
+        if (CurrentGear() > ShipEngine.TelegraphGear.Stop)
+        {
+            Say(RadioChannel.ChiefEngineer, CrewBarkLibrary.KeepGoing(), "keepgoing");
+            OnActionExecuted?.Invoke(ShipAction.None);
+            return;
+        }
+        ExecuteAndAcknowledge(RadioChannel.ChiefEngineer, ActionFor(_lastAheadGear), "");
+    }
+
+    private static ShipAction ActionFor(ShipEngine.TelegraphGear gear)
+    {
+        switch (gear)
+        {
+            case ShipEngine.TelegraphGear.DeadSlow: return ShipAction.EngineDeadSlow;
+            case ShipEngine.TelegraphGear.Half: return ShipAction.EngineHalf;
+            case ShipEngine.TelegraphGear.Full: return ShipAction.EngineFull;
+            case ShipEngine.TelegraphGear.Flank: return ShipAction.EngineFlank;
+            default: return ShipAction.EngineSlow;
+        }
     }
 
     private void UpdateChannelUI()

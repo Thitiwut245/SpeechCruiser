@@ -453,6 +453,10 @@ public static class CommandParser
                 var tokens = Tokenize(Normalize(part), stripCrewNames: true);
                 foreach (var t in tokens)
                 {
+                    // Shouted repeats count once past the second: "left, left, left!" is "left left"
+                    // (which still reads as one order, and "go go" keeps meaning full ahead).
+                    int n = clause.Tokens.Count;
+                    if (n >= 2 && clause.Tokens[n - 1] == t && clause.Tokens[n - 2] == t) continue;
                     clause.Tokens.Add(t);
                     clause.InQuestion.Add(question);
                     clause.ClauseId.Add(clauseCounter);

@@ -382,6 +382,12 @@ public static class CrewBarkLibrary
     // On a good line the crew still talk: a word when a warned hazard is passed, progress
     // calls on the way, the dock sighting, and a report after a long quiet spell.
 
+    /// <summary>Harris, told to "continue" while already making way ahead.</summary>
+    public static string[] KeepGoing()
+    {
+        return new[] { "Aye, keeping her going at {12} knots, Sir. Over.", "Steady as she goes, Captain. {12} knots. Over." };
+    }
+
     /// <summary>Finn, after a hazard he warned about goes by without a hit.</summary>
     public static string[] HazardPassed()
     {

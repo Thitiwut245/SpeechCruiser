@@ -371,6 +371,23 @@ public class CommandParserTests
         Assert.AreEqual("Full ahead, Sir. 9.6 knots. Over.", CrewBarkLibrary.Fill("Full ahead, Sir. {12} knots. Over.", t));
     }
 
+    // Beginners shout the same word, and use everyday words for stopping and turning back.
+    [TestCase("left left left", ShipAction.TurnPort)]
+    [TestCase("Right, right, right!", ShipAction.TurnStarboard)]
+    [TestCase("slow, slow, slow", ShipAction.EngineSlow)]
+    [TestCase("stop stop stop stop", ShipAction.EngineStop)]
+    [TestCase("go go", ShipAction.EngineFull)]
+    [TestCase("go go go", ShipAction.EngineFull)]
+    [TestCase("Brake!", ShipAction.EngineStop)]
+    [TestCase("Hit the brakes", ShipAction.EngineStop)]
+    [TestCase("brake hard", ShipAction.EngineFullAstern)]
+    [TestCase("Don't move!", ShipAction.EngineStop)]
+    [TestCase("Stay here", ShipAction.EngineStop)]
+    public void EverydayPanicWords(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
     // A radio check off-voyage says what was heard, and that orders work at sea.
     [Test]
     public void RadioCheckSaysWhatWasHeard()

@@ -72,7 +72,11 @@ public static class CommandVocabulary
             "stop", "all stop", "stop engine", "stop engines", "stop the engine",
             "halt", "cut engine", "cut the engine", "shut down", "shutdown",
             "kill engine", "kill the engine", "full stop", "engine stop", "stop her",
-            "all stopped"),
+            "all stopped",
+            // plain English for beginners
+            "brake", "brakes", "break", "hit the brakes", "use the brakes", "stop the boat",
+            "dont move", "do not move", "stay", "stay here", "stay still", "keep still",
+            "hold position", "stop moving"),
 
         new Entry(ShipAction.EngineDeadSlow,
             "dead slow", "dead slow ahead", "creep", "creep ahead", "crawl",
@@ -111,7 +115,7 @@ public static class CommandVocabulary
             "full astern", "emergency astern", "crash stop", "full reverse",
             "all astern full", "hard astern", "full speed astern", "emergency full astern",
             "all astern", "emergency reverse", "full back", "back full", "go back fast",
-            "backward fast", "backwards fast", "reverse fast",
+            "backward fast", "backwards fast", "reverse fast", "brake hard", "emergency brake",
             // Whisper splits "astern": "full a stern" loses its filler "a"
             "full stern"),
 
