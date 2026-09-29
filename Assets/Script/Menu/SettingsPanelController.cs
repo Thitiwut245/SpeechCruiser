@@ -151,6 +151,9 @@ public class SettingsPanelController : IDisposable
         button.AddToClassList("listening");
         _bindHint.text = "Press the new key now. Esc cancels.";
 
+        // A refused key goes back to the key the player had, not to the default.
+        string previousOverride = action.bindings[RadioMic.KeyboardBindingIndex].overridePath;
+
         action.Disable();
         _rebind = action.PerformInteractiveRebinding(RadioMic.KeyboardBindingIndex)
             .WithControlsHavingToMatchPath("<Keyboard>")
@@ -162,7 +165,8 @@ public class SettingsPanelController : IDisposable
                 string problem = Conflict(path, other);
                 if (problem != null)
                 {
-                    action.RemoveBindingOverride(RadioMic.KeyboardBindingIndex);
+                    if (string.IsNullOrEmpty(previousOverride)) action.RemoveBindingOverride(RadioMic.KeyboardBindingIndex);
+                    else action.ApplyBindingOverride(RadioMic.KeyboardBindingIndex, previousOverride);
                     _bindHint.text = problem;
                 }
                 else

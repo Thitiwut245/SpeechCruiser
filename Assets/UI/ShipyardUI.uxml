@@ -35,7 +35,7 @@
             <ui:Button name="job-btn-easy" class="card job-card">
                 <ui:VisualElement class="card-main">
                     <ui:Label text="EASY RUN" class="card-title" />
-                    <ui:Label text="5 containers · rocks only · gentle route" class="card-desc" />
+                    <ui:Label text="5 containers · rocks only" class="card-desc" />
                     <ui:Label name="route-easy" text="" class="card-route" />
                 </ui:VisualElement>
                 <ui:Label text="$300" class="card-pay" />

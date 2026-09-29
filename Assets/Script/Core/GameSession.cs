@@ -53,6 +53,8 @@ public class MissionResult
 /// <summary>
 /// Player progress that must survive scene loads: credits, upgrades, tutorial flag and the
 /// mission picked in the shipyard. Lives on the persistent Services prefab.
+/// The career (credits, upgrades, hull, deliveries, voyages, last job) is saved in
+/// PlayerPrefs whenever it changes, so quitting and coming back carries on where it was.
 /// </summary>
 public class GameSession : Singleton<GameSession>
 {
@@ -70,7 +72,12 @@ public class GameSession : Singleton<GameSession>
     public int CurrentContainerCount => CurrentJob.Containers;
 
     /// <summary>Hull points carried between missions; -1 means a fresh, undamaged hull.</summary>
-    public int HullHealth { get; set; } = -1;
+    public int HullHealth
+    {
+        get { return _hullHealth; }
+        set { _hullHealth = value; SaveCareer(); }
+    }
+    private int _hullHealth = -1;
 
     public int CargoLoaded { get; private set; }
     public int CargoAboard { get; private set; }
@@ -107,11 +114,68 @@ public class GameSession : Singleton<GameSession>
         }
     }
 
-    /// <summary>Cargoes delivered this session. Routes get longer as this grows (see DifficultyTier).</summary>
+    /// <summary>Cargoes delivered in this career. Routes get longer as this grows (see DifficultyTier).</summary>
     public int MissionsCompleted { get; private set; }
 
-    /// <summary>Voyages started this session, delivered or not.</summary>
+    /// <summary>Voyages started in this career, delivered or not.</summary>
     public int VoyagesStarted { get; private set; }
+
+    // ------------------------------------------------------------ saved career
+
+    private const string CareerPref = "career.";
+    private static readonly string[] CareerKeys = { "credits", "engine", "helm", "hull", "delivered", "voyages", "job" };
+
+    /// <summary>A career has been played before (the title screen offers to start a new one).</summary>
+    public bool HasSavedCareer => PlayerPrefs.HasKey(CareerPref + "voyages");
+
+    protected override void Awake()
+    {
+        base.Awake();
+        if (Instance != this) return;
+        LoadCareer();
+    }
+
+    private void LoadCareer()
+    {
+        if (!HasSavedCareer) return;
+        _credits = PlayerPrefs.GetInt(CareerPref + "credits", _credits);
+        _engineLevel = Mathf.Max(1, PlayerPrefs.GetInt(CareerPref + "engine", _engineLevel));
+        _helmLevel = Mathf.Max(1, PlayerPrefs.GetInt(CareerPref + "helm", _helmLevel));
+        _hullHealth = PlayerPrefs.GetInt(CareerPref + "hull", -1);
+        MissionsCompleted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "delivered", 0));
+        VoyagesStarted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "voyages", 0));
+        string job = PlayerPrefs.GetString(CareerPref + "job", JobSpec.Easy.Name);
+        CurrentJob = job == JobSpec.Hard.Name ? JobSpec.Hard : job == JobSpec.Normal.Name ? JobSpec.Normal : JobSpec.Easy;
+    }
+
+    private void SaveCareer()
+    {
+        PlayerPrefs.SetInt(CareerPref + "credits", _credits);
+        PlayerPrefs.SetInt(CareerPref + "engine", _engineLevel);
+        PlayerPrefs.SetInt(CareerPref + "helm", _helmLevel);
+        PlayerPrefs.SetInt(CareerPref + "hull", _hullHealth);
+        PlayerPrefs.SetInt(CareerPref + "delivered", MissionsCompleted);
+        PlayerPrefs.SetInt(CareerPref + "voyages", VoyagesStarted);
+        PlayerPrefs.SetString(CareerPref + "job", CurrentJob.Name);
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>Starts over: $500, first upgrades, a sound hull, and the learning layout again.</summary>
+    public void StartNewCareer()
+    {
+        foreach (var key in CareerKeys) PlayerPrefs.DeleteKey(CareerPref + key);
+        PlayerPrefs.Save();
+        _credits = 500;
+        _engineLevel = 1;
+        _helmLevel = 1;
+        _hullHealth = -1;
+        MissionsCompleted = 0;
+        VoyagesStarted = 0;
+        CurrentJob = JobSpec.Easy;
+        LastMissionSummary = "";
+        LastResult = null;
+        OnProgressUpdated?.Invoke();
+    }
 
     /// <summary>Voyages on which an Easy job gets the gentle learning layout.</summary>
     public const int GentleVoyages = 2;
@@ -136,11 +200,13 @@ public class GameSession : Singleton<GameSession>
     public void RecordMissionCompleted()
     {
         MissionsCompleted++;
+        SaveCareer();
     }
 
     public void RecordVoyageStarted()
     {
         VoyagesStarted++;
+        SaveCareer();
     }
 
     public event Action OnProgressUpdated;
@@ -148,18 +214,21 @@ public class GameSession : Singleton<GameSession>
     public void AddCredits(int amount)
     {
         _credits += amount;
+        SaveCareer();
         OnProgressUpdated?.Invoke();
     }
 
     public void SpendCredits(int amount)
     {
         _credits -= amount;
+        SaveCareer();
         OnProgressUpdated?.Invoke();
     }
 
     public void SetJob(JobSpec job)
     {
         CurrentJob = job;
+        SaveCareer();
     }
 
     public void LoadCargo(int containers)
@@ -199,6 +268,7 @@ public class GameSession : Singleton<GameSession>
         else return false;
 
         _credits -= cost;
+        SaveCareer();
         OnProgressUpdated?.Invoke();
         Debug.Log($"[GAME SESSION]: Upgraded {upgradeType}. Credits remaining: {_credits}");
         return true;

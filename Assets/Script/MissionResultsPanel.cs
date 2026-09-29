@@ -187,9 +187,10 @@ public class MissionResultsPanel : MonoBehaviour
 
     private void Continue()
     {
-        if (!_shown) return;
+        if (!_shown || GameManager.Instance == null) return;
+        // Another load still running: stay on the report so Continue can be pressed again.
+        if (!GameManager.Instance.ReturnToShipyard()) return;
         _shown = false;
         _continue.SetEnabled(false);
-        if (GameManager.Instance != null) GameManager.Instance.ReturnToShipyard();
     }
 }

@@ -139,6 +139,9 @@ public class ShipHull : MonoBehaviour
     /// <summary>A mine goes off once: the hazard is removed so it can't be hit again.</summary>
     private static void Detonate(Collider mine)
     {
+        // The chart stops showing it: that water is open now.
+        if (LevelGenerator.Instance != null) LevelGenerator.Instance.ClearHazardAt(mine.bounds.center);
+
         Transform t = mine.transform;
         while (t.parent != null && !t.parent.name.StartsWith("GeneratedLevel")) t = t.parent;
         t.gameObject.SetActive(false);

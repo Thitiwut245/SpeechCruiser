@@ -91,6 +91,7 @@ public class LevelMap : MonoBehaviour
         if (LevelGenerator.Instance != null)
         {
             LevelGenerator.Instance.OnLevelGenerated += HandleLevelGenerated;
+            LevelGenerator.Instance.OnHazardCleared += HandleHazardCleared;
 
             // A level may already exist if this component woke up late.
             if (LevelGenerator.Instance.IsLevelReady) HandleLevelGenerated();
@@ -123,7 +124,11 @@ public class LevelMap : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (LevelGenerator.Instance != null) LevelGenerator.Instance.OnLevelGenerated -= HandleLevelGenerated;
+        if (LevelGenerator.Instance != null)
+        {
+            LevelGenerator.Instance.OnLevelGenerated -= HandleLevelGenerated;
+            LevelGenerator.Instance.OnHazardCleared -= HandleHazardCleared;
+        }
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleStateChanged;
 
         if (_texture != null) Destroy(_texture);
@@ -240,6 +245,8 @@ public class LevelMap : MonoBehaviour
             }
         }
     }
+
+    private void HandleHazardCleared() { _chartDirty = true; }
 
     private void RedrawChart()
     {

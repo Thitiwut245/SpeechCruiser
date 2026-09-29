@@ -14,9 +14,11 @@
             <ui:Label text="SPEECH" class="game-title" />
             <ui:Label text="CRUISER" class="game-title game-title--accent" />
             <ui:Label text="Captain a cargo ship with your voice." class="game-tagline" />
+            <ui:Label name="CareerLabel" text="" class="career-line" />
 
             <ui:Button name="PlayButton" text="Set Sail" class="menu-button menu-button--primary" />
             <ui:Button name="SettingButton" text="Settings" class="menu-button" />
+            <ui:Button name="NewCareerButton" text="New Career" class="menu-button menu-button--quiet" />
             <ui:Button name="QuitButton" text="Quit" class="menu-button" />
             <ui:Label name="RadioStatusLabel" text="" class="radio-status" />
         </ui:VisualElement>

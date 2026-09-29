@@ -153,9 +153,11 @@ public class GameManager : Singleton<GameManager>
     }
 
     // Reloading the Game scene rebuilds the ship, level and HUD; the new GameManager starts in Shipyard.
-    public void ReturnToShipyard()
+    /// <summary>Reloads the Game scene into the shipyard. False if another load is already running.</summary>
+    public bool ReturnToShipyard()
     {
-        if (SceneLoader.Instance.IsLoading) return;
+        if (SceneLoader.Instance.IsLoading) return false;
         SceneLoader.Instance.Load(SceneId.Game);
+        return true;
     }
 }

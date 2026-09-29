@@ -909,6 +909,18 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>Raised when a hazard is removed during a voyage (a mine went off), so the chart redraws.</summary>
+    public event System.Action OnHazardCleared;
+
+    /// <summary>A hazard at this world position is gone: its cell becomes open water on the chart.</summary>
+    public void ClearHazardAt(Vector3 worldPosition)
+    {
+        Vector2Int cell = CellFromWorld(worldPosition);
+        if (!IsObstacle(cell.x, cell.y)) return;
+        _obstacleMap[cell.x, cell.y] = false;
+        OnHazardCleared?.Invoke();
+    }
+
     public bool IsObstacle(int column, int row)
     {
         if (_obstacleMap == null) return false;

@@ -33,6 +33,10 @@ public class ShipMovement : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float PivotAuthority = 0.3f;
 
+    [Tooltip("Sternway over which the rudder's effect blends from ahead (+1) to astern (-1). A blend, not a " +
+             "flip, so the bow doesn't swing the wrong way while the rudder catches up as the ship starts going back.")]
+    [SerializeField] private float ReverseBlendSpeed = 1f;
+
     [Header("Feel")]
     [Tooltip("How far the hull slides outward through a turn. 0 = the ship tracks its nose exactly.")]
     [Range(0f, 1f)]
@@ -123,9 +127,14 @@ public class ShipMovement : MonoBehaviour
         UpdateBank(rudder);
     }
 
-    private float Sternward => _engine.Speed < -0.05f ? -1f : 1f;
+    private float Sternward => _engine.Speed >= 0f
+        ? 1f
+        : Mathf.Lerp(1f, -1f, Mathf.Clamp01(-_engine.Speed / Mathf.Max(ReverseBlendSpeed, 0.01f)));
 
-    /// <summary>+1 making way ahead (or stopped), -1 astern: the rudder turns the ship the other way going backwards.</summary>
+    /// <summary>
+    /// +1 making way ahead (or stopped), -1 astern: the rudder turns the ship the other way going
+    /// backwards. Blends through zero over the first ReverseBlendSpeed of sternway.
+    /// </summary>
     public float RudderEffect => Sternward;
 
     private void UpdateRotation(float rudder)

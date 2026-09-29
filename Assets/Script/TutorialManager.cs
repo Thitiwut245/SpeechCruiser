@@ -67,6 +67,7 @@ public class TutorialManager : MonoBehaviour
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged += HandleStateChanged;
         if (CommandRouter.Instance != null) CommandRouter.Instance.OnActionExecuted += HandleActionExecuted;
         if (_mic != null) _mic.OnRadioStatus += HandleRadioStatus;
+        if (SettingsService.Instance != null) SettingsService.Instance.OnControlsChanged += HandleControlsChanged;
         if (ShipHUD.Instance != null)
         {
             ShipHUD.Instance.CoachNextPressed += HandleNext;
@@ -79,6 +80,7 @@ public class TutorialManager : MonoBehaviour
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleStateChanged;
         if (CommandRouter.Instance != null) CommandRouter.Instance.OnActionExecuted -= HandleActionExecuted;
         if (_mic != null) _mic.OnRadioStatus -= HandleRadioStatus; // RadioMic outlives this scene
+        if (SettingsService.Instance != null) SettingsService.Instance.OnControlsChanged -= HandleControlsChanged;
         if (ShipHUD.Instance != null)
         {
             ShipHUD.Instance.CoachNextPressed -= HandleNext;
@@ -140,7 +142,19 @@ public class TutorialManager : MonoBehaviour
         _failures = 0;
         PlayerPrefs.SetInt(StepPref, _index);
         PlayerPrefs.Save();
+        ShowStep();
+    }
 
+    /// <summary>A new radio key or toggle-to-talk mid-drill: the step on screen names the new one.</summary>
+    private void HandleControlsChanged()
+    {
+        if (!_active || _index < 0 || _index >= _steps.Count) return;
+        _steps = BuildSteps();
+        ShowStep();
+    }
+
+    private void ShowStep()
+    {
         var step = _steps[_index];
         if (ShipHUD.Instance != null)
         {

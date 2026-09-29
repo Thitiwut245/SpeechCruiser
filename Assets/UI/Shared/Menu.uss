@@ -55,6 +55,22 @@
     background-color: rgb(54, 176, 108);
 }
 
+.career-line {
+    font-size: 18px;
+    color: rgb(255, 199, 69);
+    margin: -24px 0 20px 0;
+    white-space: normal;
+}
+
+.menu-button--quiet {
+    font-size: 18px;
+    background-color: rgba(28, 52, 74, 0.6);
+}
+
+.menu-button--quiet.confirm {
+    background-color: rgb(150, 50, 40);
+}
+
 .radio-status {
     font-size: 16px;
     color: rgb(196, 209, 221);
