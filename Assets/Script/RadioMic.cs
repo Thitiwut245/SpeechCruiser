@@ -124,8 +124,9 @@ public class RadioMic : MonoBehaviour
     private static string KeyName(InputAction action, string fallback)
     {
         if (action == null || action.bindings.Count == 0) return fallback;
-        string name = action.GetBindingDisplayString(KeyboardBindingIndex);
-        return string.IsNullOrEmpty(name) ? fallback : name.ToUpperInvariant();
+        // The physical key ("T"), not what the active layout prints on it: on a Thai layout
+        // the display name of T is "ะ", which the player can't find on the key or the font can't draw.
+        return KeyboardLayouts.PhysicalKeyName(action.bindings[KeyboardBindingIndex].effectivePath, fallback);
     }
 
     private static bool Toggle => SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk;

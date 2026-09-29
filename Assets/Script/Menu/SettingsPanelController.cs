@@ -25,6 +25,8 @@ public class SettingsPanelController : IDisposable
         { "<Keyboard>/tab", "the channel" }, { "<Keyboard>/m", "the chart" }, { "<Keyboard>/f1", "the radio card" },
         { "<Keyboard>/1", "channel 1" }, { "<Keyboard>/2", "channel 2" }, { "<Keyboard>/numpad1", "channel 1" },
         { "<Keyboard>/numpad2", "channel 2" }, { "<Keyboard>/f9", "the test autopilot" },
+        // On Thai Windows the ` key switches between Thai and English typing.
+        { "<Keyboard>/backquote", "the Thai/English keyboard switch" },
     };
 
     private readonly VisualElement _panel;

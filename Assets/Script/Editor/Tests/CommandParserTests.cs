@@ -435,6 +435,29 @@ public class CommandParserTests
         AssertOrders(speech, expected);
     }
 
+    // Key names come from the physical key, whatever the keyboard layout.
+    [TestCase("<Keyboard>/t", "T")]
+    [TestCase("<Keyboard>/y", "Y")]
+    [TestCase("<Keyboard>/leftShift", "LEFT SHIFT")]
+    [TestCase("<Keyboard>/f1", "F1")]
+    [TestCase("<Keyboard>/numpad5", "NUMPAD 5")]
+    [TestCase("<Keyboard>/space", "SPACE")]
+    [TestCase("<Keyboard>/backquote", "`")]
+    public void KeyNamesArePhysical(string path, string expected)
+    {
+        Assert.AreEqual(expected, KeyboardLayouts.PhysicalKeyName(path, "?"));
+    }
+
+    // An order typed with the Thai layout still on is read as the English keys.
+    [TestCase("ะีพื สำดะ", "turn left")]
+    [TestCase("turn left", null)]
+    public void ThaiLayoutTypingIsReadAsEnglish(string typed, string expected)
+    {
+        Assert.AreEqual(expected, KeyboardLayouts.FromThaiKedmanee(typed));
+        Assert.AreEqual(47, KeyboardLayouts.ThaiKeys.Length);
+        Assert.AreEqual(KeyboardLayouts.ThaiKeys.Length, KeyboardLayouts.UsKeys.Length);
+    }
+
     // Beginners mean the dock when they ask "how far?".
     [TestCase("How far?", ShipAction.QueryDestination)]
     [TestCase("How far is it?", ShipAction.QueryDestination)]

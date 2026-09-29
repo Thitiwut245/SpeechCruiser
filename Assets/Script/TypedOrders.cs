@@ -146,6 +146,14 @@ public class TypedOrders : MonoBehaviour
         Close();
         if (string.IsNullOrWhiteSpace(text)) return;
         _lastOrder = text.Trim();
+
+        // Typed with the Thai layout still on: read the keys as English and say so.
+        string english = KeyboardLayouts.FromThaiKedmanee(_lastOrder);
+        if (english != null)
+        {
+            if (ShipHUD.Instance != null) ShipHUD.Instance.ShowRadioNote("Keyboard is in Thai. Read as: \"" + english + "\"");
+            _lastOrder = english;
+        }
         if (_mic != null) _mic.SubmitTyped(_lastOrder);
     }
 

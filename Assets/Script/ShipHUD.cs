@@ -817,7 +817,8 @@ public class ShipHUD : MonoBehaviour
         _radioCard.style.display = DisplayStyle.None;
         _radioCard.pickingMode = PickingMode.Ignore;
 
-        var title = new Label("RADIO CARD · hold T and say an order · F1 to close");
+        _radioCardTitle = new Label("RADIO CARD · hold T and say an order · F1 to close");
+        var title = _radioCardTitle;
         title.style.fontSize = Hud.Title;
         title.style.color = Hud.Accent;
         title.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -903,6 +904,7 @@ public class ShipHUD : MonoBehaviour
     }
 
     private Label _keyStrip;
+    private Label _radioCardTitle;
 
     private string OrderKey => _radioMic != null ? _radioMic.OrderKeyName : "T";
     private string TalkKey => _radioMic != null ? _radioMic.TalkKeyName : "Y";
@@ -911,6 +913,8 @@ public class ShipHUD : MonoBehaviour
     /// <summary>Key names and subtitle size follow the player's settings.</summary>
     private void ApplySettings()
     {
+        if (_radioCardTitle != null)
+            _radioCardTitle.text = "RADIO CARD · " + (ToggleToTalk ? "press " : "hold ") + OrderKey + " and say an order · F1 to close";
         if (_keyStrip != null)
             _keyStrip.text = OrderKey + ": order · " + TalkKey + ": talk · Enter: type · Tab: channel · M: chart · F1: orders · Esc: pause";
 
@@ -1098,6 +1102,7 @@ public class ShipHUD : MonoBehaviour
 
         if (_radioFlash.style.display == DisplayStyle.Flex && Time.unscaledTime > _flashUntil)
         {
+            _noteShown = false;
             _radioFlash.style.display = DisplayStyle.None;
         }
     }
@@ -1107,13 +1112,14 @@ public class ShipHUD : MonoBehaviour
         switch (status)
         {
             case RadioStatus.Recording:
+                _noteShown = false;
                 if (_radioFlash != null) _radioFlash.style.display = DisplayStyle.None;
                 return;
 
             case RadioStatus.Decoding:
             case RadioStatus.Heard:
                 // "Message cut" arrives the same frame the cut message starts decoding: let it be read.
-                if (_radioFlash != null && _flashStatus != RadioStatus.Cut) _radioFlash.style.display = DisplayStyle.None;
+                if (_radioFlash != null && _flashStatus != RadioStatus.Cut && !_noteShown) _radioFlash.style.display = DisplayStyle.None;
                 return;
 
             case RadioStatus.NoMic:
@@ -1131,6 +1137,16 @@ public class ShipHUD : MonoBehaviour
     }
 
     private RadioStatus _flashStatus = RadioStatus.Recording;
+
+    /// <summary>A short note in the radio box, e.g. that a typed order was read from a Thai layout.</summary>
+    public void ShowRadioNote(string text)
+    {
+        _flashStatus = RadioStatus.Heard;
+        _noteShown = true; // the order it explains is "heard" next; keep the note up
+        ShowFlash(text, RadioBlue);
+    }
+
+    private bool _noteShown;
 
     private void ShowFlash(string text, Color color)
     {
