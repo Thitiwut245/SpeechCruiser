@@ -176,6 +176,9 @@ public class LevelGenerator : MonoBehaviour
     public Vector3 EndPosition { get; private set; }
 
     public bool IsLevelReady => _levelRoot != null;
+
+    /// <summary>The current level is the gentle learning layout (the first Easy voyages).</summary>
+    public bool IsLearningLayout => _gentle;
     
     /// <summary>The sequence of world coordinates safely avoiding hazards.</summary>
     public List<Vector3> SolutionWorldPath { get; private set; }

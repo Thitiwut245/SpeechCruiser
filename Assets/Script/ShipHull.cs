@@ -72,9 +72,9 @@ public class ShipHull : MonoBehaviour
         _invulnerableUntil = Time.time + InvulnerableSeconds;
         bool mine = RadarSystem.KindOf(other) == "Mine";
 
-        // The tutorial promises the ship can't be damaged while it runs: bounce, slow down,
+        // The practice drill promises the ship can't be damaged while it runs: bounce, slow down,
         // explain, but take nothing. Mines don't go off either.
-        if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive)
+        if (TutorialManager.Instance != null && TutorialManager.Instance.IsPractice)
         {
             PushClear(other);
             OnPracticeBump?.Invoke();

@@ -30,6 +30,8 @@ public class TutorialManager : MonoBehaviour
     private List<Step> _steps;
     private int _index = -1;
     private bool _active;
+    // Hits are free only on the learning layout, and only when the drill started with the voyage.
+    private bool _practice;
 
     // What happened since the current step started.
     private bool _heard;
@@ -39,7 +41,14 @@ public class TutorialManager : MonoBehaviour
     private RadioMic _mic;
     private LevelMap _map;
 
-    /// <summary>The drill is running. While it is, ShipHull treats hits as free practice bumps.</summary>
+    /// <summary>
+    /// The drill is running on the learning layout and started with the voyage. While it is,
+    /// ShipHull treats hits as free practice bumps. Any other job, or Replay Tutorial in the
+    /// middle of a voyage, runs the drill with hits counting as usual.
+    /// </summary>
+    public bool IsPractice => _active && _practice;
+
+    /// <summary>The drill is running (practice or not).</summary>
     public bool IsActive => _active;
 
     // The step reached, saved, so a voyage that ends mid-drill resumes there instead of at step 1.
@@ -80,7 +89,8 @@ public class TutorialManager : MonoBehaviour
 
     private void HandleStateChanged(GameState state)
     {
-        if (state == GameState.Playing && !GameSession.Instance.HasSeenTutorial) Begin();
+        if (state == GameState.Playing && !GameSession.Instance.HasSeenTutorial)
+            Begin(practice: LevelGenerator.Instance != null && LevelGenerator.Instance.IsLearningLayout);
         else if (state != GameState.Playing && _active) Stop(markDone: false);
     }
 
@@ -89,7 +99,8 @@ public class TutorialManager : MonoBehaviour
     {
         GameSession.Instance.HasSeenTutorial = false;
         PlayerPrefs.DeleteKey(StepPref);
-        if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing) Begin();
+        // Mid-voyage the drill is coaching only: this voyage's hits still count.
+        if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing) Begin(practice: false);
     }
 
     public void Skip()
@@ -97,8 +108,9 @@ public class TutorialManager : MonoBehaviour
         if (_active) Stop(markDone: true);
     }
 
-    private void Begin()
+    private void Begin(bool practice)
     {
+        _practice = practice;
         _steps = BuildSteps();
         _active = true;
         // Resume where the last voyage left off (0 on a first run).
@@ -132,7 +144,7 @@ public class TutorialManager : MonoBehaviour
         var step = _steps[_index];
         if (ShipHUD.Instance != null)
         {
-            ShipHUD.Instance.ShowCoach(_index + 1, _steps.Count, step.Title, step.Text, step.Try, step.NextLabel);
+            ShipHUD.Instance.ShowCoach(_index + 1, _steps.Count, _practice, step.Title, step.Text, step.Try, step.NextLabel);
             ShipHUD.Instance.Highlight(step.Highlight);
         }
     }
@@ -140,6 +152,7 @@ public class TutorialManager : MonoBehaviour
     private void Stop(bool markDone)
     {
         _active = false;
+        _practice = false;
         if (markDone)
         {
             GameSession.Instance.HasSeenTutorial = true;
@@ -207,7 +220,9 @@ public class TutorialManager : MonoBehaviour
             {
                 Title = "Welcome aboard, Captain!",
                 Text = "On this ship you give every order with your voice. Let's practise first. " +
-                       "Until this drill ends the ship can't be damaged: bumping a rock costs nothing. Take your time.",
+                       (_practice
+                           ? "Until this drill ends the ship can't be damaged: bumping a rock costs nothing. Take your time."
+                           : "Careful: this is a real voyage, so every hit costs hull and cargo. Stop the ship if you need time."),
                 NextLabel = "Let's start",
             },
             new Step
@@ -268,8 +283,8 @@ public class TutorialManager : MonoBehaviour
             new Step
             {
                 Title = "You're ready, Captain",
-                Text = "Practice is over: from now on every hit costs hull and cargo. Sail to the dock, " +
-                       "listen for Finn's warnings and turn away from danger early.",
+                Text = (_practice ? "Practice is over: from now on every hit costs hull and cargo. " : "") +
+                       "Sail to the dock, listen for Finn's warnings and turn away from danger early.",
                 Try = "F1: all orders · M: chart · Esc: pause",
                 NextLabel = "Set sail",
             },

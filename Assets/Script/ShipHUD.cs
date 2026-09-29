@@ -747,12 +747,17 @@ public class ShipHUD : MonoBehaviour
         root.Add(_coachPanel);
     }
 
-    /// <summary>Shows one tutorial step. <paramref name="nextLabel"/> null hides the button: the step completes by doing it.</summary>
-    public void ShowCoach(int step, int total, string title, string text, string tryLine, string nextLabel)
+    /// <summary>
+    /// Shows one tutorial step. <paramref name="practice"/> marks the no-damage drill.
+    /// <paramref name="nextLabel"/> null hides the button: the step completes by doing it.
+    /// </summary>
+    public void ShowCoach(int step, int total, bool practice, string title, string text, string tryLine, string nextLabel)
     {
         if (_coachPanel == null) return;
 
-        _coachStep.text = "PRACTICE " + step + "/" + total + "  ·  NO DAMAGE";
+        _coachStep.text = practice
+            ? "PRACTICE " + step + "/" + total + "  ·  NO DAMAGE"
+            : "TUTORIAL " + step + "/" + total + "  ·  HITS COUNT";
         _coachTitle.text = title;
         _coachText.text = text;
         _coachTry.text = tryLine;
