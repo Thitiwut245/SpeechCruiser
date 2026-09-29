@@ -55,6 +55,13 @@ public class RadioMic : MonoBehaviour
     [FormerlySerializedAs("minSpeechSeconds")]
     [SerializeField] private float MinSpeechSeconds = 0.35f;
 
+    [Tooltip("whisper.cpp returns nothing for audio under one second, so shorter orders are padded with " +
+             "silence up to this length before decoding. \"Stop!\" is usually well under a second.")]
+    [SerializeField] private float MinDecodeSeconds = 1.2f;
+
+    [Tooltip("Silence added after every recording, so a word cut off by releasing the key still decodes.")]
+    [SerializeField] private float TrailingSilenceSeconds = 0.2f;
+
     [Tooltip("RMS energy below this counts as silence. Raise it if you get phantom transcriptions.")]
     [FormerlySerializedAs("silenceRmsThreshold")]
     [SerializeField] private float SilenceRmsThreshold = 0.006f;
@@ -500,8 +507,7 @@ public class RadioMic : MonoBehaviour
             return;
         }
 
-        var speech = new float[needed];
-        Array.Copy(_captureBuffer, speech, needed);
+        var speech = PadForWhisper(_captureBuffer, sampleCount, channels);
 
         // The samples are copied, so the clip can go now. Releasing it after the await would
         // destroy whatever newer recording had taken its place.
@@ -577,6 +583,19 @@ public class RadioMic : MonoBehaviour
             Debug.LogWarning("[RADIO]: no CommandRouter in scene. (Likely due to scene transition)");
             if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
         }
+    }
+
+    /// <summary>
+    /// Copies the recording and pads it with silence: a trailing pad always, and up to
+    /// MinDecodeSeconds for short clips, which whisper.cpp would otherwise reject as too short.
+    /// </summary>
+    public float[] PadForWhisper(float[] samples, int frames, int channels)
+    {
+        int padded = Mathf.Max(frames + Mathf.RoundToInt(TrailingSilenceSeconds * SAMPLING_RATE),
+                               Mathf.CeilToInt(MinDecodeSeconds * SAMPLING_RATE));
+        var speech = new float[padded * channels]; // the tail stays zero: silence
+        Array.Copy(samples, speech, frames * channels);
+        return speech;
     }
 
     /// <summary>
