@@ -388,6 +388,36 @@ public class CommandParserTests
         AssertOrders(speech, expected);
     }
 
+    // Beginners mean the dock when they ask "how far?".
+    [TestCase("How far?", ShipAction.QueryDestination)]
+    [TestCase("How far is it?", ShipAction.QueryDestination)]
+    [TestCase("How close is the reef?", ShipAction.QueryHazard)]
+    [TestCase("What's our heading?", ShipAction.QueryHeading)]
+    public void HowFarAsksAboutTheDock(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
+    // Crew answers say directions in plain words, never "fine on the starboard bow" or "NE".
+    [Test]
+    public void AnswersUsePlainDirections()
+    {
+        var t = new ShipTelemetry
+        {
+            Compass = "NE", CompassWords = "north-east", DestinationKnown = true, DestinationDistanceM = 300, DestinationBearing = 12,
+            DestinationRelative = "fine on the starboard bow", DestinationWhere = "ahead on the right",
+        };
+        foreach (var crew in new[] { RadioChannel.Lookout, RadioChannel.ChiefEngineer })
+            foreach (var action in new[] { ShipAction.QueryDestination, ShipAction.QueryHeading })
+                foreach (var line in CrewBarkLibrary.Lines(crew, action, CrewTension.Calm, t))
+                {
+                    string said = CrewBarkLibrary.Fill(line, t);
+                    StringAssert.DoesNotContain("bow", said, said);
+                    StringAssert.DoesNotContain(" NE", said, said);
+                    StringAssert.DoesNotContain("012", said, said);
+                }
+    }
+
     // A radio check off-voyage says what was heard, and that orders work at sea.
     [Test]
     public void RadioCheckSaysWhatWasHeard()

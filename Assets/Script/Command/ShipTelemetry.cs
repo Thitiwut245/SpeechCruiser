@@ -18,6 +18,8 @@ public struct ShipTelemetry
     /// <summary>Speed the current order is heading for, e.g. 9.6 after an engine upgrade.</summary>
     public float OrderedKn;
     public string Compass;
+    /// <summary>The compass point in full words for beginners: "north-east".</summary>
+    public string CompassWords;
     public int FuelPct;
     public bool HazardDetected;
     public int HazardDistanceM;
@@ -74,6 +76,7 @@ public struct ShipTelemetry
             t.SpeedKn = Mathf.RoundToInt(nav.currentSpeed);
             t.OrderedKn = nav.Engine != null ? Mathf.Abs(nav.Engine.OrderedSpeed) : 0f;
             t.Compass = CompassPoint(nav.transform.eulerAngles.y);
+            t.CompassWords = CompassWordsFor(t.Compass);
             t.FuelPct = RoundTo(nav.fuel, 5);
         }
 
@@ -163,6 +166,16 @@ public struct ShipTelemetry
         if (a <= 110f) return "on the " + side + " beam";
         if (a <= 160f) return "on the " + side + " quarter";
         return "astern";
+    }
+
+    public static string CompassWordsFor(string point)
+    {
+        switch (point)
+        {
+            case "N": return "north"; case "NE": return "north-east"; case "E": return "east"; case "SE": return "south-east";
+            case "S": return "south"; case "SW": return "south-west"; case "W": return "west"; case "NW": return "north-west";
+            default: return point;
+        }
     }
 
     public static string CompassPoint(float heading)

@@ -74,6 +74,9 @@ public class RadarSystem : MonoBehaviour
     /// <summary>Stable id of the threatening hazard, so alerts can escalate per hazard.</summary>
     public int ThreatId { get; private set; }
 
+    /// <summary>The hazard on course, or null. The crew keep it to tell when it has really been passed.</summary>
+    public Collider ThreatCollider { get; private set; }
+
     public float Range => ScanDistance;
     public float SweepAngle => _sweepAngle;
 
@@ -159,6 +162,7 @@ public class RadarSystem : MonoBehaviour
         ThreatBearing = threatBearing;
         ThreatKind = threat != null ? KindOf(threat) : "Hazard";
         ThreatId = threat != null ? threat.GetHashCode() : 0;
+        ThreatCollider = threat;
 
         if (ThreatDetected && !wasThreat) OnHazardDetected?.Invoke(threatDist);
         else if (!ThreatDetected && wasThreat) OnPathClear?.Invoke();

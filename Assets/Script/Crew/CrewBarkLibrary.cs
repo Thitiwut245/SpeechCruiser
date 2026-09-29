@@ -111,7 +111,7 @@ public static class CrewBarkLibrary
         {
             case ShipAction.QueryDestination:
                 return t.DestinationKnown
-                    ? new[] { "Chart puts the dock {5}, {6} metres, Sir. Over.", "By the chart, dock bears {7}, {6} metres off. Over." }
+                    ? new[] { "Chart puts the dock {13}, {6} metres, Sir. Over.", "By the chart, the dock is {6} metres {13}. Over." }
                     : new[] { "No dock on the chart yet, Sir. Over." };
 
             case ShipAction.QueryStatus:
@@ -124,7 +124,7 @@ public static class CrewBarkLibrary
                 return new[] { "Making {1} knots, telegraph {0}. Over.", "{1} knots through the water, Sir. Over." };
 
             case ShipAction.QueryHeading:
-                return new[] { "Heading {3}, Sir. Over.", "We're steering {3}. Over." };
+                return new[] { "Heading {14}, Sir. Over.", "We're steering {14}. Over." };
 
             case ShipAction.QueryHazard:
                 return new[] { "That's the lookout's eyes, Sir — I'm below decks. Over.", "Can't see a thing from the engine room, Sir. Ask Finn. Over." };
@@ -147,7 +147,7 @@ public static class CrewBarkLibrary
                     : new[] { "Open water all around, Sir! Over.", "Nothing on the water nearby, Sir. Clear as far as I can see. Over.", "All clear, Sir! Over." };
 
             case ShipAction.QueryHeading:
-                return new[] { "We're heading {3}, Sir! Over.", "Bow's pointing {3}, Sir! Over." };
+                return new[] { "We're heading {14}, Sir! Over.", "Bow's pointing {14}, Sir! Over." };
 
             case ShipAction.QuerySpeed:
                 return new[] { "Feels like {1} knots from up here, Sir! Over.", "About {1} knots, Sir — Chief would know better. Over." };
@@ -157,7 +157,7 @@ public static class CrewBarkLibrary
 
             case ShipAction.QueryDestination:
                 return t.DestinationKnown
-                    ? new[] { "Dock bears {7}, {5}, about {6} metres, Sir! Over.", "Harbour's {5}, {6} metres off, Sir! Over." }
+                    ? new[] { "The dock is {13}, about {6} metres, Sir! Over.", "Harbour's {13}, {6} metres off, Sir! Over." }
                     : new[] { "No harbour in sight yet, Sir! Over." };
 
             default:
@@ -415,8 +415,8 @@ public static class CrewBarkLibrary
     {
         return new[]
         {
-            "Dock in sight, Captain! {6} metres {13}. Slow down soon: say \"slow ahead\". Over.",
-            "I see the dock, Sir! {6} metres {13}. Ease the speed so we stop at the gold line. Over.",
+            "Dock in sight, Captain! {6} metres {13}. Steer for the gold line. Over.",
+            "I see the dock, Sir! {6} metres {13}. Take her through the gold line. Over.",
         };
     }
 
@@ -477,6 +477,7 @@ public static class CrewBarkLibrary
     ///   {5} dock relative to the bow   {6} dock distance m   {7} dock bearing (three digits)
     ///   {8} hazard kind ("Mine")   {9} where it is ("ahead on the left")   {10} which way to turn
     ///   {11} hazard kind in lower case   {12} ordered speed kn   {13} dock direction in plain words
+    ///   {14} compass point in full words ("north-east")
     /// </summary>
     public static string Fill(string template, ShipTelemetry t)
     {
@@ -497,7 +498,8 @@ public static class CrewBarkLibrary
             .Replace("{10}", t.HazardAvoid ?? "")
             .Replace("{11}", (t.HazardKind ?? "hazard").ToLowerInvariant())
             .Replace("{12}", t.OrderedKn.ToString("0.#"))
-            .Replace("{13}", t.DestinationWhere ?? "");
+            .Replace("{13}", t.DestinationWhere ?? "")
+            .Replace("{14}", t.CompassWords ?? t.Compass ?? "");
     }
 
     /// <summary>Reads current danger level so barks can shift register.</summary>

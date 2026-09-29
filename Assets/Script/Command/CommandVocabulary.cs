@@ -174,7 +174,10 @@ public static class CommandVocabulary
         // ---------------- Queries ----------------
         new Entry(ShipAction.QueryHazard,
             "what do you see", "what can you see", "anything ahead", "any hazards",
-            "how far", "how close", "distance to reef", "whats ahead", "what is ahead",
+            "how close", "distance to reef", "whats ahead", "what is ahead",
+            // "how far" alone asks about the dock; with a hazard named it asks about the hazard
+            "how far is reef", "how far reef", "how far is rock", "how far rock", "how far is rocks",
+            "how far is mine", "how far mine", "how far is hazard", "how far is danger",
             "is it clear", "any reef", "any rocks", "see anything", "report ahead",
             "eyes ahead", "clear ahead", "what you see",
             // naming a hazard asks about it: "is there a reef ahead?"
@@ -188,7 +191,7 @@ public static class CommandVocabulary
         new Entry(ShipAction.QueryDestination,
             "harbour", "harbor", "dock", "destination", "where are we going",
             "where are we headed", "how far to go", "how much further", "how much farther",
-            "which way", "where to", "into port", "in to port", "make for port",
+            "which way", "where to", "how far", "into port", "in to port", "make for port",
             "head for port", "back to port", "our destination", "where is harbour",
             "how far to harbour", "how far to dock", "how far is dock", "distance to dock",
             "distance to harbour", "where we go", "where go", "finish", "finish line",

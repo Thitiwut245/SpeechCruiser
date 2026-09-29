@@ -71,6 +71,9 @@ public class CrewAlertSystem : MonoBehaviour
     private int _threatId;
     private int _threatStage;
     private bool _hitSinceWarning;
+    // The hazard Finn warned about, and one that left the course but may not be past yet.
+    private Collider _warnedHazard;
+    private Collider _pendingPassed;
 
     // Progress along the route this voyage.
     private float _routeLength = -1f;
@@ -117,8 +120,8 @@ public class CrewAlertSystem : MonoBehaviour
         if (status == RadioStatus.Heard) _lastLineAt = Time.realtimeSinceStartup;
     }
 
-    private void HandleHit(int containers) { _hitSinceWarning = true; }
-    private void HandleBump() { _hitSinceWarning = true; }
+    private void HandleHit(int containers) { _hitSinceWarning = true; _pendingPassed = null; }
+    private void HandleBump() { _hitSinceWarning = true; _pendingPassed = null; }
 
     private bool PlayerIsTalking()
     {
@@ -137,8 +140,13 @@ public class CrewAlertSystem : MonoBehaviour
             yield return new WaitForSecondsRealtime(checkInterval);
 
             if (CrewVoice.Instance == null) continue;
-            if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing) continue;
-            if (TimeController.Instance != null && TimeController.Instance.IsPaused) continue;
+            // Time in the shipyard or on the pause menu isn't radio silence at sea.
+            bool atSea = GameManager.Instance == null || GameManager.Instance.CurrentState == GameState.Playing;
+            if (!atSea || (TimeController.Instance != null && TimeController.Instance.IsPaused))
+            {
+                _lastLineAt = Time.realtimeSinceStartup;
+                continue;
+            }
 
             var t = ShipTelemetry.Capture();
 
@@ -153,23 +161,22 @@ public class CrewAlertSystem : MonoBehaviour
     private bool CheckHazard(ShipTelemetry t)
     {
         var radar = RadarSystem.Instance;
-        if (radar == null || !radar.IsThreat)
+        bool threat = radar != null && radar.IsThreat;
+
+        // A warned hazard that dropped off the course is only "passed" once it is abeam or
+        // behind a ship that is still moving. Slowing down or stopping in front of it clears
+        // the radar too, and that is not a pass.
+        if (threat ? radar.ThreatId != _threatId : _threatStage > 0)
         {
-            bool passed = _threatStage > 0 && !_hitSinceWarning;
-            _threatId = 0;
+            if (_threatStage > 0 && !_hitSinceWarning) _pendingPassed = _warnedHazard;
+            _threatId = threat ? radar.ThreatId : 0;
             _threatStage = 0;
-            return passed && SayPassed(t);
+            _warnedHazard = null;
         }
+        if (_pendingPassed != null && (!threat || radar.TimeToImpact > warnSeconds) && CheckPassed(t)) return true;
+        if (!threat) return false;
 
         float tti = radar.TimeToImpact;
-        if (radar.ThreatId != _threatId)
-        {
-            // Another hazard is on course: only mention the last one if the new one is still far off.
-            bool passed = _threatStage > 0 && !_hitSinceWarning && tti > warnSeconds;
-            _threatId = radar.ThreatId;
-            _threatStage = 0;
-            if (passed && SayPassed(t)) return true;
-        }
 
         int stage = tti <= braceSeconds ? 3 : tti <= closingSeconds ? 2 : tti <= warnSeconds ? 1 : 0;
         if (stage <= _threatStage) return false;
@@ -177,7 +184,11 @@ public class CrewAlertSystem : MonoBehaviour
         // Brace always gets through; the earlier calls wait for the player to finish talking.
         if (stage < 3 && yieldToPlayer && PlayerIsTalking()) return false;
 
-        if (_threatStage == 0) _hitSinceWarning = false; // a fresh warning
+        if (_threatStage == 0)
+        {
+            _hitSinceWarning = false; // a fresh warning
+            _warnedHazard = radar.ThreatCollider;
+        }
         _threatStage = stage;
         OnHazardStage?.Invoke(stage);
         string[] lines = stage == 3 ? CrewBarkLibrary.AlertHazardBrace()
@@ -188,9 +199,23 @@ public class CrewAlertSystem : MonoBehaviour
         return true;
     }
 
-    private bool SayPassed(ShipTelemetry t)
+    /// <summary>Says "passed" once the pending hazard is abeam or behind a moving ship; drops it when far away.</summary>
+    private bool CheckPassed(ShipTelemetry t)
     {
+        var nav = ShipNavigator.Instance;
+        var hazard = _pendingPassed;
+        if (nav == null || hazard == null || !hazard.gameObject.activeInHierarchy) { _pendingPassed = null; return false; }
+
+        Vector3 to = hazard.bounds.center - nav.transform.position;
+        to.y = 0f;
+        if (to.magnitude > 120f) { _pendingPassed = null; return false; }
+
+        // Stopped or backing away in front of it is not a pass: she has to go by it, bow first.
+        if (nav.currentSpeed < 0.5f) return false;
+        if (Vector3.Dot(to.normalized, nav.transform.forward) > 0.2f) return false; // still ahead
+
         if (yieldToPlayer && PlayerIsTalking()) return false;
+        _pendingPassed = null;
         CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout, CrewBarkLibrary.HazardPassed(), t, "alert:passed");
         return true;
     }
@@ -207,6 +232,9 @@ public class CrewAlertSystem : MonoBehaviour
         toDock.y = 0f;
         float remaining = toDock.magnitude;
         if (_routeLength < 0f) _routeLength = Mathf.Max(remaining, 1f);
+
+        // The drill has its own coach: progress calls wait until it is over.
+        if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive) return;
 
         float now = Time.realtimeSinceStartup;
         if (now - _lastLineAt < gapAfterLine) return;
@@ -229,9 +257,7 @@ public class CrewAlertSystem : MonoBehaviour
             return;
         }
 
-        // The drill has its own coach; nobody reports in over it.
-        bool drill = TutorialManager.Instance != null && TutorialManager.Instance.IsActive;
-        if (!drill && now - _lastLineAt >= quietSeconds)
+        if (now - _lastLineAt >= quietSeconds)
         {
             _quietReportByFinn = !_quietReportByFinn;
             var crew = _quietReportByFinn ? RadioChannel.Lookout : RadioChannel.ChiefEngineer;
