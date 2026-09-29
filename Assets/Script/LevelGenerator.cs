@@ -73,6 +73,13 @@ public class LevelGenerator : MonoBehaviour
              "a real course instead of running out of attempts.")]
     [SerializeField] private float WeaveRelaxPerAttempt = 0.03f;
 
+    [Tooltip("The most the weave requirement ever relaxes. Below that, the most winding layout found is " +
+             "used instead, so relaxing never accepts a straight run.")]
+    [SerializeField] private float MaxWeaveRelax = 0.06f;
+
+    [Tooltip("Extra attempts, with hazards thinned a little each time, when every normal attempt was blocked.")]
+    [SerializeField] private int BlockedExtraAttempts = 10;
+
     [Tooltip("How much neighbouring wall pieces overlap, in world units, so no gap opens between them.")]
     [SerializeField] private float WallOverlap = 3f;
 
@@ -257,11 +264,17 @@ public class LevelGenerator : MonoBehaviour
         Node[,] bestGrid = null;
         List<Node> bestPath = null;
 
-        for (int attempt = 1; attempt <= MaxRetries; attempt++)
+        // Relaxing stops above a straight run: Easy 1.04, Normal 1.14, Hard 1.24.
+        float floorWeave = Mathf.Max(1f, targetWeave - MaxWeaveRelax);
+        int blockedAttempts = 0;
+
+        // Past MaxRetries, keep going only while every layout so far was blocked, thinning the hazards.
+        for (int attempt = 1; attempt <= MaxRetries || (bestPath == null && attempt <= MaxRetries + BlockedExtraAttempts); attempt++)
         {
-            Node[,] grid = CreateAndScatterGrid(GridWidth, gridLength);
+            float thin = attempt <= MaxRetries ? 1f : Mathf.Pow(0.9f, attempt - MaxRetries);
+            Node[,] grid = CreateAndScatterGrid(GridWidth, gridLength, thin);
             List<Node> path = FindPathAStar(grid, grid[GridWidth / 2, 0], grid[GridWidth / 2, gridLength - 1]);
-            if (path == null) continue; // blocked: never usable
+            if (path == null) { blockedAttempts++; continue; } // blocked: never usable
 
             // Keep the most winding connected layout in case none reaches the target.
             if (bestPath == null || path.Count > bestPath.Count)
@@ -270,13 +283,14 @@ public class LevelGenerator : MonoBehaviour
                 bestPath = path;
             }
 
-            float required = Mathf.Max(1f, targetWeave - WeaveRelaxPerAttempt * (attempt - 1));
+            float required = Mathf.Max(floorWeave, targetWeave - WeaveRelaxPerAttempt * (attempt - 1));
             if (path.Count < straight * required) continue;
 
             finalGrid = grid;
             _finalPathNodes = path;
             Debug.Log($"🌊 [LEVEL GEN]: {_job.Name}{(_gentle ? " (gentle)" : "")}, tier {_currentDifficulty}, grid {GridWidth}x{gridLength}, " +
-                      $"weave {path.Count / straight:0.00} (needed {required:0.00}) on attempt {attempt}.");
+                      $"weave {path.Count / straight:0.00} (needed {required:0.00}) on attempt {attempt}" +
+                      (blockedAttempts > 0 ? $", {blockedAttempts} blocked." : "."));
             break;
         }
 
@@ -286,14 +300,14 @@ public class LevelGenerator : MonoBehaviour
             // guaranteed way through: far better than an empty sea.
             finalGrid = bestGrid;
             _finalPathNodes = bestPath;
-            Debug.Log($"🌊 [LEVEL GEN]: {_job.Name}, no layout reached weave {targetWeave:0.00}; using the best found " +
+            Debug.Log($"🌊 [LEVEL GEN]: {_job.Name}, no layout reached the weave needed ({floorWeave:0.00} at the least); using the most winding found " +
                       $"({bestPath.Count / straight:0.00}).");
         }
 
         if (finalGrid == null)
         {
             // Only possible if every attempt was completely blocked.
-            Debug.LogError($"❌ [LEVEL GEN]: no connected layout in {MaxRetries} attempts — falling back to open sea. " +
+            Debug.LogError($"❌ [LEVEL GEN]: no connected layout in {MaxRetries + BlockedExtraAttempts} attempts — falling back to open sea. " +
                            "Lower ObstacleDensity or widen the grid.");
             finalGrid = CreateEmptyGrid(GridWidth, gridLength);
             _finalPathNodes = new List<Node>();
@@ -340,7 +354,8 @@ public class LevelGenerator : MonoBehaviour
     // GRID + VALIDATION
     // ==============================
 
-    private Node[,] CreateAndScatterGrid(int width, int length)
+    /// <param name="thin">Scales every cell's hazard chance; below 1 only after blocked attempts.</param>
+    private Node[,] CreateAndScatterGrid(int width, int length, float thin = 1f)
     {
         Node[,] grid = CreateEmptyGrid(width, length);
 
@@ -349,7 +364,7 @@ public class LevelGenerator : MonoBehaviour
         int endY = length - 1;
 
         int clearRows = _gentle ? FirstVoyageClearRows : StartClearRows;
-        float densityScale = (_gentle ? FirstVoyageDensityScale : 1f) * _job.DensityScale;
+        float densityScale = (_gentle ? FirstVoyageDensityScale : 1f) * _job.DensityScale * thin;
 
         for (int x = 0; x < width; x++)
         {
