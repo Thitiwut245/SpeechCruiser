@@ -39,7 +39,7 @@ public class CommandRouter : MonoBehaviour
         @"\b(radio check|mic check|comms check|testing|can you hear me|do you hear me)\b",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     private static readonly System.Text.RegularExpressions.Regex HelpPattern = new System.Text.RegularExpressions.Regex(
-        @"\b(help|what can i say|what do i say|what can i do|commands|radio card|list of orders)\b",
+        @"\b(help|what can i say|what do i say|what can i do|what should i do|what do i do|what now|commands|radio card|list of orders)\b",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     // Said on their own, these mean "keep the ship moving": the last forward speed, or on as she is.
@@ -247,6 +247,14 @@ public class CommandRouter : MonoBehaviour
         if (isConversation)
         {
             SendToConversation(target, transcript);
+            return;
+        }
+
+        // A question nobody can answer without the chat model: say what can be asked, not "say again".
+        if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && !ChatReady)
+        {
+            Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
+            EndInstantTurn();
             return;
         }
 

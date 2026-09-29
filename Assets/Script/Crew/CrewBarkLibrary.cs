@@ -375,6 +375,14 @@ public static class CrewBarkLibrary
     // On a good line the crew still talk: a word when a warned hazard is passed, progress
     // calls on the way, the dock sighting, and a report after a long quiet spell.
 
+    /// <summary>A question with nothing to answer it: teach the questions that work.</summary>
+    public static string[] QuestionHint(RadioChannel crew)
+    {
+        return crew == RadioChannel.Lookout
+            ? new[] { "Not sure what you mean, Sir. Ask me \"any danger?\" or \"where is the dock?\". Over." }
+            : new[] { "Can't answer that one, Captain. Ask \"how fast?\" or \"status report\". Over." };
+    }
+
     /// <summary>Harris, told to "continue" while already making way ahead.</summary>
     public static string[] KeepGoing()
     {

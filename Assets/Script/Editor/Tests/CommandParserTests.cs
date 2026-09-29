@@ -388,6 +388,53 @@ public class CommandParserTests
         AssertOrders(speech, expected);
     }
 
+    // Questions asked in full sentences get an answer, whatever the grammar around the topic.
+    [TestCase("Is there any danger ahead?", ShipAction.QueryHazard)]
+    [TestCase("Is there any danger?", ShipAction.QueryHazard)]
+    [TestCase("Any danger ahead?", ShipAction.QueryHazard)]
+    [TestCase("Do you see any danger?", ShipAction.QueryHazard)]
+    [TestCase("Are we in danger?", ShipAction.QueryHazard)]
+    [TestCase("Are we safe?", ShipAction.QueryHazard)]
+    [TestCase("How far are the rocks?", ShipAction.QueryHazard)]
+    [TestCase("Are we close?", ShipAction.QueryDestination)]
+    [TestCase("Are we there yet?", ShipAction.QueryDestination)]
+    [TestCase("Where are we?", ShipAction.QueryDestination)]
+    [TestCase("Where are we heading?", ShipAction.QueryHeading)]
+    [TestCase("Which direction are we going?", ShipAction.QueryHeading)]
+    [TestCase("What is the heading?", ShipAction.QueryHeading)]
+    [TestCase("Is the engine okay?", ShipAction.QueryStatus)]
+    [TestCase("Is everything okay?", ShipAction.QueryStatus)]
+    public void NaturalQuestionsGetAnAnswer(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
+    // Questions about an order still ask "is that an order?", never answer something else.
+    [TestCase("Should we speed up?")]
+    [TestCase("Can we go faster?")]
+    public void QuestionAboutAnOrderIsNotAnswered(string speech)
+    {
+        var r = CommandParser.Parse(speech);
+        Assert.IsFalse(r.HasConfidentOrder, speech);
+        Assert.IsFalse(r.Matches.Exists(m => m.Action == ShipAction.QuerySpeed), speech + " answered a speed question");
+    }
+
+    // One order per breath when the second word is vague, and accented or plain-English forms.
+    [TestCase("Straight ahead", ShipAction.RudderMidships)]
+    [TestCase("Right ahead", ShipAction.TurnStarboard)]
+    [TestCase("Full right", ShipAction.HardStarboard)]
+    [TestCase("Full left", ShipAction.HardPort)]
+    [TestCase("for ahead", ShipAction.EngineFull)]
+    [TestCase("four ahead", ShipAction.EngineFull)]
+    [TestCase("more slow", ShipAction.EngineDecrease)]
+    [TestCase("speed down", ShipAction.EngineDecrease)]
+    [TestCase("Turn off the engine", ShipAction.EngineStop)]
+    [TestCase("engine off", ShipAction.EngineStop)]
+    public void CompoundsAndAccents(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
     // Beginners mean the dock when they ask "how far?".
     [TestCase("How far?", ShipAction.QueryDestination)]
     [TestCase("How far is it?", ShipAction.QueryDestination)]

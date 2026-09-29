@@ -96,7 +96,9 @@ public static class CommandVocabulary
 
         new Entry(ShipAction.EngineFull,
             "full ahead", "ahead full", "full speed", "all ahead full", "full throttle",
-            "full", "fast", "ahead fool", "full head", "top speed", "go go", "full power"),
+            "full", "fast", "ahead fool", "full head", "top speed", "go go", "full power",
+            // accented "full ahead" as Whisper writes it
+            "for ahead", "four ahead", "fool ahead", "fall ahead", "full a head"),
 
         new Entry(ShipAction.EngineFlank,
             "flank speed", "flank", "ahead flank", "emergency speed", "maximum speed",
@@ -129,7 +131,7 @@ public static class CommandVocabulary
             "slower", "slow down", "reduce speed", "less speed", "ease off",
             "throttle back", "decrease speed", "less power", "down one", "less",
             "ease her back", "not so fast", "not too fast", "too fast", "slow it down",
-            "less fast", "not fast"),
+            "less fast", "not fast", "more slow", "more slowly", "speed down", "slow more"),
 
         // ---------------- Helm ----------------
         new Entry(ShipAction.TurnPort,
@@ -151,11 +153,11 @@ public static class CommandVocabulary
             "star board", "starbird", "star bird", "star bored", "starbord", "starboared"),
 
         new Entry(ShipAction.HardPort,
-            "hard port", "hard to port", "hard a port", "hard left", "hard over port",
+            "hard port", "hard to port", "hard a port", "hard left", "hard over port", "full left", "full port",
             "full port rudder", "hard aport", "hard to part", "hard to pork"),
 
         new Entry(ShipAction.HardStarboard,
-            "hard starboard", "hard to starboard", "hard a starboard", "hard right",
+            "hard starboard", "hard to starboard", "hard a starboard", "hard right", "full right", "full starboard", "hard light",
             "hard over starboard", "full starboard rudder", "hard to star board"),
 
         new Entry(ShipAction.RudderMidships,

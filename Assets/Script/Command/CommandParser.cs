@@ -152,6 +152,44 @@ public static class CommandParser
         "maximum", "max", "finish", "goal", "danger", "end",
     };
 
+    /// <summary>
+    /// The grammar of a question: "IS THERE ANY danger ahead?". For query phrases only, these
+    /// don't count towards the weak-word limit, so a question can be asked in a full sentence.
+    /// Queries never move the ship, so this can't loosen the rules for orders.
+    /// </summary>
+    private static readonly HashSet<string> QuestionScaffold = new HashSet<string>
+    {
+        "is", "are", "am", "was", "were", "do", "does", "did", "there", "it", "any", "of", "our",
+        "to", "this", "that", "yet", "in", "on", "at", "for", "see", "tell", "me", "know",
+    };
+
+    // A question that still matched nothing is answered by its topic word.
+    private static readonly (ShipAction Action, string[] Words)[] QuestionTopics =
+    {
+        (ShipAction.QueryHazard, new[] { "danger", "dangerous", "safe", "unsafe", "clear", "something", "anything", "obstacle",
+                                         "obstacles", "rock", "rocks", "reef", "reefs", "mine", "mines", "hazard", "hazards", "crash" }),
+        (ShipAction.QueryDestination, new[] { "close", "near", "far", "there yet", "long", "longer", "arrive", "dock",
+                                              "harbour", "harbor", "distance", "where", "finish" }),
+        (ShipAction.QueryHeading, new[] { "direction", "heading", "course", "compass", "north", "south", "east", "west" }),
+        (ShipAction.QuerySpeed, new[] { "fast", "speed", "knots", "slow" }),
+        (ShipAction.QueryFuel, new[] { "fuel", "gas", "oil", "petrol", "diesel" }),
+        (ShipAction.QueryStatus, new[] { "engine", "ship", "boat", "everything", "okay", "ok", "fine", "damage", "damaged",
+                                         "hull", "broken", "status", "alright", "good" }),
+    };
+
+    // "How far are the rocks?" is about the rocks, not the dock.
+    private static readonly HashSet<string> HazardNouns = new HashSet<string>
+    {
+        "rock", "rocks", "reef", "reefs", "mine", "mines", "hazard", "hazards", "danger", "obstacle", "obstacles",
+    };
+
+    private static int ContentCount(List<string> toks)
+    {
+        int n = 0;
+        foreach (var t in toks) if (!QuestionScaffold.Contains(t)) n++;
+        return n;
+    }
+
     private static readonly HashSet<string> Negators = new HashSet<string>
     {
         "not", "dont", "never", "no", "doesnt", "wont", "cant", "shouldnt", "mustnt",
@@ -520,6 +558,11 @@ public static class CommandParser
         // become an astern order, then ask which way unless a real turn is also given.
         bool sidelessHelm = ClaimSidelessHelm(clause, used);
 
+        // Questions: weak query words may stand in a full sentence ("is there any danger?"),
+        // but never where they are part of an order being asked about ("should we SPEED up?").
+        bool relaxedQuery = anyQuestionSentence && ContentCount(toks) <= MaxTokensForWeakWord;
+        var questionedOrder = relaxedQuery ? QuestionedOrderTokens(clause) : null;
+
         for (int pass = 0; pass < MaxCompoundActions; pass++)
         {
             float bestMean = 0f;
@@ -533,7 +576,10 @@ public static class CommandParser
             {
                 var cp = _compiled[c];
                 if (claimedCategories.Contains(cp.Action.Category())) continue;
-                if (cp.IsWeak && toks.Count > MaxTokensForWeakWord) continue;
+                bool weakQueryInQuestion = relaxedQuery && cp.Action.IsQuery();
+                if (cp.IsWeak && toks.Count > MaxTokensForWeakWord && !weakQueryInQuestion) continue;
+                // After one order, a vague word ("ahead", "go") can't add another: "straight ahead" only straightens.
+                if (pass > 0 && cp.IsWeak && cp.Weight < 1f) continue;
                 if (result.DirectionConflict && (cp.Action.IsAheadGear() || cp.Action.IsAsternGear())) continue;
                 if (asternSpoken && cp.Action.IsAheadGear()) continue;
                 if (result.SideConflict && (cp.Action.IsPortTurn() || cp.Action.IsStarboardTurn())) continue;
@@ -541,6 +587,7 @@ public static class CommandParser
                 float sum;
                 float mean = ScorePhrase(toks, used, cp.Tokens, consumed, out sum);
                 if (mean <= 0f) continue;
+                if (cp.IsWeak && toks.Count > MaxTokensForWeakWord && Overlaps(consumed, questionedOrder)) continue;
                 mean *= cp.Weight;
                 sum *= cp.Weight;
 
@@ -608,6 +655,28 @@ public static class CommandParser
         for (int i = 0; i < result.Matches.Count; i++) helmMatched |= result.Matches[i].Action.IsHelm();
         if (!helmMatched && sidelessHelm) result.SideConflict = true;
 
+        // "How far are the rocks?" asks about the rocks.
+        for (int i = 0; i < result.Matches.Count; i++)
+        {
+            var m = result.Matches[i];
+            if (m.Action == ShipAction.QueryDestination && m.Phrase.StartsWith("how far") && toks.Exists(HazardNouns.Contains))
+            {
+                m.Action = ShipAction.QueryHazard;
+                result.Matches[i] = m;
+            }
+        }
+
+        // A question that matched nothing is answered by its topic: "are we safe?" is about
+        // hazards, "are we close?" about the dock. Only queries, so the ship never moves.
+        if (result.Matches.Count == 0 && !result.NeedsClarification && !droppedForQuestion && result.LooksLikeQuestion)
+        {
+            var topic = QuestionTopic(wholeNormalized);
+            if (topic != ShipAction.None)
+            {
+                result.Matches.Add(new Match { Action = topic, Confidence = AcceptHigh, Phrase = "(question topic)", FirstToken = -1, LastToken = -1 });
+            }
+        }
+
         if (result.Matches.Count == 0 && !result.NeedsClarification)
         {
             if (droppedForQuestion) result.OrderInQuestion = true;
@@ -619,6 +688,40 @@ public static class CommandParser
         // Best first.
         result.Matches.Sort((a, b) => b.Confidence.CompareTo(a.Confidence));
         return result;
+    }
+
+    private static ShipAction QuestionTopic(string normalized)
+    {
+        string padded = " " + normalized + " ";
+        foreach (var topic in QuestionTopics)
+            foreach (var w in topic.Words)
+                if (padded.Contains(" " + w + " ")) return topic.Action;
+        return ShipAction.None;
+    }
+
+    /// <summary>Words covered by an order that sits inside a question ("should we speed up?").</summary>
+    private static HashSet<int> QuestionedOrderTokens(Clause clause)
+    {
+        var toks = clause.Tokens;
+        var marked = new HashSet<int>();
+        var none = new bool[toks.Count];
+        var tmp = new List<int>(4);
+        foreach (var cp in _compiled)
+        {
+            if (!cp.Action.IsMachinery()) continue;
+            if (cp.IsWeak && toks.Count > MaxTokensForWeakWord) continue;
+            float sum;
+            if (ScorePhrase(toks, none, cp.Tokens, tmp, out sum) * cp.Weight < AcceptLow) continue;
+            if (TouchesQuestion(clause, tmp)) foreach (int i in tmp) marked.Add(i);
+        }
+        return marked;
+    }
+
+    private static bool Overlaps(List<int> consumed, HashSet<int> marked)
+    {
+        if (marked == null) return false;
+        foreach (int i in consumed) if (marked.Contains(i)) return true;
+        return false;
     }
 
     private static bool HasLetters(string s)
