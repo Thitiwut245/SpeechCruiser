@@ -119,6 +119,18 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Extra world units of water and sea floor beyond the grid edge, so the horizon never shows a seam.")]
     [SerializeField] private float EnvironmentMargin = 150f;
 
+    [Header("Coast")]
+    [Tooltip("Land around the sea: beach and hills just outside the reef wall, behind both harbours. Scenery only.")]
+    [SerializeField] private bool BuildCoast = true;
+    [Tooltip("How far inland the land reaches.")]
+    [SerializeField] private float CoastDepth = 140f;
+    [Tooltip("Size of the land's triangles: smaller is smoother and heavier.")]
+    [SerializeField] private float CoastCell = 8f;
+    [Tooltip("How far the shoreline wanders outward from the reef wall.")]
+    [SerializeField] private float CoastRagged = 14f;
+    [Tooltip("Trees per 1000 square units of grass.")]
+    [SerializeField] private float CoastTrees = 1.5f;
+
     [Tooltip("Height of the finish-line trigger volume. Just needs to comfortably contain the hull.")]
     [SerializeField] private float EndGateHeight = 30f;
 
@@ -598,6 +610,7 @@ public class LevelGenerator : MonoBehaviour
         BuildBoundaryWalls(minX, maxX, lengthZ);
         BuildStartPort();
         BuildEndPort(minX, maxX);
+        if (BuildCoast) BuildCoastline(minX, maxX, lengthZ);
 
         CaptureMapData(grid, width, length, originX);
         OnLevelGenerated?.Invoke();
@@ -918,6 +931,35 @@ public class LevelGenerator : MonoBehaviour
         Vector3 target = new Vector3(EndPosition.x, bounds.size.y * 0.5f,
                                      EndPosition.z + CellSize * 0.25f + DockSetBack + bounds.size.z * 0.5f);
         PlaceByBounds(dock, target, bounds);
+    }
+
+    /// <summary>
+    /// Land just outside the reef wall on three sides, and behind the destination dock, so the
+    /// sea reads as a channel between coasts and both harbours sit against land.
+    /// </summary>
+    private void BuildCoastline(float minX, float maxX, float lengthZ)
+    {
+        // The beach starts under the reef wall, so its rocks sit on the shore and the land
+        // shows from the channel. The wall is one cell beyond the outer column.
+        const float gap = 4f;
+        float west = minX - CellSize, east = maxX + CellSize;
+        float south = -CellSize * 2f, north = lengthZ + CellSize;
+
+        // Keep both harbours in the water: the coast starts behind them.
+        var start = _levelRoot.Find("StartPort");
+        if (start != null) south = Mathf.Min(south, MeasureBounds(start.gameObject).min.z - gap);
+        var dock = _levelRoot.Find("EndDock");
+        if (dock != null) north = Mathf.Max(north, MeasureBounds(dock.gameObject).max.z + 2f);
+
+        CoastBuilder.Build(_levelRoot, new CoastBuilder.Settings
+        {
+            Water = Rect.MinMaxRect(west, south, east, north),
+            Depth = CoastDepth,
+            Cell = Mathf.Max(2f, CoastCell),
+            Ragged = CoastRagged,
+            TreeDensity = CoastTrees,
+            Seed = Random.Range(0, int.MaxValue),
+        });
     }
 
     // ==============================
