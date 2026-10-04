@@ -28,6 +28,11 @@ public class TypedOrders : MonoBehaviour
     private RadioMic _mic;
     private string _lastOrder = "";
 
+    // The Enter that opened the box reaches the text field too, a moment later, as a key-down.
+    // Taken as "send", it would send nothing and close the box in the same frame, so the box
+    // never seemed to open. Enter only sends once the opening press has been released.
+    private bool _openingEnterHeld;
+
     private void Start()
     {
         _mic = FindAnyObjectByType<RadioMic>();
@@ -76,7 +81,7 @@ public class TypedOrders : MonoBehaviour
         _field.RegisterCallback<FocusOutEvent>(evt =>
         {
             var next = evt.relatedTarget as VisualElement;
-            if (IsTyping && (next == null || !_box.Contains(next))) Close();
+            if (IsTyping && (next == null || !_box.Contains(next))) Close("focus moved away");
         });
         _box.Add(_field);
 
@@ -110,7 +115,8 @@ public class TypedOrders : MonoBehaviour
             return;
         }
 
-        if (kb.escapeKey.wasPressedThisFrame) Close();
+        if (_openingEnterHeld && !kb.enterKey.isPressed && !kb.numpadEnterKey.isPressed) _openingEnterHeld = false;
+        if (kb.escapeKey.wasPressedThisFrame) Close("Esc");
     }
 
     private bool CanOpen()
@@ -125,14 +131,19 @@ public class TypedOrders : MonoBehaviour
     public void Open()
     {
         IsTyping = true;
+        _openingEnterHeld = true;
+        Debug.Log("[TYPED]: order box opened.");
         _box.style.display = DisplayStyle.Flex;
         _field.SetValueWithoutNotify("");
         _field.schedule.Execute(() => _field.Focus());
         if (TimeController.Instance != null) TimeController.Instance.SetTypingActive(true);
     }
 
-    public void Close()
+    public void Close() => Close("closed");
+
+    private void Close(string why)
     {
+        if (IsTyping) Debug.Log("[TYPED]: order box closed (" + why + ").");
         IsTyping = false;
         _closedFrame = Time.frameCount;
         if (_box != null) _box.style.display = DisplayStyle.None;
@@ -143,7 +154,7 @@ public class TypedOrders : MonoBehaviour
     /// <summary>Sends the text as an order (also used by tests).</summary>
     public void Submit(string text)
     {
-        Close();
+        Close(string.IsNullOrWhiteSpace(text) ? "sent empty" : "sent");
         if (string.IsNullOrWhiteSpace(text)) return;
         _lastOrder = text.Trim();
 
@@ -162,6 +173,7 @@ public class TypedOrders : MonoBehaviour
         if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
         {
             evt.StopPropagation();
+            if (_openingEnterHeld) return; // the press that opened the box, not a send
             Submit(_field.value);
         }
         else if (evt.keyCode == KeyCode.UpArrow && _lastOrder.Length > 0)
@@ -173,12 +185,12 @@ public class TypedOrders : MonoBehaviour
         else if (evt.keyCode == KeyCode.Escape)
         {
             evt.StopPropagation();
-            Close();
+            Close("Esc");
         }
     }
 
     private void HandleStateChanged(GameState state)
     {
-        if (state != GameState.Playing && IsTyping) Close();
+        if (state != GameState.Playing && IsTyping) Close("voyage ended");
     }
 }
