@@ -71,6 +71,10 @@ public class ShipyardManager : MonoBehaviour
 
     private readonly List<GameObject> _spawnedContainers = new List<GameObject>();
 
+    // Story mode: the mission replaces the job list, and its briefing plays over the harbour.
+    private StoryMission _story;
+    private bool _briefing;
+
     private void Start()
     {
         if (_document == null) _document = GetComponent<UIDocument>();
@@ -111,6 +115,8 @@ public class ShipyardManager : MonoBehaviour
 
         if (GameSession.Instance != null) GameSession.Instance.OnProgressUpdated += RefreshUI;
         _instance = this;
+        _story = StoryProgress.ActiveMission;
+        if (_story != null) SetUpStory(root);
         _mic = FindAnyObjectByType<RadioMic>();
         if (_mic != null) _mic.OnRadioStatus += HandleRadioStatus;
         ShipHull.OnHullHit += DropCargo;
@@ -126,6 +132,60 @@ public class ShipyardManager : MonoBehaviour
         }
 
         RefreshUI();
+
+        // The briefing plays the first time; a retry goes straight to the ship ("Replay briefing" brings it back).
+        if (StoryProgress.TakeBriefing(_story)) PlayBriefing();
+    }
+
+    // ------------------------------------------------------------ story mode
+
+    /// <summary>Swaps the job list for the mission card and starts the mission's director.</summary>
+    private void SetUpStory(VisualElement root)
+    {
+        var sheet = Resources.Load<StyleSheet>("Story/StoryUI");
+        if (sheet != null) root.styleSheets.Add(sheet);
+        StoryDirector.Install(_story);
+
+        var list = _jobEasyBtn.parent;
+        int at = list.IndexOf(_jobEasyBtn);
+        foreach (var label in root.Query<Label>(className: "section-label").ToList())
+        {
+            if (label.text != "CHOOSE A JOB") continue;
+            label.text = StoryCatalog.Chapters[_story.Chapter - 1].Title.ToUpperInvariant() + "  ·  " + _story.Label.ToUpperInvariant();
+        }
+        _jobEasyBtn.style.display = DisplayStyle.None;
+        _jobNormalBtn.style.display = DisplayStyle.None;
+        _jobHardBtn.style.display = DisplayStyle.None;
+
+        var card = new VisualElement();
+        card.AddToClassList("story-brief");
+        var title = new Label(_story.Title);
+        title.AddToClassList("story-brief-title");
+        var text = new Label(_story.Summary);
+        text.AddToClassList("story-brief-text");
+        var words = new Label("New words: " + string.Join("  ·  ", _story.Phrases));
+        words.AddToClassList("story-brief-words");
+        var replay = new Button(PlayBriefing) { text = "Replay briefing" };
+        replay.AddToClassList("small-btn");
+        replay.AddToClassList("story-brief-replay");
+        card.Add(title);
+        card.Add(text);
+        if (_story.Phrases.Length > 0) card.Add(words);
+        card.Add(replay);
+        list.Insert(at, card);
+    }
+
+    private void PlayBriefing()
+    {
+        if (_story == null || _loading || DialoguePlayer.IsPlaying) return;
+        _briefing = true;
+        if (GameManager.Instance != null) HandleStateChanged(GameManager.Instance.CurrentState);
+        string title = "CHAPTER " + _story.Chapter + "  ·  " + _story.Label.ToUpperInvariant() + "  ·  " + _story.Title.ToUpperInvariant();
+        DialoguePlayer.Play(_story.Intro, title, () =>
+        {
+            _briefing = false;
+            if (this != null && GameManager.Instance != null) HandleStateChanged(GameManager.Instance.CurrentState);
+        });
     }
 
     private void OnDestroy()
@@ -151,7 +211,7 @@ public class ShipyardManager : MonoBehaviour
     /// <summary>Builds the route for the selected job and moors the ship at the dock, camera snapped to it.</summary>
     private void PrepareHarbour()
     {
-        if (GameSession.Instance != null) GameSession.Instance.SetJob(_selectedJob);
+        if (GameSession.Instance != null && _story == null) GameSession.Instance.SetJob(_selectedJob);
         if (LevelGenerator.Instance != null) LevelGenerator.Instance.GenerateLevel();
         PlaceShipAtStart();
         if (_vcam != null) _vcam.PreviousStateIsValid = false; // snap, don't slide
@@ -185,14 +245,16 @@ public class ShipyardManager : MonoBehaviour
 
         // Hidden while sailing; the results panel owns the screen after a voyage.
         root.style.display = state == GameState.Playing ? DisplayStyle.None : DisplayStyle.Flex;
-        _storePanel.style.display = state == GameState.Shipyard && !_loading ? DisplayStyle.Flex : DisplayStyle.None;
+        bool store = state == GameState.Shipyard && !_loading && !_briefing;
+        _storePanel.style.display = store ? DisplayStyle.Flex : DisplayStyle.None;
         if (state != GameState.Shipyard) _loadingCaption.style.display = DisplayStyle.None;
-        SetShipyardFraming(state == GameState.Shipyard && !_loading);
+        SetShipyardFraming(store);
 
         if (state == GameState.Shipyard)
         {
             string summary = GameSession.Instance != null ? GameSession.Instance.LastMissionSummary : "";
-            _statusText.text = string.IsNullOrEmpty(summary) ? "Welcome aboard, Captain" : summary;
+            _statusText.text = _story != null ? "Chapter " + _story.Chapter + ": " + StoryCatalog.Chapters[_story.Chapter - 1].Title
+                             : string.IsNullOrEmpty(summary) ? "Welcome aboard, Captain" : summary;
             RefreshUI();
         }
     }
@@ -348,10 +410,11 @@ public class ShipyardManager : MonoBehaviour
     {
         if (_startDetail == null) return;
 
-        string name = _selectedJob.Name.Substring(0, 1) + _selectedJob.Name.Substring(1).ToLowerInvariant();
-        int reward = GameSession.Instance != null ? GameSession.Instance.RewardFor(_selectedJob) : _selectedJob.Reward;
+        var job = _story != null ? _story.Job : _selectedJob;
+        string name = _story != null ? _story.Label : _selectedJob.Name.Substring(0, 1) + _selectedJob.Name.Substring(1).ToLowerInvariant() + " run";
+        int reward = GameSession.Instance != null ? GameSession.Instance.RewardFor(job) : job.Reward;
         int bonus = GameManager.Instance != null ? Mathf.RoundToInt(reward * GameManager.Instance.OnTimeShare) : 0;
-        _startDetail.text = $"{name} run · {_selectedJob.Containers} containers · ${reward} (+${bonus} on time)";
+        _startDetail.text = $"{name} · {job.Containers} containers · ${reward} (+${bonus} on time)";
 
         var hull = Hull();
         bool damaged = hull != null && hull.CurrentHealth < hull.MaxHealthAmount;
@@ -439,7 +502,7 @@ public class ShipyardManager : MonoBehaviour
 
         _storePanel.style.display = DisplayStyle.None;
         SetShipyardFraming(false);
-        StartCoroutine(LoadContainersRoutine(_selectedJob.Containers));
+        StartCoroutine(LoadContainersRoutine(_story != null ? _story.Job.Containers : _selectedJob.Containers));
     }
 
     private IEnumerator LoadContainersRoutine(int count)

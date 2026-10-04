@@ -36,6 +36,9 @@ public class MissionResultsPanel : MonoBehaviour
 
     public bool IsShown => _shown;
 
+    /// <summary>While this says true the report waits (a story mission's closing dialogue).</summary>
+    public static System.Func<bool> Hold;
+
     private void Start()
     {
         if (_document == null) _document = GetComponent<UIDocument>();
@@ -97,7 +100,7 @@ public class MissionResultsPanel : MonoBehaviour
             if (_tip != null && _tipText != null) _tip.text = _tipText;
         }
 
-        if (!_shown && _showAt > 0f && Time.unscaledTime >= _showAt)
+        if (!_shown && _showAt > 0f && Time.unscaledTime >= _showAt && !(Hold != null && Hold()))
         {
             _showAt = -1f;
             Show(GameSession.Instance != null ? GameSession.Instance.LastResult : null);
@@ -118,10 +121,14 @@ public class MissionResultsPanel : MonoBehaviour
         _panel.EnableInClassList("failed", !result.Delivered);
         _rows.Clear();
 
-        string job = result.JobName.Substring(0, 1) + result.JobName.Substring(1).ToLowerInvariant() + " run";
+        var story = StoryProgress.ActiveMission;
+        string job = story != null ? story.Label + ": " + story.Title
+                                   : result.JobName.Substring(0, 1) + result.JobName.Substring(1).ToLowerInvariant() + " run";
+        _continue.text = story == null ? "BACK TO THE SHIPYARD  (Enter)"
+                       : result.Delivered ? "BACK TO THE STORY  (Enter)" : "TRY AGAIN  (Enter)";
         if (result.Delivered)
         {
-            _title.text = "CARGO DELIVERED";
+            _title.text = story != null ? "MISSION COMPLETE" : "CARGO DELIVERED";
             _subtitle.text = result.CargoDelivered == result.CargoLoaded
                 ? job + ". Every container arrived."
                 : job + ". Some containers went overboard.";
@@ -156,6 +163,8 @@ public class MissionResultsPanel : MonoBehaviour
         int change = result.CreditsAfter - result.CreditsBefore;
         _totalValue.text = "$" + result.CreditsAfter + "  (" + (change >= 0 ? "+$" + change : "-$" + (-change)) + ")";
         _tip.text = TipFor(result);
+        if (story != null && result.Delivered && result.Hits == 0 && (result.OnTimeBonus > 0 || result.ParSeconds <= 0f))
+            _tip.text = "Clean run and on time. Well done, Captain!";
 
         _backdrop.style.display = DisplayStyle.Flex;
         // Next frame, so the opacity transition runs from 0.
@@ -211,8 +220,15 @@ public class MissionResultsPanel : MonoBehaviour
     private void Continue()
     {
         if (!_shown || GameManager.Instance == null) return;
+        // A finished story mission goes back to the story screen; a lost one is tried again.
+        var result = GameSession.Instance != null ? GameSession.Instance.LastResult : null;
+        if (StoryProgress.ActiveMission != null && result != null && result.Delivered)
+        {
+            if (SceneLoader.Instance.IsLoading) return;
+            SceneLoader.Instance.Load(SceneId.Menu);
+        }
         // Another load still running: stay on the report so Continue can be pressed again.
-        if (!GameManager.Instance.ReturnToShipyard()) return;
+        else if (!GameManager.Instance.ReturnToShipyard()) return;
         _shown = false;
         _continue.SetEnabled(false);
     }

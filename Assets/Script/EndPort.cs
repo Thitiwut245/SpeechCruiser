@@ -6,6 +6,9 @@ using UnityEngine;
 /// </summary>
 public class EndPort : MonoBehaviour
 {
+    /// <summary>Set by a story mission that must be done first (a rescue): false keeps the dock shut.</summary>
+    public static System.Func<bool> CanFinish;
+
     private void OnTriggerEnter(Collider other)
     {
         // Check if the Ship entered the destination
@@ -13,6 +16,7 @@ public class EndPort : MonoBehaviour
         {
             if (GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing)
             {
+                if (CanFinish != null && !CanFinish()) return;
                 GameManager.Instance.MissionSuccess();
             }
         }
