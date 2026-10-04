@@ -79,6 +79,12 @@ public class AudioService : Singleton<AudioService>
     private AudioClip _speechClip;
     private int _lastSyllable = -1;
 
+    // Story dialogue: spoken face to face, so no radio filter, no static, no beeps.
+    private AudioSource _face;
+    private int _faceId = FaceIdBase;
+    private bool _faceWaiting;
+    private const int FaceIdBase = 1000000;
+
     /// <summary>The player's volume for a bus (0..1), or 1 before settings exist.</summary>
     public static float Volume(AudioBus bus)
     {
@@ -106,6 +112,10 @@ public class AudioService : Singleton<AudioService>
         _voice = NewSource(radio, false);
         radio.AddComponent<AudioHighPassFilter>().cutoffFrequency = 320f;
         radio.AddComponent<AudioLowPassFilter>().cutoffFrequency = 4200f;
+
+        var face = new GameObject("DialogueVoice");
+        face.transform.SetParent(transform, false);
+        _face = NewSource(face, false);
 
         _speech = new CrewSpeech(System.IO.Path.Combine(Application.temporaryCachePath, "crewvoice"));
     }
@@ -230,13 +240,14 @@ public class AudioService : Singleton<AudioService>
         while (_speech != null && _speech.Poll(out var spoken))
         {
             if (spoken.Id == _speechId) _speechClip = spoken.Clip;
+            else if (spoken.Id == _faceId && _faceWaiting) PlayFace(spoken.Clip);
             else Destroy(spoken.Clip);
         }
 
         // Rise quickly when danger appears, relax slowly when it passes.
         float rate = _tensionTarget > _tensionLevel ? 1.2f : 0.3f;
         _tensionLevel = Mathf.MoveTowards(_tensionLevel, _tensionTarget, rate * dt);
-        _duck = Mathf.MoveTowards(_duck, _chatterActive ? DuckedLevel : 1f, 3f * dt);
+        _duck = Mathf.MoveTowards(_duck, _chatterActive || FaceSpeaking ? DuckedLevel : 1f, 3f * dt);
         float fadeTarget = Time.realtimeSinceStartup < _stingUntil ? 0.2f : 1f;
         _musicFade = Mathf.MoveTowards(_musicFade, fadeTarget, 0.8f * dt);
 
@@ -437,6 +448,49 @@ public class AudioService : Singleton<AudioService>
         }
         if (!hasLetter) return 0;
         return Mathf.Clamp(groups, 1, 4);
+    }
+
+    // ------------------------------------------------------------ story dialogue
+
+    /// <summary>A dialogue line is waiting for its voice or still being spoken.</summary>
+    public bool FaceSpeaking => _faceWaiting || (_face != null && _face.isPlaying);
+
+    /// <summary>The dialogue voice is playing right now (for a talking mouth).</summary>
+    public bool FaceVoicePlaying => _face != null && _face.isPlaying;
+
+    /// <summary>
+    /// Speaks a story dialogue line in the given voice, face to face (no radio). Cuts off any
+    /// line still playing. False when spoken voices aren't available: show the text only.
+    /// </summary>
+    public bool SpeakFace(CrewSpeech.Voice voice, string text)
+    {
+        StopFace();
+        if (!SpeaksAloud || string.IsNullOrWhiteSpace(text)) return false;
+        StopChatter(); // the radio gives way to the person in front of you
+        _faceWaiting = true;
+        _speech.Request(++_faceId, voice, text);
+        return true;
+    }
+
+    public void StopFace()
+    {
+        _faceWaiting = false;
+        if (_face == null) return;
+        if (_face.clip != null)
+        {
+            _face.Stop();
+            Destroy(_face.clip);
+            _face.clip = null;
+        }
+    }
+
+    private void PlayFace(AudioClip clip)
+    {
+        _faceWaiting = false;
+        if (_face.clip != null) Destroy(_face.clip);
+        _face.clip = clip;
+        _face.volume = SpokenVolume * Volume(AudioBus.Radio);
+        _face.Play();
     }
 
     // ------------------------------------------------------------ UI

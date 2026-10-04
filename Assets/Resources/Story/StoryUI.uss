@@ -1,0 +1,345 @@
+/* Story mode: the dialogue scenes and the chapter / mission screen. */
+
+/* ------------------------------------------------------------ dialogue */
+
+.dlg-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    justify-content: flex-end;
+    align-items: center;
+    background-color: rgba(4, 10, 16, 0.35);
+}
+
+.dlg-top {
+    position: absolute;
+    top: 28px;
+    left: 40px;
+    right: 40px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dlg-title {
+    font-size: 18px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    background-color: rgba(8, 18, 28, 0.85);
+    border-radius: 6px;
+    padding: 6px 14px;
+}
+
+.dlg-skip {
+    font-size: 18px;
+    color: rgb(242, 247, 250);
+    background-color: rgba(28, 52, 74, 0.9);
+    border-width: 0;
+    border-radius: 6px;
+    padding: 8px 16px;
+}
+
+.dlg-skip:hover {
+    background-color: rgb(46, 84, 116);
+}
+
+.dlg-box {
+    flex-direction: row;
+    width: 72%;
+    max-width: 1200px;
+    min-height: 230px;
+    margin-bottom: 44px;
+    padding: 18px;
+    background-color: rgb(8, 18, 28);
+    border-width: 2px;
+    border-color: rgb(255, 199, 69);
+    border-radius: 16px;
+}
+
+.dlg-portrait {
+    width: 200px;
+    height: 200px;
+    flex-shrink: 0;
+    border-width: 3px;
+    border-color: rgb(255, 199, 69);
+    border-radius: 12px;
+    -unity-background-scale-mode: scale-and-crop;
+    background-color: rgb(20, 30, 40);
+}
+
+.dlg-body {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-left: 22px;
+}
+
+.dlg-name {
+    font-size: 28px;
+    -unity-font-style: bold;
+    color: rgb(255, 199, 69);
+    margin: 0;
+}
+
+.dlg-role {
+    font-size: 16px;
+    color: rgb(170, 186, 200);
+    margin: 0 0 10px 0;
+}
+
+.dlg-text {
+    font-size: 28px;
+    color: rgb(242, 247, 250);
+    white-space: normal;
+    flex-grow: 1;
+    margin: 0;
+}
+
+.dlg-hint {
+    font-size: 16px;
+    color: rgb(170, 186, 200);
+    -unity-text-align: middle-right;
+    margin: 6px 0 0 0;
+}
+
+/* ------------------------------------------------------------ story screen (title menu) */
+
+.story-panel {
+    position: absolute;
+    left: 64px;
+    top: 0;
+    bottom: 0;
+    width: 760px;
+    padding: 36px 36px;
+    justify-content: center;
+    background-color: rgb(8, 18, 28);
+    border-right-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.story-eyebrow {
+    font-size: 15px;
+    color: rgb(255, 199, 69);
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    margin: 0;
+}
+
+.story-title {
+    font-size: 34px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    margin: 2px 0 16px 0;
+    white-space: normal;
+}
+
+.story-tabs {
+    flex-direction: row;
+    margin-bottom: 14px;
+}
+
+.story-tab {
+    flex-grow: 1;
+    flex-basis: 0;
+    font-size: 17px;
+    color: rgb(242, 247, 250);
+    background-color: rgb(20, 38, 56);
+    border-width: 0;
+    border-radius: 8px;
+    padding: 10px 6px;
+    margin: 0 4px;
+    white-space: normal;
+}
+
+.story-tab:hover {
+    background-color: rgb(46, 84, 116);
+}
+
+.story-tab.selected {
+    background-color: rgb(255, 199, 69);
+    color: rgb(20, 16, 4);
+    -unity-font-style: bold;
+}
+
+.story-tab:disabled {
+    opacity: 0.45;
+}
+
+.story-chapter {
+    flex-direction: row;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 12px;
+    background-color: rgb(14, 28, 42);
+    border-radius: 10px;
+}
+
+.story-chapter-portrait {
+    width: 104px;
+    height: 104px;
+    flex-shrink: 0;
+    border-width: 2px;
+    border-color: rgb(255, 199, 69);
+    border-radius: 10px;
+    margin-right: 16px;
+}
+
+.story-chapter-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.story-chapter-name {
+    font-size: 24px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    margin: 0;
+    white-space: normal;
+}
+
+.story-chapter-blurb {
+    font-size: 16px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin: 4px 0 0 0;
+}
+
+.story-chapter-focus {
+    font-size: 15px;
+    color: rgb(120, 210, 190);
+    white-space: normal;
+    margin: 6px 0 0 0;
+}
+
+.story-mission {
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 14px;
+    margin: 5px 0;
+    background-color: rgb(20, 38, 56);
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 10px;
+}
+
+.story-mission:hover {
+    background-color: rgb(30, 56, 80);
+}
+
+.story-mission.next {
+    border-color: rgb(255, 199, 69);
+}
+
+.story-mission:disabled {
+    opacity: 0.45;
+}
+
+.story-mission-number {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: rgb(255, 199, 69);
+    width: 64px;
+    -unity-text-align: middle-center;
+    margin: 0;
+}
+
+.story-mission-main {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-left: 8px;
+}
+
+.story-mission-title {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(242, 247, 250);
+    margin: 0;
+    -unity-text-align: middle-left;
+}
+
+.story-mission-summary {
+    font-size: 15px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin: 2px 0 0 0;
+    -unity-text-align: middle-left;
+}
+
+.story-mission-tag {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(196, 209, 221);
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin-left: 10px;
+}
+
+.story-mission-tag.done {
+    color: rgb(20, 40, 24);
+    background-color: rgb(96, 200, 120);
+}
+
+.story-mission-tag.new {
+    color: rgb(20, 16, 4);
+    background-color: rgb(255, 199, 69);
+}
+
+.story-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+}
+
+.story-progress {
+    font-size: 16px;
+    color: rgb(196, 209, 221);
+}
+
+.story-back {
+    width: 220px;
+    margin: 0;
+}
+
+/* ------------------------------------------------------------ shipyard mission card */
+
+.story-brief {
+    padding: 12px 14px;
+    margin: 4px 0 10px 0;
+    background-color: rgba(255, 199, 69, 0.08);
+    border-width: 1px;
+    border-color: rgba(255, 199, 69, 0.5);
+    border-radius: 10px;
+}
+
+.story-brief-title {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(242, 247, 250);
+    margin: 0;
+    white-space: normal;
+}
+
+.story-brief-text {
+    font-size: 16px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin: 4px 0 0 0;
+}
+
+.story-brief-words {
+    font-size: 17px;
+    color: rgb(120, 210, 190);
+    white-space: normal;
+    margin: 8px 0 0 0;
+}
+
+.story-brief-replay {
+    font-size: 15px;
+    margin: 8px 0 0 0;
+    padding: 6px 10px;
+    align-self: flex-start;
+}
