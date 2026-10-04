@@ -3,7 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// Developer tool: F9 sails the ship along the level's solution path, for testing levels
-/// without talking. It removes itself from release builds, so players can never trigger it.
+/// without talking. P is a speed run: it skips the drill, turns the autopilot on and runs the
+/// game SpeedRunScale times faster until the ship docks (P again stops it). It removes itself
+/// from release builds, so players can never trigger it.
 /// </summary>
 public class AutopilotTest : MonoBehaviour
 {
@@ -12,8 +14,16 @@ public class AutopilotTest : MonoBehaviour
     [SerializeField] private float _waypointRadius = 25f; // CellSize is 25, so this is 1 cell
     [SerializeField] private float _steerMultiplier = 1.5f;
 
+    [Header("Speed Run (P)")]
+    [Tooltip("How many times faster the game runs during a speed run.")]
+    [SerializeField] private float _speedRunScale = 10f;
+
     private int _currentWaypointIndex = 0;
     private List<Vector3> _path;
+    private bool _speedRun;
+    private UnityEngine.UIElements.Label _speedRunLabel;
+
+    private static bool AtSea => GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing;
 
 #if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
     private void Awake()
@@ -24,6 +34,10 @@ public class AutopilotTest : MonoBehaviour
 
     private void Update()
     {
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb != null && !TypedOrders.BlocksHotkeys && kb.pKey.wasPressedThisFrame && (AtSea || _speedRun)) SetSpeedRun(!_speedRun);
+        if (_speedRun && !AtSea) SetSpeedRun(false); // docked, sank or left: back to normal
+
         if (UnityEngine.InputSystem.Keyboard.current != null && !TypedOrders.BlocksHotkeys && UnityEngine.InputSystem.Keyboard.current.f9Key.wasPressedThisFrame)
         {
             _isActive = !_isActive;
@@ -55,6 +69,63 @@ public class AutopilotTest : MonoBehaviour
                 Navigate();
             }
         }
+    }
+
+    /// <summary>P: autopilot on at high speed, drill skipped; or everything back to normal.</summary>
+    private void SetSpeedRun(bool on)
+    {
+        _speedRun = on;
+        if (TimeController.Instance != null) TimeController.Instance.SetSpeedRun(on ? _speedRunScale : 1f);
+
+        if (on)
+        {
+            if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive) TutorialManager.Instance.Skip();
+            _isActive = true;
+            InitializePath();
+        }
+        else if (_isActive)
+        {
+            _isActive = false;
+            if (AtSea && ShipNavigator.Instance != null)
+            {
+                ShipNavigator.Instance.SetGear(ShipEngine.TelegraphGear.Stop);
+                ShipNavigator.Instance.RudderMidships();
+            }
+        }
+
+        ShowSpeedRunLabel(on);
+        Debug.Log("[AUTOPILOT] Speed run " + (on ? "on (x" + _speedRunScale + ")" : "off") + ".");
+    }
+
+    private void ShowSpeedRunLabel(bool on)
+    {
+        if (_speedRunLabel == null)
+        {
+            var hud = FindAnyObjectByType<ShipHUD>();
+            var doc = hud != null ? hud.GetComponent<UnityEngine.UIElements.UIDocument>() : null;
+            if (doc == null) return;
+            _speedRunLabel = new UnityEngine.UIElements.Label();
+            var s = _speedRunLabel.style;
+            s.position = UnityEngine.UIElements.Position.Absolute;
+            s.top = 150f;
+            s.left = UnityEngine.UIElements.Length.Percent(50f);
+            s.translate = new UnityEngine.UIElements.Translate(UnityEngine.UIElements.Length.Percent(-50f), 0f);
+            s.paddingLeft = 14f; s.paddingRight = 14f; s.paddingTop = 6f; s.paddingBottom = 6f;
+            s.backgroundColor = new Color(0.55f, 0.1f, 0.1f, 0.92f);
+            s.color = Color.white;
+            s.fontSize = 22f;
+            s.unityFontStyleAndWeight = FontStyle.Bold;
+            s.borderTopLeftRadius = 6f; s.borderTopRightRadius = 6f; s.borderBottomLeftRadius = 6f; s.borderBottomRightRadius = 6f;
+            _speedRunLabel.pickingMode = UnityEngine.UIElements.PickingMode.Ignore;
+            doc.rootVisualElement.Add(_speedRunLabel);
+        }
+        _speedRunLabel.text = ">> SPEED RUN x" + _speedRunScale + "  ·  P to stop";
+        _speedRunLabel.style.display = on ? UnityEngine.UIElements.DisplayStyle.Flex : UnityEngine.UIElements.DisplayStyle.None;
+    }
+
+    private void OnDestroy()
+    {
+        if (_speedRun && TimeController.Instance != null) TimeController.Instance.SetSpeedRun(1f);
     }
 
     private void InitializePath()

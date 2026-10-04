@@ -28,6 +28,22 @@ public class TimeController : Singleton<TimeController>
     private bool _pttActive = false;
     private int _aiRequests = 0;
     private bool _typing = false;
+
+    /// <summary>Developer speed run (P): the game runs this many times faster. 1 = normal.</summary>
+    public float SpeedRunScale { get; private set; } = 1f;
+
+    /// <summary>Starts (scale &gt; 1) or stops (1) the developer speed run.</summary>
+    public void SetSpeedRun(float scale)
+    {
+        SpeedRunScale = Mathf.Max(1f, scale);
+        // Stopping snaps straight back: easing down from 10x would keep the game fast for a second.
+        if (SpeedRunScale <= 1f && Time.timeScale > 1f && !IsPaused)
+        {
+            Time.timeScale = 1f;
+            Time.fixedDeltaTime = _normalFixedDeltaTime;
+        }
+        Debug.Log("⏱️ [TIME]: speed run " + (SpeedRunScale > 1f ? "x" + SpeedRunScale : "off") + ".");
+    }
     private RadioMic _mic;
 
     public bool IsPaused
@@ -75,9 +91,11 @@ public class TimeController : Singleton<TimeController>
             return;
         }
 
-        _targetTimeScale = WantsSlowMo ? SlowMoTimeScale : 1f;
-        Time.timeScale = Mathf.MoveTowards(Time.timeScale, _targetTimeScale, TransitionSpeed * Time.unscaledDeltaTime);
-        Time.fixedDeltaTime = Mathf.Max(MinFixedDeltaTime, _normalFixedDeltaTime * Time.timeScale);
+        _targetTimeScale = (WantsSlowMo ? SlowMoTimeScale : 1f) * SpeedRunScale;
+        Time.timeScale = Mathf.MoveTowards(Time.timeScale, _targetTimeScale, TransitionSpeed * SpeedRunScale * Time.unscaledDeltaTime);
+        // Faster than normal, physics keeps its normal step (more steps per frame) so a fast
+        // ship can't skip through a hazard or the finish trigger between two steps.
+        Time.fixedDeltaTime = Mathf.Max(MinFixedDeltaTime, _normalFixedDeltaTime * Mathf.Min(Time.timeScale, 1f));
     }
 
     public void RequestPause(Object owner)
@@ -114,6 +132,7 @@ public class TimeController : Singleton<TimeController>
         _pttActive = false;
         _aiRequests = 0;
         _typing = false;
+        SpeedRunScale = 1f;
         _pauseOwners.Clear();
         Time.timeScale = 1f;
         Time.fixedDeltaTime = _normalFixedDeltaTime;

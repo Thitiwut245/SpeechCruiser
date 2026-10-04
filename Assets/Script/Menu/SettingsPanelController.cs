@@ -24,7 +24,7 @@ public class SettingsPanelController : IDisposable
         { "<Keyboard>/escape", "pause" }, { "<Keyboard>/enter", "typed orders" }, { "<Keyboard>/numpadEnter", "typed orders" },
         { "<Keyboard>/tab", "the channel" }, { "<Keyboard>/m", "the chart" }, { "<Keyboard>/f1", "the radio card" },
         { "<Keyboard>/1", "channel 1" }, { "<Keyboard>/2", "channel 2" }, { "<Keyboard>/numpad1", "channel 1" },
-        { "<Keyboard>/numpad2", "channel 2" }, { "<Keyboard>/f9", "the test autopilot" },
+        { "<Keyboard>/numpad2", "channel 2" }, { "<Keyboard>/f9", "the test autopilot" }, { "<Keyboard>/p", "the test speed run" },
         // On Thai Windows the ` key switches between Thai and English typing.
         { "<Keyboard>/backquote", "the Thai/English keyboard switch" },
     };
