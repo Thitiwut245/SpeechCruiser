@@ -8,8 +8,9 @@ public enum AudioBus { Music, Effects, Radio }
 
 /// <summary>
 /// All game audio that outlives a scene: one-shot effects, the two-layer music, the radio
-/// (squelch when the player keys the mic, chatter and a roger beep when the crew answers)
-/// and button clicks. Lives on the persistent Services prefab. Ship sounds that belong to the
+/// (squelch when the player keys the mic, the crew's spoken lines and a roger beep when they
+/// answer) and button clicks. Crew lines are spoken with Windows' voices through CrewSpeech,
+/// Finn and Harris each with their own; where that isn't available they fall back to babble. Lives on the persistent Services prefab. Ship sounds that belong to the
 /// Game scene (engine, wash, hits) are in ShipAudio and play through this service.
 /// Every sound runs on real time, so radio slow-mo and the pause menu never stretch it.
 /// </summary>
@@ -23,6 +24,21 @@ public class AudioService : Singleton<AudioService>
     [SerializeField] private float TensionVolume = 0.55f;
     [Tooltip("Music level while a crew member is speaking, so the words stay clear.")]
     [SerializeField] private float DuckedLevel = 0.45f;
+
+    [Header("Spoken crew (Windows voices)")]
+    [Tooltip("Speak crew lines in English. Off, or where no voice is installed, the crew babble instead.")]
+    [SerializeField] private bool SpokenVoices = true;
+    [Tooltip("Part of the Windows voice name for Finn, the young lookout.")]
+    [SerializeField] private string FinnVoice = "Mark";
+    [SerializeField] private float FinnRate = 1.08f;
+    [SerializeField] private float FinnVoicePitch = 1.06f;
+    [Tooltip("Part of the Windows voice name for Harris, the older chief engineer.")]
+    [SerializeField] private string HarrisVoice = "George";
+    [SerializeField] private float HarrisRate = 0.94f;
+    [SerializeField] private float HarrisVoicePitch = 0.9f;
+    [SerializeField] private float SpokenVolume = 0.95f;
+    [Tooltip("A line not ready after this many seconds is babbled instead, so the radio never hangs.")]
+    [SerializeField] private float SpeechTimeout = 1.5f;
 
     [Header("Radio chatter")]
     [SerializeField] private float HarrisPitch = 0.82f;
@@ -56,6 +72,11 @@ public class AudioService : Singleton<AudioService>
     private bool _keyed;
     private bool _chatterActive;
     private Coroutine _chatterRoutine;
+
+    private CrewSpeech _speech;
+    private AudioSource _voice;
+    private int _speechId;
+    private AudioClip _speechClip;
     private int _lastSyllable = -1;
 
     /// <summary>The player's volume for a bus (0..1), or 1 before settings exist.</summary>
@@ -77,6 +98,16 @@ public class AudioService : Singleton<AudioService>
         _tension = NewSource(holder, true);
         _chatter = NewSource(holder, false);
         _static = NewSource(holder, true);
+
+        // The spoken crew sound like a radio: a band-pass on their own object, so the
+        // filters don't touch music or effects.
+        var radio = new GameObject("CrewRadioVoice");
+        radio.transform.SetParent(transform, false);
+        _voice = NewSource(radio, false);
+        radio.AddComponent<AudioHighPassFilter>().cutoffFrequency = 320f;
+        radio.AddComponent<AudioLowPassFilter>().cutoffFrequency = 4200f;
+
+        _speech = new CrewSpeech(System.IO.Path.Combine(Application.temporaryCachePath, "crewvoice"));
     }
 
     private static AudioSource NewSource(GameObject holder, bool loop)
@@ -103,6 +134,12 @@ public class AudioService : Singleton<AudioService>
         SceneManager.sceneLoaded += HandleSceneLoaded;
         RegisterButtonClicks();
         StartMusic();
+        if (SpokenVoices) _speech.Start();
+    }
+
+    private void OnApplicationQuit()
+    {
+        if (Instance == this) _speech?.Dispose();
     }
 
     protected override void OnDestroy()
@@ -113,6 +150,7 @@ public class AudioService : Singleton<AudioService>
             if (_crew != null) _crew.OnSubtitleUpdated -= HandleCrewLine;
             if (_openAI != null) _openAI.OnSubtitleUpdated -= HandleCrewLine;
             SceneManager.sceneLoaded -= HandleSceneLoaded;
+            _speech?.Dispose();
         }
         base.OnDestroy();
     }
@@ -188,6 +226,13 @@ public class AudioService : Singleton<AudioService>
     {
         float dt = Time.unscaledDeltaTime;
 
+        // Spoken lines arrive from the voice helper; only the newest request is kept.
+        while (_speech != null && _speech.Poll(out var spoken))
+        {
+            if (spoken.Id == _speechId) _speechClip = spoken.Clip;
+            else Destroy(spoken.Clip);
+        }
+
         // Rise quickly when danger appears, relax slowly when it passes.
         float rate = _tensionTarget > _tensionLevel ? 1.2f : 0.3f;
         _tensionLevel = Mathf.MoveTowards(_tensionLevel, _tensionTarget, rate * dt);
@@ -249,7 +294,58 @@ public class AudioService : Singleton<AudioService>
         if (_keyed) return; // the player is transmitting; the line still shows as text
 
         StopChatter();
-        _chatterRoutine = StartCoroutine(Chatter(line, speaker));
+        _chatterRoutine = StartCoroutine(SpokenVoices && _speech != null && _speech.Available
+            ? Spoken(line, speaker)
+            : Chatter(line, speaker));
+    }
+
+    /// <summary>True when the voice helper is running and the crew speak in English.</summary>
+    public bool SpeaksAloud => SpokenVoices && _speech != null && _speech.Available;
+
+    private static bool IsFinn(string speaker) => speaker != null && speaker.ToUpperInvariant().Contains("FINN");
+
+    /// <summary>The line in the speaker's own voice, over the radio. Babble if it takes too long.</summary>
+    private IEnumerator Spoken(string line, string speaker)
+    {
+        _chatterActive = true;
+        bool finn = IsFinn(speaker);
+        _speechClip = null;
+        _speech.Request(++_speechId, new CrewSpeech.Voice
+        {
+            Name = finn ? FinnVoice : HarrisVoice,
+            Rate = finn ? FinnRate : HarrisRate,
+            Pitch = finn ? FinnVoicePitch : HarrisVoicePitch,
+        }, line);
+
+        Play(Library.RadioKeyOn, AudioBus.Radio, 0.45f);
+        if (Library.RadioStaticLoop != null)
+        {
+            _static.clip = Library.RadioStaticLoop;
+            _static.volume = StaticVolume * Volume(AudioBus.Radio);
+            _static.Play();
+        }
+
+        float giveUp = Time.realtimeSinceStartup + SpeechTimeout;
+        while (_speechClip == null && Time.realtimeSinceStartup < giveUp) yield return null;
+
+        if (_speechClip == null)
+        {
+            _chatterRoutine = StartCoroutine(Chatter(line, speaker));
+            yield break;
+        }
+
+        _voice.clip = _speechClip;
+        _voice.volume = SpokenVolume * Volume(AudioBus.Radio);
+        _voice.Play();
+        yield return new WaitForSecondsRealtime(_speechClip.length);
+
+        _static.Stop();
+        _chatterActive = false;
+        Play(Library.RadioRoger, AudioBus.Radio, 0.4f);
+        Play(Library.RadioKeyOff, AudioBus.Radio, 0.45f, 1f, 0.17f);
+        Destroy(_speechClip);
+        _speechClip = null;
+        _chatterRoutine = null;
     }
 
     private void StopChatter()
@@ -259,6 +355,7 @@ public class AudioService : Singleton<AudioService>
         _chatterActive = false;
         _chatter.Stop();
         _static.Stop();
+        if (_voice != null) _voice.Stop();
     }
 
     /// <summary>Muffled radio "voice": one syllable per vowel group, pauses at punctuation.</summary>
