@@ -19,6 +19,12 @@ public struct JobSpec
     public int UnlockDeliveries;
     /// <summary>What a tow home costs when the ship is lost on this job.</summary>
     public int TowingFee;
+    /// <summary>Story missions: the route's length in rows, whatever the career tier (0 = by tier).</summary>
+    public int Rows;
+    /// <summary>Story missions: a fixed layout, the same on every attempt (0 = a new one each time).</summary>
+    public int Seed;
+    /// <summary>A story mission's job: pays its own reward, no tier bonus, no learning layout.</summary>
+    public bool Story;
 
     public static readonly JobSpec Easy = new JobSpec
     { Name = "EASY", Containers = 5, Reward = 300, DensityScale = 0.75f, ExtraRows = 0, Mines = false, MinWeave = 1.1f,
@@ -79,13 +85,15 @@ public class GameSession : Singleton<GameSession>
     public int EngineLevel => _engineLevel;
     public int HelmLevel => _helmLevel;
 
-    public JobSpec CurrentJob { get; private set; } = JobSpec.Easy;
+    /// <summary>The story mission being sailed, or else the job picked in the shipyard.</summary>
+    public JobSpec CurrentJob => StoryProgress.ActiveMission != null ? StoryProgress.ActiveMission.Job : _careerJob;
+    private JobSpec _careerJob = JobSpec.Easy;
     public int CurrentReward => RewardFor(CurrentJob);
 
     /// <summary>Longer routes at higher tiers pay more: +15% per tier above the first.</summary>
     public const float TierPayBonus = 0.15f;
 
-    public int RewardFor(JobSpec job) => Mathf.RoundToInt(job.Reward * (1f + TierPayBonus * (DifficultyTier - 1)));
+    public int RewardFor(JobSpec job) => job.Story ? job.Reward : Mathf.RoundToInt(job.Reward * (1f + TierPayBonus * (DifficultyTier - 1)));
 
     /// <summary>Normal opens after 2 deliveries and Hard after 5, so the first voyages are Easy ones.</summary>
     public bool IsUnlocked(JobSpec job) => MissionsCompleted >= job.UnlockDeliveries;
@@ -215,8 +223,8 @@ public class GameSession : Singleton<GameSession>
         MissionsCompleted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "delivered", 0));
         VoyagesStarted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "voyages", 0));
         string job = PlayerPrefs.GetString(CareerPref + "job", JobSpec.Easy.Name);
-        CurrentJob = job == JobSpec.Hard.Name ? JobSpec.Hard : job == JobSpec.Normal.Name ? JobSpec.Normal : JobSpec.Easy;
-        if (!IsUnlocked(CurrentJob)) CurrentJob = JobSpec.Easy;
+        _careerJob = job == JobSpec.Hard.Name ? JobSpec.Hard : job == JobSpec.Normal.Name ? JobSpec.Normal : JobSpec.Easy;
+        if (!IsUnlocked(_careerJob)) _careerJob = JobSpec.Easy;
 
         // The game was closed mid-voyage last time: that voyage is lost.
         if (PlayerPrefs.GetInt(CareerPref + "atsea", 0) == 1) AbandonVoyage();
@@ -230,14 +238,15 @@ public class GameSession : Singleton<GameSession>
         PlayerPrefs.SetInt(CareerPref + "hull", _hullHealth);
         PlayerPrefs.SetInt(CareerPref + "delivered", MissionsCompleted);
         PlayerPrefs.SetInt(CareerPref + "voyages", VoyagesStarted);
-        PlayerPrefs.SetString(CareerPref + "job", CurrentJob.Name);
+        PlayerPrefs.SetString(CareerPref + "job", _careerJob.Name);
         PlayerPrefs.Save();
     }
 
-    /// <summary>Starts over: $500, first upgrades, a sound hull, and the learning layout again.</summary>
+    /// <summary>Starts over: $500, first upgrades, a sound hull, the learning layout and the story again.</summary>
     public void StartNewCareer()
     {
         foreach (var key in CareerKeys) PlayerPrefs.DeleteKey(CareerPref + key);
+        StoryProgress.Reset();
         // A new career is a new learner: the drill comes back too.
         PlayerPrefs.DeleteKey("tutorial_done");
         PlayerPrefs.DeleteKey("tutorial_step");
@@ -248,7 +257,7 @@ public class GameSession : Singleton<GameSession>
         _hullHealth = -1;
         MissionsCompleted = 0;
         VoyagesStarted = 0;
-        CurrentJob = JobSpec.Easy;
+        _careerJob = JobSpec.Easy;
         LastMissionSummary = "";
         LastResult = null;
         OnProgressUpdated?.Invoke();
@@ -302,9 +311,10 @@ public class GameSession : Singleton<GameSession>
         OnProgressUpdated?.Invoke();
     }
 
+    /// <summary>The career job picked in the shipyard (a story mission sets its own).</summary>
     public void SetJob(JobSpec job)
     {
-        CurrentJob = job;
+        _careerJob = job;
         SaveCareer();
     }
 

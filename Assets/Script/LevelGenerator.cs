@@ -301,6 +301,7 @@ public class LevelGenerator : MonoBehaviour
     /// <summary>Rows in the route for this job at the player's current difficulty tier.</summary>
     public int RouteRows(JobSpec job)
     {
+        if (job.Rows > 0) return job.Rows; // a story mission's route is set by the mission
         int tier = GameSession.Instance != null ? GameSession.Instance.DifficultyTier : 1;
         return BaseGridLength + (tier - 1) * CellsPerDifficulty + job.ExtraRows;
     }
@@ -316,12 +317,14 @@ public class LevelGenerator : MonoBehaviour
     {
         if (!HasRequiredPrefabs()) return;
 
-        if (Seed >= 0) Random.InitState(Seed);
+        var session = GameSession.Instance;
+        _job = session != null ? session.CurrentJob : JobSpec.Normal;
+        // A story mission has its own fixed seed, so its map is the same on every attempt.
+        if (_job.Seed != 0) Random.InitState(_job.Seed);
+        else if (Seed >= 0) Random.InitState(Seed);
 
         ClearLevel();
 
-        var session = GameSession.Instance;
-        _job = session != null ? session.CurrentJob : JobSpec.Normal;
         _currentDifficulty = session != null ? session.DifficultyTier : 1;
         _gentle = session != null && session.UseGentleLayout;
 
