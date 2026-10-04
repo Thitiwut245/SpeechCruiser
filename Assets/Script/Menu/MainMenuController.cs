@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// Title screen in the Menu scene: Play / Settings / Quit, plus a radio status line:
+/// Title screen in the Menu scene: Story / Free Sail / Settings / Quit, plus a radio status line:
 /// warming up, ready, no microphone, or speech system failed. The order key runs a radio
 /// check here, and the line says what was heard.
 /// </summary>
@@ -10,6 +10,7 @@ using UnityEngine.UIElements;
 public class MainMenuController : MonoBehaviour
 {
     private VisualElement _mainPanel;
+    private Button _storyButton;
     private Button _playButton;
     private Button _settingButton;
     private Button _quitButton;
@@ -19,6 +20,7 @@ public class MainMenuController : MonoBehaviour
     // New Career takes a second press, so nobody wipes a career by accident.
     private bool _confirmNewCareer;
     private SettingsPanelController _settings;
+    private StoryMenuController _story;
 
     private RadioMic _radioMic;
 
@@ -32,6 +34,7 @@ public class MainMenuController : MonoBehaviour
         var root = GetComponent<UIDocument>().rootVisualElement;
 
         _mainPanel = root.Q<VisualElement>("MainPanel");
+        _storyButton = root.Q<Button>("StoryButton");
         _playButton = root.Q<Button>("PlayButton");
         _settingButton = root.Q<Button>("SettingButton");
         _quitButton = root.Q<Button>("QuitButton");
@@ -39,7 +42,9 @@ public class MainMenuController : MonoBehaviour
         _newCareerButton = root.Q<Button>("NewCareerButton");
         _careerLabel = root.Q<Label>("CareerLabel");
         _settings = new SettingsPanelController(root, ShowMainPanel);
+        _story = new StoryMenuController(root, ShowMainPanel);
 
+        _storyButton.clicked += OnStoryClicked;
         _playButton.clicked += OnPlayClicked;
         _settingButton.clicked += OnSettingClicked;
         _quitButton.clicked += SceneLoader.QuitGame;
@@ -50,6 +55,7 @@ public class MainMenuController : MonoBehaviour
 
     private void OnDisable()
     {
+        _storyButton.clicked -= OnStoryClicked;
         _playButton.clicked -= OnPlayClicked;
         _settingButton.clicked -= OnSettingClicked;
         _quitButton.clicked -= SceneLoader.QuitGame;
@@ -61,6 +67,8 @@ public class MainMenuController : MonoBehaviour
     private void Start()
     {
         RefreshCareer();
+        // Back from a story mission: straight to the story screen.
+        if (StoryProgress.ActiveMission != null) OnStoryClicked();
         _radioMic = FindAnyObjectByType<RadioMic>();
         if (_radioMic != null) _radioMic.OnRadioStatus += HandleRadioStatus;
     }
@@ -95,13 +103,16 @@ public class MainMenuController : MonoBehaviour
             _radioStatusLabel.text = "Speech system did not load. Voice orders won't work.";
     }
 
-    /// <summary>A saved career says so, and Set Sail carries on with it.</summary>
+    /// <summary>A saved career says so; Story names the next mission. Free Sail carries on with the career.</summary>
     private void RefreshCareer()
     {
         var session = GameSession.Instance;
         bool saved = session != null && session.HasSavedCareer;
-        _playButton.text = saved ? "Continue" : "Set Sail";
-        _newCareerButton.style.display = session != null && session.HasAnySave ? DisplayStyle.Flex : DisplayStyle.None;
+        var next = StoryProgress.NextToPlay;
+        _storyButton.text = StoryProgress.DoneCount == 0 ? "Story" : next == null ? "Story (complete)" : "Story: mission " + next.Id;
+        _playButton.text = "Free Sail";
+        bool anything = (session != null && session.HasAnySave) || StoryProgress.DoneCount > 0;
+        _newCareerButton.style.display = anything ? DisplayStyle.Flex : DisplayStyle.None;
         _careerLabel.style.display = saved ? DisplayStyle.Flex : DisplayStyle.None;
         if (saved)
         {
@@ -122,7 +133,7 @@ public class MainMenuController : MonoBehaviour
         if (!_confirmNewCareer)
         {
             _confirmNewCareer = true;
-            _newCareerButton.text = "Erase progress? Click again";
+            _newCareerButton.text = "Erase all progress? Click again";
             _newCareerButton.AddToClassList("confirm");
             return;
         }
@@ -130,8 +141,17 @@ public class MainMenuController : MonoBehaviour
         RefreshCareer();
     }
 
+    private void OnStoryClicked()
+    {
+        RefreshCareer(); // leaving the title cancels a half-confirmed New Career
+        _mainPanel.style.display = DisplayStyle.None;
+        _story.Show();
+    }
+
+    /// <summary>Free Sail: the career's shipyard, jobs and upgrades.</summary>
     private void OnPlayClicked()
     {
+        StoryProgress.Leave();
         SceneLoader.Instance.Load(SceneId.Game);
     }
 
@@ -145,6 +165,8 @@ public class MainMenuController : MonoBehaviour
     private void ShowMainPanel()
     {
         _settings.Hide();
+        _story.Hide();
+        RefreshCareer();
         _mainPanel.style.display = DisplayStyle.Flex;
     }
 }

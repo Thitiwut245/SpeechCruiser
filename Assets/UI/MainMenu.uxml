@@ -16,7 +16,8 @@
             <ui:Label text="Captain a cargo ship with your voice." class="game-tagline" />
             <ui:Label name="CareerLabel" text="" class="career-line" />
 
-            <ui:Button name="PlayButton" text="Set Sail" class="menu-button menu-button--primary" />
+            <ui:Button name="StoryButton" text="Story" class="menu-button menu-button--primary" />
+            <ui:Button name="PlayButton" text="Free Sail" class="menu-button" />
             <ui:Button name="SettingButton" text="Settings" class="menu-button" />
             <ui:Button name="NewCareerButton" text="New Career" class="menu-button menu-button--quiet" />
             <ui:Button name="QuitButton" text="Quit" class="menu-button" />
