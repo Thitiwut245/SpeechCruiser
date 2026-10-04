@@ -119,6 +119,10 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Extra world units of water and sea floor beyond the grid edge, so the horizon never shows a seam.")]
     [SerializeField] private float EnvironmentMargin = 150f;
 
+    [Header("Reefs")]
+    [Tooltip("Build reefs from colourful generated variants (rock and coral) instead of the single Reef prefab.")]
+    [SerializeField] private bool ReefVariants = true;
+
     [Header("Coast")]
     [Tooltip("Land around the sea: beach and hills just outside the reef wall, behind both harbours. Scenery only.")]
     [SerializeField] private bool BuildCoast = true;
@@ -648,7 +652,7 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
-    /// <summary>Random hazard art; reefs only when the job has no mines.</summary>
+    /// <summary>Random hazard art; reefs only when the job has no mines. Reefs come in many colourful variants.</summary>
     private GameObject PickHazardPrefab()
     {
         for (int tries = 0; tries < 8; tries++)
@@ -656,9 +660,16 @@ public class LevelGenerator : MonoBehaviour
             GameObject prefab = HazardPrefabs[Random.Range(0, HazardPrefabs.Length)];
             if (prefab == null) continue;
             if (!_job.Mines && IsMinePrefab(prefab)) continue;
-            return prefab;
+            return IsMinePrefab(prefab) ? prefab : ReefArt(ReefFactory.Coral, prefab);
         }
-        return FindReefPrefab();
+        return ReefArt(ReefFactory.Coral, FindReefPrefab());
+    }
+
+    /// <summary>A random generated reef variant, or the given prefab when variants are off or unavailable.</summary>
+    private GameObject ReefArt(GameObject[] variants, GameObject fallback)
+    {
+        if (!ReefVariants || variants == null || variants.Length == 0) return fallback;
+        return variants[Random.Range(0, variants.Length)];
     }
 
     private static bool IsMinePrefab(GameObject prefab)
@@ -689,16 +700,17 @@ public class LevelGenerator : MonoBehaviour
         float north = lengthZ + CellSize;
         int pieces = 0;
 
+        // The wall uses the rockier variants, so the shoreline isn't a rainbow.
         for (float z = south; z <= north + 0.01f; z += spacing)
         {
-            BuildHazard(reef, new Vector3(left, 0f, z), footprint);
-            BuildHazard(reef, new Vector3(right, 0f, z), footprint);
+            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(left, 0f, z), footprint);
+            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(right, 0f, z), footprint);
             pieces += 2;
         }
 
         for (float x = left + spacing; x < right - 0.01f; x += spacing)
         {
-            BuildHazard(reef, new Vector3(x, 0f, south), footprint);
+            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(x, 0f, south), footprint);
             pieces++;
         }
 
@@ -747,6 +759,9 @@ public class LevelGenerator : MonoBehaviour
     private void BuildHazard(GameObject prefab, Vector3 cell, float footprint)
     {
         GameObject hazard = Instantiate(prefab, Vector3.zero, prefab.transform.rotation, _levelRoot);
+        hazard.SetActive(true); // generated reef templates are stored switched off
+        // A random turn, so repeated variants don't line up.
+        if (!IsMinePrefab(prefab)) hazard.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f) * hazard.transform.rotation;
 
         // Measuring the rotated bounds is what makes the channel guarantee exact: 
         // it is the rotated footprint that intrudes on the neighbouring lane, so that is what gets fitted.
