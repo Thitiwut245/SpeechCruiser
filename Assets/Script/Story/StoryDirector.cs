@@ -40,6 +40,9 @@ public class StoryDirector : MonoBehaviour
     private float _missedSaidAt = -100f;
     private bool _outroPlayed;
     private bool _holdResults;
+    private StoryWeather _weather;
+    private SeaSight _guide;
+    private bool _guideReleased;
 
     /// <summary>The rescue is done (or the mission has none).</summary>
     public bool RescueDone => Mission == null || Mission.Goal != MissionGoal.Rescue || (_rescue != null && _rescue.Boarded) || _rescueBoarded;
@@ -75,6 +78,7 @@ public class StoryDirector : MonoBehaviour
 
         _cues = Mission.Radio != null ? (RadioCue[])Mission.Radio.Clone() : new RadioCue[0];
         System.Array.Sort(_cues, (a, b) => a.At.CompareTo(b.At));
+        if (Mission.Weather != Weather.Clear) _weather = StoryWeather.Create(Mission.Weather);
     }
 
     private void OnDisable()
@@ -86,6 +90,7 @@ public class StoryDirector : MonoBehaviour
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
+        if (_weather != null) Destroy(_weather.gameObject);
         if (LevelGenerator.Instance != null) LevelGenerator.Instance.OnLevelGenerated -= PlaceProps;
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleState;
         EndPort.CanFinish = null;
@@ -104,6 +109,8 @@ public class StoryDirector : MonoBehaviour
         _rescue = null;
         _rescueBoarded = false;
         _rescueSpotted = false;
+        _guide = null;
+        _guideReleased = false;
 
         var level = LevelGenerator.Instance;
         var path = level.SolutionWorldPath;
@@ -132,6 +139,13 @@ public class StoryDirector : MonoBehaviour
             if (spec.Kind == SightKind.GhostShip) start = at + side * 14f + dir.normalized * 30f;
             start.y = surface;
             _sights.Add(SeaSight.Create(_props, spec.Kind, start, heading));
+        }
+
+        if (Mission.Guide)
+        {
+            Vector3 at = PointAlong(path, 0.04f, out Vector3 dir);
+            at.y = surface;
+            _guide = SeaSight.Create(_props, SightKind.SpiritLight, at, dir);
         }
     }
 
@@ -194,7 +208,48 @@ public class StoryDirector : MonoBehaviour
         }
 
         UpdateRescue(ship, nav);
+        UpdateGuide(ship, progress);
+        if (_weather != null)
+        {
+            // Storm wind pushes the ship sideways: steer against it.
+            Vector3 wind = _weather.Wind;
+            if (wind.sqrMagnitude > 0f) nav.transform.position += wind * Time.deltaTime;
+        }
         SpeakNext();
+    }
+
+    /// <summary>The spirit light floats a little way ahead along the channel, waiting if the ship falls behind.</summary>
+    private void UpdateGuide(Vector3 ship, float progress)
+    {
+        if (_guide == null) return;
+        if (!_guide.Revealed)
+        {
+            _guide.Reveal();
+            if (Mission.GuideLines != null && Mission.GuideLines.Length > 0) _queue.Enqueue(Mission.GuideLines[0]);
+            return;
+        }
+        if (_guideReleased) return;
+        var path = LevelGenerator.Instance.SolutionWorldPath;
+        if (progress > 0.93f)
+        {
+            _guideReleased = true;
+            _guide.Release();
+            if (Mission.GuideLines != null && Mission.GuideLines.Length > 1) _queue.Enqueue(Mission.GuideLines[1]);
+            return;
+        }
+        // Nearest point of the channel to the ship, then 40 units further along it.
+        float total = 0f, best = float.MaxValue, along = 0f;
+        for (int i = 1; i < path.Count; i++)
+        {
+            Vector3 a = path[i - 1], b = path[i];
+            Vector3 ab = b - a;
+            float t = Mathf.Clamp01(Vector3.Dot(ship - a, ab) / Mathf.Max(0.01f, ab.sqrMagnitude));
+            float d = Flat(a + ab * t - ship).sqrMagnitude;
+            if (d < best) { best = d; along = total + ab.magnitude * t; }
+            total += ab.magnitude;
+        }
+        Vector3 target = PointAlong(path, Mathf.Clamp01((along + 32f) / Mathf.Max(1f, total)), out _);
+        _guide.GuideTarget = target;
     }
 
     private void UpdateRescue(Vector3 ship, ShipNavigator nav)
@@ -274,7 +329,8 @@ public class StoryDirector : MonoBehaviour
     {
         yield return new WaitForSecondsRealtime(OutroDelay);
         _queue.Clear();
-        DialoguePlayer.Play(Mission.Outro, Mission.Label.ToUpperInvariant() + "  ·  " + Mission.Title.ToUpperInvariant() + "  ·  COMPLETE",
-            () => _holdResults = false);
+        string title = !string.IsNullOrEmpty(Mission.OutroTitle) ? Mission.OutroTitle
+                     : Mission.Label.ToUpperInvariant() + "  ·  " + Mission.Title.ToUpperInvariant() + "  ·  COMPLETE";
+        DialoguePlayer.Play(Mission.Outro, title, () => _holdResults = false);
     }
 }

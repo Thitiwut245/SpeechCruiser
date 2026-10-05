@@ -138,6 +138,14 @@ public class StoryMission
     public RadioCue RescueAboard;
     /// <summary>Said at the dock if the rescue was missed.</summary>
     public string RescueMissed;
+    /// <summary>Fog, night or storm (Clear by default).</summary>
+    public Weather Weather;
+    /// <summary>A spirit light rises at the start and leads the ship along the channel.</summary>
+    public bool Guide;
+    /// <summary>Said by the crew when the guiding light appears, and when it leaves at the dock.</summary>
+    public RadioCue[] GuideLines;
+    /// <summary>The closing dialogue's title, if not "Mission ... complete" (the ending).</summary>
+    public string OutroTitle;
 
     public string Label => "Mission " + Chapter + "-" + Number;
 }
