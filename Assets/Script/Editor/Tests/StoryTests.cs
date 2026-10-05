@@ -156,6 +156,45 @@ public class StoryTests
     }
 
     [Test]
+    public void EveryPhrasePassesWhenSaidAsWritten()
+    {
+        foreach (var m in StoryCatalog.Missions)
+            foreach (var p in m.Phrases)
+                Assert.AreEqual(PhraseCheck.Verdict.Pass, PhraseCheck.Check(p, p), m.Id + ": " + p);
+    }
+
+    [TestCase("turn left", "turn to the left")]
+    [TestCase("turn left", "Turn left, please.")]
+    [TestCase("slow ahead", "slow ahead now")]
+    [TestCase("stop", "Stop the ship!")]
+    [TestCase("what's ahead?", "What is ahead?")]
+    [TestCase("how far is the reef?", "How far is the reef")]
+    [TestCase("is it safe?", "is it safe")]
+    [TestCase("thank you, Harris", "Thank you Harris.")]
+    [TestCase("please turn to port", "Please turn to port.")]
+    public void SayingItCounts(string phrase, string heard)
+    {
+        Assert.AreEqual(PhraseCheck.Verdict.Pass, PhraseCheck.Check(phrase, heard));
+    }
+
+    [TestCase("turn left", "turn right")]
+    [TestCase("slow ahead", "full ahead")]
+    [TestCase("how far is the reef?", "stop")]
+    [TestCase("where is the dock?", "what can you see")]
+    [TestCase("stop", "")]
+    public void SomethingElseDoesNot(string phrase, string heard)
+    {
+        Assert.AreEqual(PhraseCheck.Verdict.Missed, PhraseCheck.Check(phrase, heard));
+    }
+
+    [Test]
+    public void PoliteOrdersNeedPlease()
+    {
+        Assert.AreEqual(PhraseCheck.Verdict.NeedsPlease, PhraseCheck.Check("please turn to port", "turn to port"));
+        Assert.AreEqual(PhraseCheck.Verdict.NeedsPlease, PhraseCheck.Check("please stop the engine", "stop the engine"));
+    }
+
+    [Test]
     public void ActiveMissionSetsTheJob()
     {
         var m = StoryCatalog.Find("1-2");

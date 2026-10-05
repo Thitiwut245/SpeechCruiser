@@ -74,6 +74,10 @@ public class ShipyardManager : MonoBehaviour
     // Story mode: the mission replaces the job list, and its briefing plays over the harbour.
     private StoryMission _story;
     private bool _briefing;
+    // Phrase practice: each new phrase lights up once it's said in a radio check.
+    private readonly List<Label> _phraseChips = new List<Label>();
+    private readonly HashSet<string> _practised = new HashSet<string>();
+    private Label _practiceHint;
 
     private void Start()
     {
@@ -163,16 +167,64 @@ public class ShipyardManager : MonoBehaviour
         title.AddToClassList("story-brief-title");
         var text = new Label(_story.Summary);
         text.AddToClassList("story-brief-text");
-        var words = new Label("New words: " + string.Join("  ·  ", _story.Phrases));
-        words.AddToClassList("story-brief-words");
+        var words = new VisualElement();
+        words.AddToClassList("story-chips");
+        foreach (var phrase in _story.Phrases)
+        {
+            var chip = new Label("\"" + phrase + "\"");
+            chip.AddToClassList("story-chip");
+            words.Add(chip);
+            _phraseChips.Add(chip);
+        }
+        _practiceHint = new Label();
+        _practiceHint.AddToClassList("story-brief-text");
+        RefreshPractice();
         var replay = new Button(PlayBriefing) { text = "Replay briefing" };
         replay.AddToClassList("small-btn");
         replay.AddToClassList("story-brief-replay");
         card.Add(title);
         card.Add(text);
-        if (_story.Phrases.Length > 0) card.Add(words);
+        if (_story.Phrases.Length > 0)
+        {
+            card.Add(words);
+            card.Add(_practiceHint);
+        }
         card.Add(replay);
         list.Insert(at, card);
+    }
+
+    private string TalkHint()
+    {
+        bool toggle = SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk;
+        return (toggle ? "Press " : "Hold ") + (_mic != null ? _mic.OrderKeyName : "T");
+    }
+
+    private void RefreshPractice()
+    {
+        if (_practiceHint == null) return;
+        for (int i = 0; i < _phraseChips.Count; i++)
+            _phraseChips[i].EnableInClassList("done", _practised.Contains(_story.Phrases[i]));
+        _practiceHint.text = _practised.Count >= _story.Phrases.Length
+            ? "All practised. You're ready to set sail!"
+            : "Practise: " + char.ToLowerInvariant(TalkHint()[0]) + TalkHint().Substring(1) + " and say each new phrase. They turn green.";
+    }
+
+    /// <summary>A radio check in the shipyard during a story mission: was it one of the new phrases?</summary>
+    private bool PracticePhrase(string heard)
+    {
+        bool polite = false;
+        foreach (var phrase in _story.Phrases)
+        {
+            var verdict = PhraseCheck.Check(phrase, heard);
+            if (verdict == PhraseCheck.Verdict.NeedsPlease) polite = true;
+            if (verdict != PhraseCheck.Verdict.Pass) continue;
+            bool fresh = _practised.Add(phrase);
+            RefreshPractice();
+            ShowToast("Good! \"" + phrase + "\"" + (fresh && _practised.Count >= _story.Phrases.Length ? " All done!" : ""), 4f);
+            return true;
+        }
+        ShowToast(polite ? "Nearly! Say it politely: add \"please\"." : "I heard \"" + heard + "\". Try one of the new phrases.", 5f);
+        return true;
     }
 
     private void PlayBriefing()
@@ -181,7 +233,10 @@ public class ShipyardManager : MonoBehaviour
         _briefing = true;
         if (GameManager.Instance != null) HandleStateChanged(GameManager.Instance.CurrentState);
         string title = "CHAPTER " + _story.Chapter + "  ·  " + _story.Label.ToUpperInvariant() + "  ·  " + _story.Title.ToUpperInvariant();
-        DialoguePlayer.Play(_story.Intro, title, () =>
+        var lines = new List<DialogueLine>(_story.Intro);
+        if (_story.Phrases.Length > 0 && _practised.Count < _story.Phrases.Length)
+            lines.Add(new DialogueLine(CharacterId.Harris, "Before we sail, practise the new words. " + TalkHint() + " and say them on the radio."));
+        DialoguePlayer.Play(lines.ToArray(), title, () =>
         {
             _briefing = false;
             if (this != null && GameManager.Instance != null) HandleStateChanged(GameManager.Instance.CurrentState);
@@ -266,6 +321,7 @@ public class ShipyardManager : MonoBehaviour
         // "Message cut" arrives the same frame the cut message starts decoding: keep it up.
         if (status == RadioStatus.Decoding && _lastRadioStatus == RadioStatus.Cut) { _lastRadioStatus = status; return; }
         _lastRadioStatus = status;
+        if (status == RadioStatus.Tested && _story != null && _story.Phrases.Length > 0 && PracticePhrase(text)) return;
         string line = RadioCheckText(status, text, _mic);
         if (line != null) ShowToast(line, RadioLineSeconds(status));
     }

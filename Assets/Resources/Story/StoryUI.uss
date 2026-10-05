@@ -343,3 +343,26 @@
     padding: 6px 10px;
     align-self: flex-start;
 }
+
+.story-chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 8px 0 0 0;
+}
+
+.story-chip {
+    font-size: 16px;
+    color: rgb(120, 210, 190);
+    background-color: rgba(120, 210, 190, 0.12);
+    border-width: 1px;
+    border-color: rgba(120, 210, 190, 0.5);
+    border-radius: 12px;
+    padding: 3px 10px;
+    margin: 0 6px 6px 0;
+}
+
+.story-chip.done {
+    color: rgb(20, 40, 24);
+    background-color: rgb(96, 200, 120);
+    border-color: rgb(96, 200, 120);
+}
