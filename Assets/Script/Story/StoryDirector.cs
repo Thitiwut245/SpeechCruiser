@@ -125,8 +125,11 @@ public class StoryDirector : MonoBehaviour
             Vector3 at = PointAlong(path, spec.At, out Vector3 dir);
             Vector3 side = Vector3.Cross(Vector3.up, dir).normalized * Mathf.Sign(spec.Side == 0 ? 1 : spec.Side);
             Vector3 start = at + side * level.CellWorldSize * 0.9f;
-            // It crosses ahead of the ship, from the side it was seen on toward the far side.
-            Vector3 heading = (dir.normalized * 0.35f - side).normalized;
+            // It crosses ahead of the ship, from the side it was seen on toward the far side;
+            // the ghost ship instead drifts past alongside, the other way.
+            Vector3 heading = spec.Kind == SightKind.GhostShip ? -dir.normalized : (dir.normalized * 0.35f - side).normalized;
+            // The ghost ship passes close alongside, inside the clear patch the fog leaves.
+            if (spec.Kind == SightKind.GhostShip) start = at + side * 14f + dir.normalized * 30f;
             start.y = surface;
             _sights.Add(SeaSight.Create(_props, spec.Kind, start, heading));
         }

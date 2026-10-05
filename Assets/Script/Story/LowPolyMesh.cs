@@ -127,7 +127,8 @@ public sealed class LowPolyMesh
     // ------------------------------------------------------------ to a GameObject
 
     private static readonly Dictionary<Color, Material> _materials = new Dictionary<Color, Material>();
-    private static Material _base;
+    private static readonly Dictionary<Color, Material> _glows = new Dictionary<Color, Material>();
+    private static Material _base, _glowBase;
 
     /// <summary>The URP Lit material every colour copies; null (with a warning) if it's missing.</summary>
     public static Material BaseMaterial
@@ -152,8 +153,30 @@ public sealed class LowPolyMesh
         return m;
     }
 
-    /// <summary>Puts the mesh on <paramref name="go"/> (a MeshFilter and MeshRenderer).</summary>
-    public MeshRenderer AttachTo(GameObject go, bool castShadows = true)
+    /// <summary>
+    /// A colour that glows (ghost ships, spirit lights): a copy of Resources/Story/Glow, an
+    /// emissive material the game already ships, so its glow survives in a build. Falls back
+    /// to the plain colour if it's missing.
+    /// </summary>
+    public static Material GlowFor(Color c, float strength)
+    {
+        c.a = 1f;
+        var key = new Color(c.r, c.g, c.b, strength);
+        if (_glows.TryGetValue(key, out var m) && m != null) return m;
+        if (_glowBase == null) _glowBase = Resources.Load<Material>("Story/Glow");
+        if (_glowBase == null) return MaterialFor(c);
+        m = new Material(_glowBase) { name = "Glow " + ColorUtility.ToHtmlStringRGB(c) };
+        m.SetColor("_BaseColor", c);
+        m.SetColor("_EmissionColor", c * strength);
+        m.EnableKeyword("_EMISSION");
+        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.1f);
+        if (m.HasProperty("_Cull")) m.SetFloat("_Cull", 0f);
+        _glows[key] = m;
+        return m;
+    }
+
+    /// <summary>Puts the mesh on <paramref name="go"/> (a MeshFilter and MeshRenderer). Glow &gt; 0 makes every colour emissive.</summary>
+    public MeshRenderer AttachTo(GameObject go, bool castShadows = true, float glow = 0f)
     {
         var mesh = new Mesh { name = go.name };
         if (Verts.Count > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -164,7 +187,7 @@ public sealed class LowPolyMesh
         for (int i = 0; i < colours.Count; i++)
         {
             mesh.SetTriangles(Tris[colours[i]], i, false);
-            mats[i] = MaterialFor(colours[i]);
+            mats[i] = glow > 0f ? GlowFor(colours[i], glow) : MaterialFor(colours[i]);
         }
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
