@@ -462,10 +462,10 @@
 /* A rubber stamp across the top corner: green on delivery, red when the ship was lost. */
 .log-stamp {
     position: absolute;
-    right: 30px;
-    top: 52px;
-    rotate: -12deg;
-    font-size: 26px;
+    right: 28px;
+    top: 50px;
+    rotate: -10deg;
+    font-size: 20px;
     -unity-font-style: bold;
     letter-spacing: 4px;
     color: rgba(40, 120, 70, 0.85);
@@ -481,7 +481,7 @@
 }
 
 .results-title {
-    font-size: 40px;
+    font-size: 34px;
     color: rgb(64, 43, 23);
     -unity-font-style: bold;
     margin-top: 10px;
