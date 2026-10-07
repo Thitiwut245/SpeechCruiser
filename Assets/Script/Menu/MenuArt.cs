@@ -159,3 +159,64 @@ public class ChartRoute : VisualElement
         return u * u * a + 2f * u * t * c + t * t * b;
     }
 }
+
+/// <summary>
+/// The engine-room lever on the SET SAIL plate: a slot with a brass handle that stands back
+/// at rest and throws forward (with a little overshoot) when the voyage starts.
+/// </summary>
+public class SailLever : VisualElement
+{
+    private const float Back = -32f, Forward = 34f;
+    private float _angle = Back, _from = Back, _to = Back, _start;
+    private const float ThrowSeconds = 0.28f;
+
+    public SailLever()
+    {
+        style.position = Position.Absolute;
+        style.left = 0; style.right = 0; style.top = 0; style.bottom = 0;
+        pickingMode = PickingMode.Ignore;
+        generateVisualContent += Draw;
+    }
+
+    public void Throw() => Animate(Forward);
+    public void ResetBack() => Animate(Back);
+
+    private void Animate(float to)
+    {
+        _from = _angle;
+        _to = to;
+        _start = Time.unscaledTime;
+        schedule.Execute(Step).Every(16).Until(() => Time.unscaledTime - _start > ThrowSeconds + 0.05f); // one step past the end lands it exactly
+    }
+
+    private void Step()
+    {
+        float t = Mathf.Clamp01((Time.unscaledTime - _start) / ThrowSeconds);
+        // Ease out with a small overshoot, like a heavy lever hitting its stop.
+        float k = 1f + 2.2f * Mathf.Pow(t - 1f, 3f) + 1.2f * Mathf.Pow(t - 1f, 2f);
+        _angle = Mathf.LerpUnclamped(_from, _to, k);
+        MarkDirtyRepaint();
+    }
+
+    private void Draw(MeshGenerationContext ctx)
+    {
+        var p = ctx.painter2D;
+        var r = contentRect;
+        if (r.width < 4f) return;
+        var pivot = new Vector2(r.width / 2f, r.height - 12f);
+
+        // The quadrant plate the lever moves along.
+        HudLook.Sector(p, pivot, 0f, r.height - 16f, 90f - Forward - 6f, 90f - Back + 6f, new Color(0.12f, 0.09f, 0.04f, 0.85f));
+        HudLook.Ring(p, pivot, r.height - 18f, new Color(0.35f, 0.25f, 0.1f), 2f, 90f - Forward - 6f, 90f - Back + 6f);
+
+        // The handle: a dark rod with a brass knob.
+        Vector2 tip = HudLook.OnCircle(pivot, r.height - 24f, 90f - _angle);
+        p.strokeColor = new Color(0.16f, 0.12f, 0.06f);
+        p.lineWidth = 7f;
+        p.lineCap = LineCap.Round;
+        p.BeginPath(); p.MoveTo(pivot); p.LineTo(tip); p.Stroke();
+        HudLook.Disc(p, tip, 8f, new Color(0.95f, 0.85f, 0.6f));
+        HudLook.Ring(p, tip, 8f, new Color(0.35f, 0.25f, 0.1f), 2f);
+        HudLook.Disc(p, pivot, 7f, new Color(0.25f, 0.18f, 0.08f));
+    }
+}

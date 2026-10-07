@@ -1,5 +1,5 @@
-/* Same palette as the HUD (ShipHUD.Hud): near-opaque navy panels, text never darker than
-   the secondary tone, one gold accent. Sizes are 1080p pixels (the panel scales). */
+/* The shipyard, ship's-bridge style like the HUD (HudLook): dark glass, brass rims, amber
+   readouts. Sizes are 1080p pixels (the panel scales). */
 
 .shipyard-root {
     position: absolute;
@@ -15,10 +15,10 @@
     top: 24px;
     bottom: 24px;
     width: 580px;
-    padding: 18px 26px;
-    background-color: rgb(8, 18, 28);
-    border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.12);
+    padding: 18px 24px;
+    background-color: rgba(6, 14, 22, 0.95);
+    border-width: 2px;
+    border-color: rgb(140, 110, 56);
     border-radius: 14px;
 }
 
@@ -50,22 +50,28 @@
 .toast {
     position: absolute;
     top: 18px;
-    right: 26px;
-    font-size: 17px;
+    right: 24px;
+    max-width: 330px;
+    font-size: 16px;
     color: rgb(98, 214, 150);
     -unity-font-style: bold;
+    white-space: normal;
+    -unity-text-align: upper-right;
 }
 
+/* Credits and hull, always in view: two brass-rimmed gauges. */
 .stat-row {
     flex-direction: row;
-    margin-top: 6px;
-    margin-bottom: 4px;
+    margin-top: 8px;
+    margin-bottom: 10px;
 }
 
 .stat-box {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.04);
+    border-width: 1px;
+    border-color: rgba(140, 110, 56, 0.6);
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 8px 14px;
     margin-right: 10px;
 }
 
@@ -75,8 +81,8 @@
 }
 
 .stat-caption {
-    font-size: 14px;
-    color: rgb(196, 209, 221);
+    font-size: 13px;
+    color: rgb(205, 165, 90);
     -unity-font-style: bold;
     letter-spacing: 2px;
 }
@@ -90,7 +96,7 @@
 .hull-line {
     flex-direction: row;
     align-items: center;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 .hull-pips {
@@ -98,16 +104,17 @@
 }
 
 .hull-pip {
-    width: 26px;
-    height: 20px;
-    margin-right: 5px;
-    border-radius: 4px;
-    background-color: rgb(52, 190, 110);
+    width: 30px;
+    height: 18px;
+    margin-right: 6px;
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: rgb(140, 110, 56);
+    background-color: rgb(77, 217, 115);
 }
 
 .hull-pip--empty {
-    background-color: rgba(255, 255, 255, 0.12);
-    border-width: 1px;
+    background-color: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 90, 70, 0.8);
 }
 
@@ -119,33 +126,99 @@
     flex-grow: 1;
 }
 
+/* Tabs: brass plates over the page they open. */
+.yard-tabs {
+    flex-direction: row;
+}
+
+.yard-tab {
+    flex-grow: 1;
+    flex-basis: 0;
+    font-size: 16px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(196, 209, 221);
+    background-color: rgba(18, 34, 48, 0.95);
+    border-width: 2px;
+    border-bottom-width: 0;
+    border-color: rgba(140, 110, 56, 0.55);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding: 9px 4px;
+    margin: 0 2px;
+}
+
+.yard-tab:hover {
+    color: rgb(242, 247, 250);
+    background-color: rgb(30, 54, 74);
+}
+
+.yard-tab.selected {
+    color: rgb(28, 20, 6);
+    background-color: rgb(205, 160, 72);
+    border-color: rgb(255, 214, 120);
+}
+
+/* A damaged hull: the Repair tab glows red until it's fixed. */
+.yard-tab.alert {
+    color: rgb(255, 150, 130);
+    border-color: rgb(210, 80, 60);
+}
+
+.yard-tab.selected.alert {
+    color: rgb(28, 20, 6);
+}
+
+.yard-page-frame {
+    padding: 4px 14px 12px 14px;
+    background-color: rgba(18, 34, 48, 0.55);
+    border-width: 2px;
+    border-color: rgba(140, 110, 56, 0.55);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.yard-page {
+    display: none;
+}
+
+.yard-page.shown {
+    display: flex;
+}
+
 .small-btn {
     font-size: 16px;
     -unity-font-style: bold;
-    color: rgb(20, 16, 4);
-    background-color: rgb(255, 199, 69);
-    border-width: 0;
+    color: rgb(28, 20, 6);
+    background-color: rgb(205, 160, 72);
+    border-width: 1px;
+    border-color: rgb(255, 214, 120);
     border-radius: 6px;
     padding: 6px 12px;
     margin: 0;
 }
 
 .small-btn:hover {
-    background-color: rgb(255, 216, 120);
+    background-color: rgb(228, 184, 92);
 }
 
 .small-btn:disabled {
     background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
     color: rgb(170, 184, 198);
     opacity: 1;
 }
 
 .section-label {
-    font-size: 15px;
-    color: rgb(196, 209, 221);
+    font-size: 14px;
+    color: rgb(205, 165, 90);
     -unity-font-style: bold;
     letter-spacing: 3px;
-    margin-top: 12px;
+    margin-top: 10px;
     margin-bottom: 6px;
 }
 
@@ -153,16 +226,16 @@
     flex-direction: row;
     align-items: center;
     margin: 0 0 6px 0;
-    padding: 7px 14px;
-    background-color: rgba(255, 255, 255, 0.06);
+    padding: 8px 14px;
+    background-color: rgba(255, 255, 255, 0.05);
     border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.0);
+    border-color: rgba(140, 110, 56, 0.25);
     border-radius: 10px;
     -unity-text-align: middle-left;
 }
 
 .job-card:hover {
-    background-color: rgba(255, 255, 255, 0.11);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .job-card.active-job {
@@ -179,6 +252,7 @@
     font-size: 21px;
     color: rgb(242, 247, 250);
     -unity-font-style: bold;
+    white-space: normal;
 }
 
 .card-desc {
@@ -202,9 +276,10 @@
 .buy-btn {
     font-size: 17px;
     -unity-font-style: bold;
-    color: rgb(242, 247, 250);
-    background-color: rgb(46, 104, 150);
-    border-width: 0;
+    color: rgb(28, 20, 6);
+    background-color: rgb(205, 160, 72);
+    border-width: 1px;
+    border-color: rgb(255, 214, 120);
     border-radius: 6px;
     padding: 8px 12px;
     min-width: 128px;
@@ -212,11 +287,12 @@
 }
 
 .buy-btn:hover {
-    background-color: rgb(66, 130, 182);
+    background-color: rgb(228, 184, 92);
 }
 
 .buy-btn:disabled {
     background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.08);
     color: rgb(170, 184, 198);
     opacity: 1;
 }
@@ -225,7 +301,7 @@
     font-size: 15px;
     color: rgb(196, 209, 221);
     white-space: normal;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 .spacer {
@@ -240,41 +316,75 @@
     margin-bottom: 6px;
 }
 
+/* Buttons that move on to the next screen (the report's Continue uses this too). */
 .start-btn {
     align-items: center;
     padding: 12px 20px;
     margin: 0;
-    background-color: rgb(40, 150, 90);
-    border-width: 0;
+    background-color: rgb(205, 160, 72);
+    border-width: 2px;
+    border-color: rgb(255, 214, 120);
     border-radius: 10px;
-    color: rgb(255, 255, 255);
+    color: rgb(28, 20, 6);
     font-size: 26px;
     -unity-font-style: bold;
 }
 
 .start-btn:hover {
-    background-color: rgb(54, 176, 108);
+    background-color: rgb(228, 184, 92);
 }
 
 .start-btn:active {
-    background-color: rgb(32, 124, 74);
+    background-color: rgb(180, 138, 56);
 }
 
 .start-btn:disabled {
     background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
     opacity: 1;
 }
 
+/* SET SAIL: an engine-room lever on a brass plate. The lever (drawn by ShipyardManager)
+   throws forward when it's pressed. */
+.sail-lever {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px 18px;
+    border-width: 3px;
+}
+
+.lever-slot {
+    width: 64px;
+    height: 74px;
+    margin-right: 14px;
+    flex-shrink: 0;
+}
+
+.lever-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
 .start-title {
-    font-size: 30px;
-    color: rgb(255, 255, 255);
+    font-size: 32px;
+    color: rgb(28, 20, 6);
     -unity-font-style: bold;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
 }
 
 .start-detail {
-    font-size: 17px;
-    color: rgb(222, 244, 230);
+    font-size: 16px;
+    color: rgb(56, 40, 14);
+    white-space: normal;
+}
+
+.start-btn:disabled .start-title {
+    color: rgb(170, 184, 198);
+}
+
+.start-btn:disabled .start-detail {
+    color: rgb(150, 162, 174);
 }
 
 .loading-caption {
@@ -282,11 +392,13 @@
     bottom: 60px;
     align-self: center;
     font-size: 22px;
-    color: rgb(242, 247, 250);
+    color: rgb(255, 199, 69);
     -unity-font-style: bold;
     letter-spacing: 2px;
     padding: 10px 22px;
-    background-color: rgba(8, 18, 28, 0.9);
+    background-color: rgba(6, 14, 22, 0.92);
+    border-width: 2px;
+    border-color: rgb(140, 110, 56);
     border-radius: 10px;
     display: none;
 }

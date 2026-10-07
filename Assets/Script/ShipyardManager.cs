@@ -6,10 +6,12 @@ using System.Collections.Generic;
 using Unity.Cinemachine;
 
 /// <summary>
-/// The shipyard phase of the Game scene. The store is a panel on the left; the harbour is
-/// built and the ship moored as soon as the scene loads, so the player sees the ship they are
-/// upgrading on the right. SET SAIL is always visible. Pressing it hides the store and the
-/// cargo loading becomes the mission intro (Space skips it).
+/// The shipyard phase of the Game scene. The store is a brass-rimmed board on the left, with
+/// credits and hull always in view and three tabs: the jobs (or the story mission), upgrades,
+/// and repair (red while the hull is damaged). The harbour is built and the ship moored as
+/// soon as the scene loads, so the player sees the ship they are upgrading on the right.
+/// SET SAIL is a lever plate, always visible: pressing it throws the lever, hides the store,
+/// and the cargo loading becomes the mission intro (Space skips it).
 /// Attach to the GameObject with the Shipyard UIDocument.
 /// </summary>
 public class ShipyardManager : MonoBehaviour
@@ -55,6 +57,13 @@ public class ShipyardManager : MonoBehaviour
     private Label _startTitle;
     private Label _startDetail;
     private Label _loadingCaption;
+
+    // Tabs: jobs (or the story mission), upgrades, repair.
+    private readonly System.Collections.Generic.Dictionary<string, Button> _tabs = new System.Collections.Generic.Dictionary<string, Button>();
+    private readonly System.Collections.Generic.Dictionary<string, VisualElement> _pages = new System.Collections.Generic.Dictionary<string, VisualElement>();
+    private Label _repairState;
+    private SailLever _lever;
+    private const float LeverSeconds = 0.35f;
 
     private JobSpec _selectedJob = JobSpec.Easy;
     private bool _loading;
@@ -105,6 +114,24 @@ public class ShipyardManager : MonoBehaviour
         _startTitle = root.Q<Label>("start-title");
         _startDetail = root.Q<Label>("start-detail");
         _loadingCaption = root.Q<Label>("loading-caption");
+        _repairState = root.Q<Label>("repair-state");
+        foreach (var key in new[] { "jobs", "upgrades", "repair" })
+        {
+            var tab = root.Q<Button>("tab-" + key);
+            var page = root.Q<VisualElement>("page-" + key);
+            if (tab == null || page == null) continue;
+            string k = key;
+            tab.clicked += () => ShowTab(k);
+            _tabs[key] = tab;
+            _pages[key] = page;
+        }
+        ShowTab("jobs");
+        var slot = root.Q<VisualElement>("lever-slot");
+        if (slot != null)
+        {
+            _lever = new SailLever();
+            slot.Add(_lever);
+        }
 
         _repairBtn.clicked += OnRepairHull;
         _jobEasyBtn.clicked += () => SelectJob(JobSpec.Easy);
@@ -157,6 +184,7 @@ public class ShipyardManager : MonoBehaviour
             if (label.text != "CHOOSE A JOB") continue;
             label.text = StoryCatalog.Chapters[_story.Chapter - 1].Title.ToUpperInvariant() + "  ·  " + _story.Label.ToUpperInvariant();
         }
+        if (_tabs.TryGetValue("jobs", out var jobsTab)) jobsTab.text = "MISSION";
         _jobEasyBtn.style.display = DisplayStyle.None;
         _jobNormalBtn.style.display = DisplayStyle.None;
         _jobHardBtn.style.display = DisplayStyle.None;
@@ -280,6 +308,13 @@ public class ShipyardManager : MonoBehaviour
         _composer.Composition = composition;
     }
 
+    /// <summary>Shows one tab's page: "jobs", "upgrades" or "repair".</summary>
+    private void ShowTab(string key)
+    {
+        foreach (var pair in _tabs) pair.Value.EnableInClassList("selected", pair.Key == key);
+        foreach (var pair in _pages) pair.Value.EnableInClassList("shown", pair.Key == key);
+    }
+
     private void SelectJob(JobSpec job)
     {
         if (GameSession.Instance != null && !GameSession.Instance.IsUnlocked(job)) job = JobSpec.Easy;
@@ -307,6 +342,7 @@ public class ShipyardManager : MonoBehaviour
 
         if (state == GameState.Shipyard)
         {
+            if (_lever != null && !_loading) _lever.ResetBack();
             string summary = GameSession.Instance != null ? GameSession.Instance.LastMissionSummary : "";
             _statusText.text = _story != null ? "Chapter " + _story.Chapter + ": " + StoryCatalog.Chapters[_story.Chapter - 1].Title
                              : string.IsNullOrEmpty(summary) ? "Welcome aboard, Captain" : summary;
@@ -390,6 +426,15 @@ public class ShipyardManager : MonoBehaviour
 
             int missing = hull.MaxHealthAmount - hull.CurrentHealth;
             int affordable = RepairablePoints(hull, session.Credits);
+            if (_repairState != null)
+                _repairState.text = missing <= 0 ? "The hull is sound."
+                                  : hull.CurrentHealth == 1 ? "Hull 1/" + hull.MaxHealthAmount + ": one more hit sinks the ship!"
+                                  : "Hull " + hull.CurrentHealth + "/" + hull.MaxHealthAmount + ": the ship is damaged.";
+            if (_tabs.TryGetValue("repair", out var repairTab))
+            {
+                repairTab.EnableInClassList("alert", missing > 0);
+                repairTab.text = missing > 0 ? "REPAIR  !" : "REPAIR";
+            }
             if (missing <= 0)
             {
                 _repairBtn.text = "FULL";
@@ -543,6 +588,7 @@ public class ShipyardManager : MonoBehaviour
         if (hull != null && hull.CurrentHealth < hull.MaxHealthAmount && !_confirmDamagedStart)
         {
             _confirmDamagedStart = true;
+            ShowTab("repair"); // the repair is one click away
             RefreshStartButton();
             return;
         }
@@ -551,6 +597,18 @@ public class ShipyardManager : MonoBehaviour
         if (_mic != null) _mic.EndRadioCheck();
         _loading = true;
         _skipLoading = false;
+        _startMissionBtn.SetEnabled(false);
+        StartCoroutine(SetSailAfterLever());
+    }
+
+    /// <summary>The lever is thrown and seen to land; then the store gives way to the cargo loading.</summary>
+    private IEnumerator SetSailAfterLever()
+    {
+        if (_lever != null)
+        {
+            _lever.Throw();
+            yield return new WaitForSecondsRealtime(LeverSeconds);
+        }
 
         // The route is rebuilt for the chosen job and current credits; the dock sits at the
         // origin every time, so the moored ship doesn't move.
