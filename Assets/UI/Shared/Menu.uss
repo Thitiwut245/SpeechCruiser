@@ -284,71 +284,93 @@
 
 /* ...on paper, like the rest of the title screen: sand, navy ink, rust accents
    (projector-safe). Here rather than in Title.uss, because the settings template brings its
-   own copy of this sheet, closer to the panel, which would win a tie. */
+   own copy of this sheet, closer to the panel, which would win a tie.
+   The rules below are for any menu on paper (UiTheme.Paper): the title and the pause menu. */
 .title-screen .settings-panel {
     background-color: rgba(250, 242, 228, 0.97);
 }
 
-.title-screen .menu-title {
+.theme-paper .menu-title {
     color: rgb(22, 36, 64);
     -unity-font-style: bold;
 }
 
-.title-screen .settings-heading {
+.theme-paper .settings-heading {
     color: rgb(160, 50, 24);
     font-size: 16px;
     -unity-font-style: bold;
     border-color: rgba(22, 36, 64, 0.3);
 }
 
-.title-screen .settings-label,
-.title-screen .settings-toggle,
-.title-screen .settings-toggle > .unity-label,
-.title-screen .settings-dropdown,
-.title-screen .settings-dropdown .unity-base-popup-field__text {
+.theme-paper .settings-label,
+.theme-paper .settings-toggle,
+.theme-paper .settings-toggle > .unity-label,
+.theme-paper .settings-dropdown,
+.theme-paper .settings-dropdown .unity-base-popup-field__text {
     color: rgb(22, 36, 64);
     font-size: 18px;
 }
 
-.title-screen .settings-note {
+.theme-paper .settings-note {
     color: rgb(62, 74, 100);
     font-size: 16px;
 }
 
-.title-screen .settings-dropdown .unity-base-popup-field__input {
+.theme-paper .settings-dropdown .unity-base-popup-field__input {
     border-color: rgba(22, 36, 64, 0.6);
 }
 
-.title-screen .settings-dropdown .unity-base-popup-field__arrow {
+.theme-paper .settings-dropdown .unity-base-popup-field__arrow {
     -unity-background-image-tint-color: rgb(160, 50, 24);
 }
 
-.title-screen .settings-slider .unity-base-slider__tracker {
+.theme-paper .settings-slider .unity-base-slider__tracker {
     height: 3px;
     background-color: rgba(22, 36, 64, 0.35);
 }
 
-.title-screen .settings-slider .unity-base-slider__dragger {
+.theme-paper .settings-slider .unity-base-slider__dragger {
     background-color: rgb(160, 50, 24);
 }
 
-.title-screen .bind-button {
+.theme-paper .bind-button {
     color: rgb(160, 50, 24);
     border-color: rgb(160, 50, 24);
     -unity-font-style: bold;
 }
 
-.title-screen .bind-button:hover,
-.title-screen .bind-button.listening {
+.theme-paper .bind-button:hover,
+.theme-paper .bind-button.listening {
     color: rgb(22, 36, 64);
     border-color: rgb(22, 36, 64);
 }
 
-.title-screen .menu-button {
+.theme-paper .menu-button {
     color: rgb(22, 36, 64);
     -unity-font-style: bold;
 }
 
-.title-screen .menu-button:hover {
+.theme-paper .menu-button:hover {
     color: rgb(160, 50, 24);
+}
+
+.theme-paper .menu-button {
+    font-size: 22px;
+    letter-spacing: 5px;
+}
+
+/* The pause menu on paper: a full sand page over the paused sea; Resume in rust. */
+.pause-container.theme-paper {
+    background-color: rgba(250, 242, 228, 0.96);
+}
+
+.theme-paper #ResumeButton {
+    color: rgb(160, 50, 24);
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
+}
+
+.theme-paper #ResumeButton:hover {
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
 }
