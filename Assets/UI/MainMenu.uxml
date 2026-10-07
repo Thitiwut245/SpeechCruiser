@@ -7,21 +7,35 @@
 >
     <ui:Template name="SettingsPanel" src="Shared/SettingsPanel.uxml" />
     <ui:Style src="Shared/Menu.uss" />
+    <ui:Style src="Shared/Title.uss" />
 
-    <!-- The live harbour (MenuBackdrop) shows through; the title sits on a panel to the left. -->
+    <!-- The live harbour (MenuBackdrop) shows through; the title sits on a brass-rimmed board to the left. -->
     <ui:VisualElement class="main-container title-screen" name="MainMenuContainer">
-        <ui:VisualElement class="menu-panel title-panel" name="MainPanel">
+        <ui:VisualElement class="title-panel" name="MainPanel">
+            <ui:VisualElement name="Emblem" class="title-emblem" />
             <ui:Label text="SPEECH" class="game-title" />
             <ui:Label text="CRUISER" class="game-title game-title--accent" />
             <ui:Label text="Captain a cargo ship with your voice." class="game-tagline" />
-            <ui:Label name="CareerLabel" text="" class="career-line" />
 
-            <ui:Button name="StoryButton" text="Story" class="menu-button menu-button--primary" />
-            <ui:Button name="PlayButton" text="Free Sail" class="menu-button" />
-            <ui:Button name="SettingButton" text="Settings" class="menu-button" />
-            <ui:Button name="NewCareerButton" text="New Career" class="menu-button menu-button--quiet" />
-            <ui:Button name="QuitButton" text="Quit" class="menu-button" />
-            <ui:Label name="RadioStatusLabel" text="" class="radio-status" />
+            <ui:Button name="StoryButton" class="title-button title-button--primary">
+                <ui:Label name="StoryButtonTitle" text="Story" class="title-button__title" />
+                <ui:Label name="StoryButtonSub" text="" class="title-button__sub" />
+            </ui:Button>
+            <ui:Button name="PlayButton" class="title-button">
+                <ui:Label name="PlayButtonTitle" text="Free Sail" class="title-button__title" />
+                <ui:Label name="CareerLabel" text="" class="title-button__sub" />
+            </ui:Button>
+
+            <ui:VisualElement class="title-row">
+                <ui:Button name="SettingButton" text="Settings" class="title-small" />
+                <ui:Button name="QuitButton" text="Quit" class="title-small" />
+            </ui:VisualElement>
+            <ui:Button name="NewCareerButton" text="New Career" class="title-quiet" />
+
+            <ui:VisualElement class="radio-plate">
+                <ui:VisualElement name="RadioDot" class="radio-plate__dot" />
+                <ui:Label name="RadioStatusLabel" text="" class="radio-status" />
+            </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:Instance template="SettingsPanel" />

@@ -1,0 +1,175 @@
+/* Title screen, ship's-bridge style: dark glass board, brass rim, amber accents.
+   Scoped to .title-screen so the pause menu (which shares Menu.uss) is untouched. */
+
+.title-screen .title-panel {
+    position: absolute;
+    left: 56px;
+    top: 0;
+    bottom: 0;
+    width: 460px;
+    padding: 0 40px;
+    justify-content: center;
+    align-items: stretch;
+    background-color: rgba(6, 14, 22, 0.94);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-color: rgb(140, 110, 56);
+}
+
+.title-emblem {
+    align-self: center;
+    margin-bottom: 6px;
+}
+
+.title-screen .game-title {
+    font-size: 70px;
+    letter-spacing: 8px;
+    -unity-text-align: middle-center;
+    color: rgb(242, 247, 250);
+}
+
+.title-screen .game-title--accent {
+    color: rgb(255, 199, 69);
+    margin-top: -20px;
+}
+
+.title-screen .game-tagline {
+    font-size: 19px;
+    -unity-text-align: middle-center;
+    color: rgb(196, 209, 221);
+    margin: 4px 0 28px 0;
+}
+
+/* The two main choices: big plates with a title and a line under it. */
+.title-button {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 6px 0;
+    padding: 14px 20px;
+    background-color: rgba(18, 34, 48, 0.95);
+    border-width: 2px;
+    border-color: rgb(140, 110, 56);
+    border-radius: 10px;
+    transition-duration: 0.15s;
+}
+
+.title-button:hover {
+    background-color: rgb(30, 54, 74);
+    border-color: rgb(205, 165, 90);
+    scale: 1.02 1.02;
+}
+
+.title-button:active {
+    scale: 0.98 0.98;
+}
+
+.title-button__title {
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: rgb(242, 247, 250);
+    margin: 0;
+    padding: 0;
+}
+
+.title-button__sub {
+    font-size: 16px;
+    color: rgb(196, 209, 221);
+    white-space: normal;
+    margin: 2px 0 0 0;
+    padding: 0;
+}
+
+.title-button--primary {
+    background-color: rgb(205, 160, 72);
+    border-color: rgb(255, 214, 120);
+}
+
+.title-button--primary:hover {
+    background-color: rgb(228, 184, 92);
+    border-color: rgb(255, 230, 160);
+}
+
+.title-button--primary .title-button__title {
+    color: rgb(28, 20, 6);
+}
+
+.title-button--primary .title-button__sub {
+    color: rgb(56, 40, 14);
+}
+
+.title-row {
+    flex-direction: row;
+    margin-top: 8px;
+}
+
+.title-small {
+    flex-grow: 1;
+    flex-basis: 0;
+    font-size: 20px;
+    color: rgb(242, 247, 250);
+    background-color: rgba(18, 34, 48, 0.9);
+    border-width: 1px;
+    border-color: rgba(140, 110, 56, 0.8);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 0 4px;
+}
+
+.title-small:first-child {
+    margin-left: 0;
+}
+
+.title-small:last-child {
+    margin-right: 0;
+}
+
+.title-small:hover {
+    background-color: rgb(30, 54, 74);
+}
+
+.title-quiet {
+    align-self: center;
+    font-size: 15px;
+    color: rgb(150, 165, 178);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    margin-top: 10px;
+    padding: 4px 10px;
+}
+
+.title-quiet:hover {
+    color: rgb(242, 247, 250);
+}
+
+.title-quiet.confirm {
+    color: rgb(255, 255, 255);
+    background-color: rgb(150, 50, 40);
+    border-radius: 6px;
+}
+
+/* The radio's state: a small plate with a coloured lamp. */
+.radio-plate {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 22px;
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-width: 1px;
+    border-color: rgba(140, 110, 56, 0.45);
+    border-radius: 8px;
+}
+
+.radio-plate__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    margin-right: 10px;
+    flex-shrink: 0;
+    background-color: rgb(77, 217, 115);
+}
+
+.title-screen .radio-status {
+    font-size: 15px;
+    margin: 0;
+    flex-shrink: 1;
+}

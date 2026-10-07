@@ -2,9 +2,11 @@ using UnityEngine;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// Title screen in the Menu scene: Story / Free Sail / Settings / Quit, plus a radio status line:
-/// warming up, ready, no microphone, or speech system failed. The order key runs a radio
-/// check here, and the line says what was heard.
+/// Title screen in the Menu scene, styled as a ship's bridge board: the compass-rose emblem,
+/// Story (which names the next mission) and Free Sail (which shows the career), Settings and
+/// Quit, and a radio plate whose lamp and line say how the radio is: warming up, ready, no
+/// microphone, or speech system failed. The order key runs a radio check here, and the
+/// line says what was heard.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
 public class MainMenuController : MonoBehaviour
@@ -16,7 +18,11 @@ public class MainMenuController : MonoBehaviour
     private Button _quitButton;
     private Button _newCareerButton;
     private Label _careerLabel;
+    private Label _storyTitle;
+    private Label _storySub;
     private Label _radioStatusLabel;
+    private VisualElement _radioDot;
+    private CompassRose _emblem;
     // New Career takes a second press, so nobody wipes a career by accident.
     private bool _confirmNewCareer;
     private SettingsPanelController _settings;
@@ -41,6 +47,15 @@ public class MainMenuController : MonoBehaviour
         _radioStatusLabel = root.Q<Label>("RadioStatusLabel");
         _newCareerButton = root.Q<Button>("NewCareerButton");
         _careerLabel = root.Q<Label>("CareerLabel");
+        _storyTitle = root.Q<Label>("StoryButtonTitle");
+        _storySub = root.Q<Label>("StoryButtonSub");
+        _radioDot = root.Q<VisualElement>("RadioDot");
+        var emblemSlot = root.Q<VisualElement>("Emblem");
+        if (emblemSlot != null && _emblem == null)
+        {
+            _emblem = new CompassRose(96f, HudLook.Brass, new Color(0.85f, 0.88f, 0.9f), HudLook.Amber);
+            emblemSlot.Add(_emblem);
+        }
         _settings = new SettingsPanelController(root, ShowMainPanel);
         _story = new StoryMenuController(root, ShowMainPanel);
 
@@ -85,22 +100,45 @@ public class MainMenuController : MonoBehaviour
         _checkUntil = Time.unscaledTime + ShipyardManager.RadioLineSeconds(status);
     }
 
+    private static readonly Color LampGreen = new Color(0.30f, 0.85f, 0.45f);
+    private static readonly Color LampAmber = new Color(1f, 0.78f, 0.25f);
+    private static readonly Color LampRed = new Color(1f, 0.30f, 0.24f);
+
     private void Update()
     {
+        if (_emblem != null) _emblem.Tick(Time.unscaledTime);
         if (_radioStatusLabel == null) return;
 
+        Color lamp;
         if (_checkLine != null && Time.unscaledTime < _checkUntil)
+        {
             _radioStatusLabel.text = _checkLine;
+            lamp = LampAmber;
+        }
         else if (_radioMic == null || !_radioMic.HasMicrophone)
+        {
             _radioStatusLabel.text = "No microphone found. Plug one in, then check Settings.";
+            lamp = LampRed;
+        }
         else if (_radioMic.IsModelReady)
+        {
             _radioStatusLabel.text = "Radio ready. Test it: " +
                 (SettingsService.Instance != null && SettingsService.Instance.ToggleToTalk ? "press " : "hold ") +
                 _radioMic.OrderKeyName + " and say \"radio check\".";
+            lamp = LampGreen;
+        }
         else if (_radioMic.IsModelLoading)
+        {
             _radioStatusLabel.text = "Radio warming up...";
+            lamp = LampAmber * (0.6f + 0.4f * Mathf.PingPong(Time.unscaledTime * 2f, 1f));
+            lamp.a = 1f;
+        }
         else
+        {
             _radioStatusLabel.text = "Speech system did not load. Voice orders won't work.";
+            lamp = LampRed;
+        }
+        if (_radioDot != null) _radioDot.style.backgroundColor = lamp;
     }
 
     /// <summary>A saved career says so; Story names the next mission. Free Sail carries on with the career.</summary>
@@ -109,11 +147,12 @@ public class MainMenuController : MonoBehaviour
         var session = GameSession.Instance;
         bool saved = session != null && session.HasSavedCareer;
         var next = StoryProgress.NextToPlay;
-        _storyButton.text = StoryProgress.DoneCount == 0 ? "Story" : next == null ? "Story (complete)" : "Story: mission " + next.Id;
-        _playButton.text = "Free Sail";
+        _storyTitle.text = StoryProgress.DoneCount == 0 ? "Start the Story" : next == null ? "Story" : "Continue the Story";
+        _storySub.text = next == null ? "Complete! Sail any mission again."
+                       : "Mission " + next.Id + ": " + next.Title + (StoryProgress.DoneCount == 0 ? ". A new captain's first day." : "");
         bool anything = (session != null && session.HasAnySave) || StoryProgress.DoneCount > 0;
         _newCareerButton.style.display = anything ? DisplayStyle.Flex : DisplayStyle.None;
-        _careerLabel.style.display = saved ? DisplayStyle.Flex : DisplayStyle.None;
+        _careerLabel.text = "Choose your own jobs, earn money, upgrade the ship.";
         if (saved)
         {
             int n = session.MissionsCompleted;
