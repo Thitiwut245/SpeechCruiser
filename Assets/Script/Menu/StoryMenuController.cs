@@ -3,12 +3,13 @@ using UnityEngine;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// The story screen on the title menu. Brass tabs pick a chapter (locked until reached). The
-/// chapter is an old sea chart: its title and what it teaches, a portrait, and the voyage
-/// route through a marker per mission (solid where sailed, dashed ahead; done, next or
-/// locked). Clicking a marker shows that mission below, with its goal, weather, client and
-/// new words, and the SET SAIL button. Built in code inside the title screen's container,
-/// styled by Resources/Story/StoryUI.uss.
+/// The story screen on the title menu, on the title's paper (navy ink on sand). Tabs pick a
+/// chapter (locked until reached). The chapter is a chart in ink: its title and what it
+/// teaches, a portrait, and the voyage route through a marker per mission (solid where sailed,
+/// dashed ahead; done, next or locked). Clicking a marker shows that mission below: its goal
+/// in a line, the weather and danger, the new words to learn, and SET SAIL. Only what helps
+/// the player choose and speak: no pay or client tags. Built in code inside the title
+/// screen's container, styled by Resources/Story/StoryUI.uss.
 /// </summary>
 public class StoryMenuController
 {
@@ -38,8 +39,6 @@ public class StoryMenuController
         var container = root.Q<VisualElement>("MainMenuContainer") ?? root;
         container.Add(_panel);
 
-        var eyebrow = new Label("STORY");
-        eyebrow.AddToClassList("story-eyebrow");
         var title = new Label(StoryCatalog.StoryTitle);
         title.AddToClassList("story-title");
         _tabs = new VisualElement();
@@ -58,7 +57,6 @@ public class StoryMenuController
         footer.Add(_progress);
         footer.Add(back);
 
-        _panel.Add(eyebrow);
         _panel.Add(title);
         _panel.Add(_tabs);
         _panel.Add(_chart);
@@ -138,7 +136,7 @@ public class StoryMenuController
         route.SetRoute(Stops, sailed);
         _chart.Add(route);
 
-        var rose = new CompassRose(78f, ChartRoute.Ink, new Color(0.45f, 0.33f, 0.18f), new Color(0.65f, 0.16f, 0.1f));
+        var rose = new CompassRose(74f, UiTheme.Ink, UiTheme.InkSoft, UiTheme.Rust);
         rose.AddToClassList("chart-rose");
         _chart.Add(rose);
 
@@ -146,12 +144,9 @@ public class StoryMenuController
         text.AddToClassList("chart-text");
         var name = new Label("Chapter " + chapter.Number + ": " + chapter.Title);
         name.AddToClassList("chart-title");
-        var blurb = new Label(chapter.Blurb);
-        blurb.AddToClassList("chart-blurb");
         var focus = new Label("You will learn: " + chapter.Focus);
         focus.AddToClassList("chart-focus");
         text.Add(name);
-        text.Add(blurb);
         text.Add(focus);
         _chart.Add(text);
 
@@ -208,20 +203,27 @@ public class StoryMenuController
 
         var tags = new VisualElement();
         tags.AddToClassList("mission-tags");
-        Tag(tags, m.Goal == MissionGoal.Rescue ? "RESCUE" : "DELIVERY", "goal");
+        if (m.Goal == MissionGoal.Rescue) Tag(tags, "RESCUE", "goal");
         if (m.Weather == Weather.Storm) Tag(tags, "STORM", "weather");
         else if (m.Weather == Weather.NightFog) Tag(tags, "NIGHT FOG", "weather");
         else if (m.Weather == Weather.Fog) Tag(tags, "FOG", "weather");
         if (m.Job.Mines) Tag(tags, "MINES", "danger");
-        Tag(tags, "FOR " + StoryCast.Get(m.Client).Name.ToUpperInvariant(), "client");
-        Tag(tags, "$" + m.Job.Reward, "pay");
         if (done) Tag(tags, "DONE", "done");
-        _detail.Add(tags);
+        if (tags.childCount > 0) _detail.Add(tags);
 
         if (open && m.Phrases.Length > 0)
         {
-            var words = new Label("New words: " + string.Join("  ·  ", m.Phrases));
+            var words = new VisualElement();
             words.AddToClassList("mission-words");
+            var caption = new Label("NEW WORDS");
+            caption.AddToClassList("mission-words__caption");
+            words.Add(caption);
+            foreach (var phrase in m.Phrases)
+            {
+                var word = new Label(phrase);
+                word.AddToClassList("mission-word");
+                words.Add(word);
+            }
             _detail.Add(words);
         }
 

@@ -1,62 +1,63 @@
-/* Title screen, ship's-bridge style: dark glass board, brass rim, amber accents.
-   Scoped to .title-screen so the pause menu (which shares Menu.uss) is untouched. */
+/* Title screen, after Alto's Adventure, on paper (UiTheme.Paper): navy ink and spaced bold
+   capitals on a warm sand gradient from the left edge (drawn by MainMenuController), the
+   harbour showing on the right. Projector-safe: dark ink on a light ground, nothing smaller
+   than 16px. Few choices (Hick's law): one story button that names the next mission, then
+   Free Sail, then Settings and Quit. Scoped to .title-screen so the pause menu keeps its own. */
 
 .title-screen .title-panel {
     position: absolute;
-    left: 56px;
+    left: 100px;
     top: 0;
     bottom: 0;
-    width: 460px;
-    padding: 0 40px;
+    width: 500px;
+    padding: 0;
     justify-content: center;
     align-items: stretch;
-    background-color: rgba(6, 14, 22, 0.94);
-    border-left-width: 2px;
-    border-right-width: 2px;
-    border-color: rgb(140, 110, 56);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 .title-emblem {
     align-self: center;
-    margin-bottom: 6px;
+    margin-bottom: 14px;
 }
 
 .title-screen .game-title {
     font-size: 70px;
-    letter-spacing: 8px;
+    letter-spacing: 14px;
     -unity-text-align: middle-center;
-    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
 }
 
 .title-screen .game-title--accent {
-    color: rgb(255, 199, 69);
-    margin-top: -20px;
+    color: rgb(160, 50, 24);
+    margin-top: -14px;
 }
 
 .title-screen .game-tagline {
-    font-size: 19px;
+    font-size: 21px;
+    letter-spacing: 1px;
     -unity-text-align: middle-center;
-    color: rgb(196, 209, 221);
-    margin: 4px 0 28px 0;
+    color: rgb(62, 74, 100);
+    margin: 8px 0 44px 0;
 }
 
-/* The two main choices: big plates with a title and a line under it. */
+/* The choices: bold words; the story's in rust with a rust line under it. */
 .title-button {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
     flex-direction: column;
-    align-items: flex-start;
-    margin: 6px 0;
-    padding: 14px 20px;
-    background-color: rgba(18, 34, 48, 0.95);
-    border-width: 2px;
-    border-color: rgb(140, 110, 56);
-    border-radius: 10px;
-    transition-duration: 0.15s;
+    align-items: center;
+    margin: 8px 0;
+    padding: 6px 10px 8px 10px;
+    transition-duration: 0.2s;
 }
 
 .title-button:hover {
-    background-color: rgb(30, 54, 74);
-    border-color: rgb(205, 165, 90);
-    scale: 1.02 1.02;
+    background-color: rgba(0, 0, 0, 0);
+    scale: 1.05 1.05;
 }
 
 .title-button:active {
@@ -64,99 +65,104 @@
 }
 
 .title-button__title {
-    font-size: 30px;
+    font-size: 28px;
+    letter-spacing: 6px;
     -unity-font-style: bold;
-    color: rgb(242, 247, 250);
+    -unity-text-align: middle-center;
+    color: rgb(22, 36, 64);
     margin: 0;
-    padding: 0;
+    padding: 0 0 4px 0;
+}
+
+.title-button:hover .title-button__title {
+    color: rgb(160, 50, 24);
 }
 
 .title-button__sub {
-    font-size: 16px;
-    color: rgb(196, 209, 221);
+    font-size: 18px;
+    -unity-text-align: middle-center;
+    color: rgb(62, 74, 100);
     white-space: normal;
-    margin: 2px 0 0 0;
+    margin: 4px 0 0 0;
     padding: 0;
 }
 
 .title-button--primary {
-    background-color: rgb(205, 160, 72);
-    border-color: rgb(255, 214, 120);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 .title-button--primary:hover {
-    background-color: rgb(228, 184, 92);
-    border-color: rgb(255, 230, 160);
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .title-button--primary .title-button__title {
-    color: rgb(28, 20, 6);
+    color: rgb(160, 50, 24);
+    font-size: 32px;
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
 }
 
-.title-button--primary .title-button__sub {
-    color: rgb(56, 40, 14);
+.title-button--primary:hover .title-button__title {
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
 }
 
 .title-row {
     flex-direction: row;
-    margin-top: 8px;
+    justify-content: center;
+    margin-top: 18px;
 }
 
+/* Settings and Quit: bold spaced words. */
 .title-small {
-    flex-grow: 1;
-    flex-basis: 0;
     font-size: 20px;
-    color: rgb(242, 247, 250);
-    background-color: rgba(18, 34, 48, 0.9);
-    border-width: 1px;
-    border-color: rgba(140, 110, 56, 0.8);
-    border-radius: 8px;
-    padding: 10px;
-    margin: 0 4px;
-}
-
-.title-small:first-child {
-    margin-left: 0;
-}
-
-.title-small:last-child {
-    margin-right: 0;
+    letter-spacing: 4px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    padding: 6px 16px;
+    margin: 0 8px;
 }
 
 .title-small:hover {
-    background-color: rgb(30, 54, 74);
+    color: rgb(160, 50, 24);
 }
 
 .title-quiet {
     align-self: center;
-    font-size: 15px;
-    color: rgb(150, 165, 178);
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: rgb(62, 74, 100);
     background-color: rgba(0, 0, 0, 0);
     border-width: 0;
-    margin-top: 10px;
+    margin-top: 8px;
     padding: 4px 10px;
 }
 
 .title-quiet:hover {
-    color: rgb(242, 247, 250);
+    color: rgb(160, 50, 24);
 }
 
 .title-quiet.confirm {
-    color: rgb(255, 255, 255);
-    background-color: rgb(150, 50, 40);
-    border-radius: 6px;
+    color: rgb(170, 30, 40);
+    -unity-font-style: bold;
+    background-color: rgba(0, 0, 0, 0);
+    border-bottom-width: 2px;
+    border-color: rgb(170, 30, 40);
+    border-radius: 0;
 }
 
-/* The radio's state: a small plate with a coloured lamp. */
+/* The radio: a lamp and one line, an invitation to speak. */
 .radio-plate {
     flex-direction: row;
     align-items: center;
-    margin-top: 22px;
-    padding: 8px 12px;
-    background-color: rgba(255, 255, 255, 0.04);
-    border-width: 1px;
-    border-color: rgba(140, 110, 56, 0.45);
-    border-radius: 8px;
+    justify-content: center;
+    margin-top: 30px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 .radio-plate__dot {
@@ -165,11 +171,12 @@
     border-radius: 6px;
     margin-right: 10px;
     flex-shrink: 0;
-    background-color: rgb(77, 217, 115);
+    background-color: rgb(12, 108, 98);
 }
 
 .title-screen .radio-status {
-    font-size: 15px;
+    font-size: 17px;
+    color: rgb(22, 36, 64);
     margin: 0;
     flex-shrink: 1;
 }

@@ -1,4 +1,5 @@
-/* Story mode: the dialogue scenes and the chapter / mission screen. */
+/* Story mode, in the game's Alto-style look (UiTheme). The dialogue plays over the scene:
+   white on a dusk dim. The story screen and the shipyard card are on paper: navy ink on sand. */
 
 /* ------------------------------------------------------------ dialogue */
 
@@ -10,136 +11,132 @@
     bottom: 0;
     justify-content: flex-end;
     align-items: center;
-    background-color: rgba(4, 10, 16, 0.35);
+    background-color: rgba(18, 13, 26, 0.74);
 }
 
 .dlg-top {
     position: absolute;
-    top: 28px;
-    left: 40px;
-    right: 40px;
+    top: 30px;
+    left: 44px;
+    right: 44px;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
 }
 
 .dlg-title {
-    font-size: 18px;
-    color: rgb(255, 199, 69);
-    -unity-font-style: bold;
-    letter-spacing: 3px;
-    background-color: rgba(8, 18, 28, 0.85);
-    border-radius: 6px;
-    padding: 6px 14px;
+    font-size: 15px;
+    letter-spacing: 6px;
+    color: rgb(255, 205, 175);
+    padding-bottom: 4px;
+    border-bottom-width: 2px;
+    border-color: rgb(255, 189, 148);
 }
 
 .dlg-skip {
-    font-size: 18px;
-    color: rgb(242, 247, 250);
-    background-color: rgba(28, 52, 74, 0.9);
+    background-color: rgba(0, 0, 0, 0);
     border-width: 0;
-    border-radius: 6px;
-    padding: 8px 16px;
+    border-radius: 0;
+    font-size: 16px;
+    letter-spacing: 5px;
+    color: rgb(255, 255, 255);
+    padding: 4px 6px;
 }
 
 .dlg-skip:hover {
-    background-color: rgb(46, 84, 116);
+    color: rgb(255, 205, 175);
 }
 
+/* No hard box: a soft dusk band, a round portrait in a thin ring, the name in spaced capitals. */
 .dlg-box {
     flex-direction: row;
-    width: 72%;
-    max-width: 1200px;
-    min-height: 230px;
-    margin-bottom: 44px;
-    padding: 18px;
-    background-color: rgb(8, 18, 28);
-    border-width: 2px;
-    border-color: rgb(255, 199, 69);
-    border-radius: 16px;
+    align-items: center;
+    width: 74%;
+    max-width: 1240px;
+    min-height: 200px;
+    margin-bottom: 64px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
 }
 
 .dlg-portrait {
-    width: 200px;
-    height: 200px;
+    width: 168px;
+    height: 168px;
     flex-shrink: 0;
-    border-width: 3px;
-    border-color: rgb(255, 199, 69);
-    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(255, 255, 255);
+    border-radius: 84px;
     -unity-background-scale-mode: scale-and-crop;
-    background-color: rgb(20, 30, 40);
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .dlg-body {
     flex-grow: 1;
     flex-shrink: 1;
-    margin-left: 22px;
+    margin-left: 28px;
 }
 
 .dlg-name {
-    font-size: 28px;
-    -unity-font-style: bold;
-    color: rgb(255, 199, 69);
+    font-size: 20px;
+    letter-spacing: 6px;
+    color: rgb(255, 205, 175);
     margin: 0;
 }
 
 .dlg-role {
-    font-size: 16px;
-    color: rgb(170, 186, 200);
-    margin: 0 0 10px 0;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.78);
+    margin: 2px 0 12px 0;
 }
 
 .dlg-text {
     font-size: 28px;
-    color: rgb(242, 247, 250);
+    color: rgb(255, 255, 255);
     white-space: normal;
     flex-grow: 1;
     margin: 0;
 }
 
 .dlg-hint {
-    font-size: 16px;
-    color: rgb(170, 186, 200);
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, 0.75);
     -unity-text-align: middle-right;
-    margin: 6px 0 0 0;
+    margin: 10px 0 0 0;
 }
 
 /* ------------------------------------------------------------ story screen (title menu) */
 
-/* The board: dark glass with a brass rim, like the title. */
+/* On paper, like the title: navy ink on the sand gradient, rust for what to press, teal for
+   the language to learn. One chart, one chosen mission, one button. */
 .story-panel {
     position: absolute;
-    left: 56px;
+    left: 100px;
     top: 0;
     bottom: 0;
-    width: 860px;
-    padding: 28px 36px;
+    width: 880px;
+    padding: 28px 0;
     justify-content: center;
-    background-color: rgba(6, 14, 22, 0.95);
-    border-left-width: 2px;
-    border-right-width: 2px;
-    border-color: rgb(140, 110, 56);
-}
-
-.story-eyebrow {
-    font-size: 15px;
-    color: rgb(255, 199, 69);
-    -unity-font-style: bold;
-    letter-spacing: 3px;
-    margin: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 .story-title {
-    font-size: 34px;
-    color: rgb(242, 247, 250);
+    font-size: 38px;
+    letter-spacing: 3px;
     -unity-font-style: bold;
-    margin: 2px 0 14px 0;
+    color: rgb(22, 36, 64);
+    margin: 0 0 16px 0;
     white-space: normal;
 }
 
-/* Chapter tabs: brass plates; the open chapter is the chart's own paper. */
+/* Chapter tabs: bold words; the open one is underlined in rust. */
 .story-tabs {
     flex-direction: row;
+    margin-bottom: 10px;
 }
 
 .story-tab {
@@ -147,25 +144,21 @@
     flex-basis: 0;
     flex-direction: column;
     align-items: center;
-    background-color: rgba(18, 34, 48, 0.95);
-    border-width: 2px;
-    border-bottom-width: 0;
-    border-color: rgba(140, 110, 56, 0.7);
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    padding: 8px 6px;
-    margin: 0 3px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 3px;
+    border-color: rgba(22, 36, 64, 0.2);
+    border-radius: 0;
+    padding: 8px 6px 10px 6px;
+    margin: 0 6px;
 }
 
 .story-tab:hover {
-    background-color: rgb(30, 54, 74);
+    border-color: rgba(22, 36, 64, 0.6);
 }
 
 .story-tab.selected {
-    background-color: rgb(222, 204, 163);
-    border-color: rgb(140, 110, 56);
+    border-color: rgb(160, 50, 24);
 }
 
 .story-tab:disabled {
@@ -173,38 +166,36 @@
 }
 
 .story-tab__number {
-    font-size: 12px;
-    letter-spacing: 2px;
-    -unity-font-style: bold;
-    color: rgb(205, 165, 90);
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: rgb(62, 74, 100);
     margin: 0;
 }
 
 .story-tab__name {
-    font-size: 18px;
+    font-size: 21px;
     -unity-font-style: bold;
-    color: rgb(242, 247, 250);
-    margin: 0;
+    color: rgb(62, 74, 100);
+    margin: 2px 0 0 0;
 }
 
 .story-tab.selected .story-tab__number {
-    color: rgb(120, 82, 34);
+    color: rgb(160, 50, 24);
 }
 
 .story-tab.selected .story-tab__name {
-    color: rgb(64, 43, 23);
+    color: rgb(22, 36, 64);
 }
 
-/* The chapter as an old sea chart. */
+/* The chapter: the voyage drawn in ink between two rules. */
 .chart-card {
     height: 330px;
-    background-color: rgb(222, 204, 163);
-    border-width: 2px;
-    border-color: rgb(140, 110, 56);
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-color: rgba(22, 36, 64, 0.3);
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -218,68 +209,61 @@
 
 .chart-rose {
     position: absolute;
-    right: 18px;
-    top: 34px;
+    right: 22px;
+    top: 26px;
 }
 
 .chart-text {
     position: absolute;
-    left: 20px;
-    top: 38px;
-    width: 64%;
+    left: 26px;
+    top: 30px;
+    width: 62%;
 }
 
 .chart-title {
-    font-size: 26px;
+    font-size: 28px;
     -unity-font-style: bold;
-    color: rgb(64, 43, 23);
+    color: rgb(22, 36, 64);
     margin: 0;
     white-space: normal;
 }
 
-.chart-blurb {
-    font-size: 15px;
-    color: rgb(80, 58, 34);
-    white-space: normal;
-    margin: 4px 0 0 0;
-}
-
 .chart-focus {
-    font-size: 14px;
+    font-size: 19px;
     -unity-font-style: bold;
-    color: rgb(30, 92, 84);
+    color: rgb(12, 108, 98);
     white-space: normal;
-    margin: 6px 0 0 0;
+    margin: 8px 0 0 0;
 }
 
 .chart-portrait {
     position: absolute;
-    right: 104px;
-    top: 34px;
-    width: 78px;
-    height: 78px;
+    right: 112px;
+    top: 26px;
+    width: 76px;
+    height: 76px;
     border-width: 2px;
-    border-color: rgb(110, 80, 40);
-    border-radius: 39px;
+    border-color: rgb(22, 36, 64);
+    border-radius: 38px;
     -unity-background-scale-mode: scale-and-crop;
 }
 
-/* A mission on the route: a round ink-rimmed marker with its number. */
+/* A mission on the route: a numbered disc. Done: filled ink. Next: filled rust. */
 .chart-marker {
     position: absolute;
-    width: 54px;
-    height: 54px;
+    width: 56px;
+    height: 56px;
     translate: -50% -50%;
-    font-size: 16px;
+    font-size: 18px;
     -unity-font-style: bold;
-    color: rgb(64, 43, 23);
-    background-color: rgb(240, 228, 198);
-    border-width: 3px;
-    border-color: rgb(64, 43, 23);
-    border-radius: 27px;
+    color: rgb(22, 36, 64);
+    background-color: rgb(250, 242, 228);
+    border-width: 2px;
+    border-color: rgb(22, 36, 64);
+    border-radius: 28px;
     padding: 0;
     margin: 0;
-    transition-duration: 0.12s;
+    transition-duration: 0.15s;
 }
 
 .chart-marker:hover {
@@ -287,45 +271,46 @@
 }
 
 .chart-marker.done {
-    background-color: rgb(46, 110, 80);
-    border-color: rgb(28, 70, 50);
-    color: rgb(240, 248, 240);
+    background-color: rgb(22, 36, 64);
+    color: rgb(250, 242, 228);
 }
 
 .chart-marker.next {
-    background-color: rgb(255, 199, 69);
-    border-color: rgb(130, 82, 18);
+    border-color: rgb(160, 50, 24);
+    background-color: rgb(160, 50, 24);
+    color: rgb(255, 255, 255);
 }
 
 .chart-marker.locked {
-    opacity: 0.45;
+    opacity: 0.4;
 }
 
 .chart-marker.selected {
-    border-width: 5px;
-    border-color: rgb(165, 40, 28);
+    border-width: 4px;
+    scale: 1.14 1.14;
 }
 
 .chart-marker-caption {
     position: absolute;
-    width: 170px;
-    translate: -50% 34px;
-    font-size: 14px;
+    width: 200px;
+    translate: -50% 38px;
+    font-size: 17px;
     -unity-font-style: bold;
     -unity-text-align: upper-center;
-    color: rgb(64, 43, 23);
+    color: rgb(22, 36, 64);
     white-space: normal;
     margin: 0;
 }
 
-/* The chosen mission: details and the SET SAIL plate. */
+/* The chosen mission: a rule above it. */
 .mission-detail {
-    margin-top: 12px;
-    padding: 14px 16px;
-    background-color: rgba(18, 34, 48, 0.95);
-    border-width: 2px;
-    border-color: rgba(140, 110, 56, 0.8);
-    border-radius: 10px;
+    margin-top: 14px;
+    padding: 16px 4px 4px 4px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-top-width: 1px;
+    border-color: rgba(22, 36, 64, 0.3);
+    border-radius: 0;
 }
 
 .mission-head {
@@ -334,10 +319,10 @@
 }
 
 .mission-number {
-    font-size: 28px;
+    font-size: 30px;
     -unity-font-style: bold;
-    color: rgb(255, 199, 69);
-    width: 70px;
+    color: rgb(160, 50, 24);
+    width: 76px;
     -unity-text-align: middle-center;
     margin: 0;
 }
@@ -349,76 +334,93 @@
 }
 
 .mission-title {
-    font-size: 24px;
+    font-size: 28px;
     -unity-font-style: bold;
-    color: rgb(242, 247, 250);
+    color: rgb(22, 36, 64);
     margin: 0;
 }
 
 .mission-summary {
-    font-size: 16px;
-    color: rgb(196, 209, 221);
+    font-size: 19px;
+    color: rgb(62, 74, 100);
     white-space: normal;
-    margin: 2px 0 0 0;
+    margin: 4px 0 0 0;
 }
 
 .mission-tags {
     flex-direction: row;
     flex-wrap: wrap;
-    margin: 10px 0 0 78px;
+    margin: 10px 0 0 84px;
 }
 
 .mission-tag {
-    font-size: 13px;
+    font-size: 16px;
+    letter-spacing: 3px;
     -unity-font-style: bold;
-    color: rgb(220, 228, 236);
-    background-color: rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 3px 8px;
-    margin: 0 6px 6px 0;
+    color: rgb(62, 74, 100);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
+    padding: 0;
+    margin: 0 22px 6px 0;
 }
 
 .mission-tag--weather {
-    color: rgb(190, 220, 255);
-    background-color: rgba(80, 130, 200, 0.3);
+    color: rgb(22, 36, 64);
 }
 
 .mission-tag--danger {
-    color: rgb(255, 200, 190);
-    background-color: rgba(200, 50, 40, 0.35);
-}
-
-.mission-tag--pay {
-    color: rgb(255, 199, 69);
+    color: rgb(170, 30, 40);
 }
 
 .mission-tag--done {
-    color: rgb(20, 40, 24);
-    background-color: rgb(96, 200, 120);
+    color: rgb(12, 108, 98);
 }
 
+/* The new words: what this mission is really about. */
 .mission-words {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 6px 0 0 84px;
+}
+
+.mission-words__caption {
     font-size: 16px;
-    color: rgb(120, 210, 190);
-    white-space: normal;
-    margin: 2px 0 0 78px;
+    letter-spacing: 3px;
+    -unity-font-style: bold;
+    color: rgb(12, 108, 98);
+    margin: 0 16px 6px 0;
+}
+
+.mission-word {
+    font-size: 21px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    border-bottom-width: 3px;
+    border-color: rgb(12, 108, 98);
+    padding: 0 0 2px 0;
+    margin: 0 18px 6px 0;
 }
 
 .mission-sail {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
     align-self: flex-end;
-    margin-top: 10px;
-    font-size: 22px;
+    margin-top: 12px;
+    font-size: 26px;
+    letter-spacing: 8px;
     -unity-font-style: bold;
-    color: rgb(28, 20, 6);
-    background-color: rgb(205, 160, 72);
-    border-width: 2px;
-    border-color: rgb(255, 214, 120);
-    border-radius: 10px;
-    padding: 10px 34px;
+    color: rgb(160, 50, 24);
+    padding: 4px 6px 6px 6px;
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
 }
 
 .mission-sail:hover {
-    background-color: rgb(228, 184, 92);
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
 }
 
 .mission-sail:disabled {
@@ -429,89 +431,96 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 14px;
+    margin-top: 18px;
 }
 
 .story-progress {
-    font-size: 16px;
-    color: rgb(196, 209, 221);
+    font-size: 17px;
+    color: rgb(62, 74, 100);
 }
 
 .story-back {
-    width: 200px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
     font-size: 20px;
-    color: rgb(242, 247, 250);
-    background-color: rgba(18, 34, 48, 0.95);
-    border-width: 2px;
-    border-color: rgba(140, 110, 56, 0.8);
-    border-radius: 8px;
-    padding: 10px;
+    letter-spacing: 4px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    padding: 4px 6px;
     margin: 0;
 }
 
 .story-back:hover {
-    background-color: rgb(30, 54, 74);
+    color: rgb(160, 50, 24);
 }
 
 /* ------------------------------------------------------------ shipyard mission card */
 
+/* On the shipyard's paper: the mission, then the new phrases to practise out loud. */
 .story-brief {
-    padding: 12px 14px;
-    margin: 4px 0 10px 0;
-    background-color: rgba(255, 199, 69, 0.08);
-    border-width: 1px;
-    border-color: rgba(255, 199, 69, 0.5);
-    border-radius: 10px;
+    padding: 2px 0 4px 18px;
+    margin: 6px 0 10px 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-left-width: 4px;
+    border-color: rgb(160, 50, 24);
+    border-radius: 0;
 }
 
 .story-brief-title {
-    font-size: 22px;
+    font-size: 28px;
     -unity-font-style: bold;
-    color: rgb(242, 247, 250);
+    color: rgb(22, 36, 64);
     margin: 0;
     white-space: normal;
 }
 
 .story-brief-text {
-    font-size: 16px;
-    color: rgb(196, 209, 221);
+    font-size: 19px;
+    color: rgb(62, 74, 100);
     white-space: normal;
-    margin: 4px 0 0 0;
-}
-
-.story-brief-words {
-    font-size: 17px;
-    color: rgb(120, 210, 190);
-    white-space: normal;
-    margin: 8px 0 0 0;
+    margin: 6px 0 0 0;
 }
 
 .story-brief-replay {
-    font-size: 15px;
-    margin: 8px 0 0 0;
-    padding: 6px 10px;
+    font-size: 16px;
+    letter-spacing: 3px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
+    margin: 12px 0 0 0;
+    padding: 4px 0;
     align-self: flex-start;
+}
+
+.story-brief-replay:hover {
+    color: rgb(160, 50, 24);
 }
 
 .story-chips {
     flex-direction: row;
     flex-wrap: wrap;
-    margin: 8px 0 0 0;
+    margin: 14px 0 0 0;
 }
 
+/* A phrase to say: big, bold, a teal line under it; filled in teal once it's been said. */
 .story-chip {
-    font-size: 16px;
-    color: rgb(120, 210, 190);
-    background-color: rgba(120, 210, 190, 0.12);
-    border-width: 1px;
-    border-color: rgba(120, 210, 190, 0.5);
-    border-radius: 12px;
-    padding: 3px 10px;
-    margin: 0 6px 6px 0;
+    font-size: 23px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 3px;
+    border-color: rgba(12, 108, 98, 0.6);
+    border-radius: 0;
+    padding: 0 0 3px 0;
+    margin: 0 20px 10px 0;
 }
 
 .story-chip.done {
-    color: rgb(20, 40, 24);
-    background-color: rgb(96, 200, 120);
-    border-color: rgb(96, 200, 120);
+    color: rgb(12, 108, 98);
+    border-color: rgb(12, 108, 98);
 }

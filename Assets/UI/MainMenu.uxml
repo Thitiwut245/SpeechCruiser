@@ -9,28 +9,28 @@
     <ui:Style src="Shared/Menu.uss" />
     <ui:Style src="Shared/Title.uss" />
 
-    <!-- The live harbour (MenuBackdrop) shows through; the title sits on a brass-rimmed board to the left. -->
+    <!-- The live harbour (MenuBackdrop) shows through; the title stands on a sand gradient to the left. -->
     <ui:VisualElement class="main-container title-screen" name="MainMenuContainer">
         <ui:VisualElement class="title-panel" name="MainPanel">
             <ui:VisualElement name="Emblem" class="title-emblem" />
             <ui:Label text="SPEECH" class="game-title" />
             <ui:Label text="CRUISER" class="game-title game-title--accent" />
-            <ui:Label text="Captain a cargo ship with your voice." class="game-tagline" />
+            <ui:Label text="Sail a cargo ship with your voice." class="game-tagline" />
 
             <ui:Button name="StoryButton" class="title-button title-button--primary">
-                <ui:Label name="StoryButtonTitle" text="Story" class="title-button__title" />
+                <ui:Label name="StoryButtonTitle" text="STORY" class="title-button__title" />
                 <ui:Label name="StoryButtonSub" text="" class="title-button__sub" />
             </ui:Button>
             <ui:Button name="PlayButton" class="title-button">
-                <ui:Label name="PlayButtonTitle" text="Free Sail" class="title-button__title" />
+                <ui:Label name="PlayButtonTitle" text="FREE SAIL" class="title-button__title" />
                 <ui:Label name="CareerLabel" text="" class="title-button__sub" />
             </ui:Button>
 
             <ui:VisualElement class="title-row">
-                <ui:Button name="SettingButton" text="Settings" class="title-small" />
-                <ui:Button name="QuitButton" text="Quit" class="title-small" />
+                <ui:Button name="SettingButton" text="SETTINGS" class="title-small" />
+                <ui:Button name="QuitButton" text="QUIT" class="title-small" />
             </ui:VisualElement>
-            <ui:Button name="NewCareerButton" text="New Career" class="title-quiet" />
+            <ui:Button name="NewCareerButton" text="NEW CAREER" class="title-quiet" />
 
             <ui:VisualElement class="radio-plate">
                 <ui:VisualElement name="RadioDot" class="radio-plate__dot" />

@@ -66,12 +66,13 @@ public class CompassRose : VisualElement
 }
 
 /// <summary>
-/// An old sea chart: faint grid lines, a coast along the top, and the voyage route as a dashed
-/// ink line through the missions' markers (solid where it has been sailed).
+/// A chart in navy ink on the story screen's sand: faint grid lines, a soft coast along the
+/// top, and the voyage route as a dashed line through the missions' markers (solid where it
+/// has been sailed).
 /// </summary>
 public class ChartRoute : VisualElement
 {
-    public static readonly Color Ink = new Color(0.25f, 0.17f, 0.09f);
+    public static readonly Color Ink = UiTheme.Ink;
 
     private readonly List<Vector2> _stops = new List<Vector2>();
     private int _sailed;
@@ -101,13 +102,13 @@ public class ChartRoute : VisualElement
         var rng = new System.Random(_seed);
 
         // Grid lines, as on a chart.
-        p.strokeColor = new Color(Ink.r, Ink.g, Ink.b, 0.10f);
+        p.strokeColor = new Color(Ink.r, Ink.g, Ink.b, 0.08f);
         p.lineWidth = 1f;
         for (float x = 40f; x < rect.width; x += 60f) { p.BeginPath(); p.MoveTo(new Vector2(x, 0)); p.LineTo(new Vector2(x, rect.height)); p.Stroke(); }
         for (float y = 30f; y < rect.height; y += 60f) { p.BeginPath(); p.MoveTo(new Vector2(0, y)); p.LineTo(new Vector2(rect.width, y)); p.Stroke(); }
 
         // A coast along the top edge, and a small island.
-        p.fillColor = new Color(0.62f, 0.55f, 0.36f, 0.55f);
+        p.fillColor = new Color(Ink.r, Ink.g, Ink.b, 0.09f);
         p.BeginPath();
         p.MoveTo(new Vector2(0, 0));
         float h = 18f;
@@ -140,8 +141,8 @@ public class ChartRoute : VisualElement
             Vector2 a = pts[i - 1], b = pts[i];
             Vector2 mid = (a + b) / 2f + new Vector2(0f, (i % 2 == 0 ? 1f : -1f) * 22f);
             bool sailed = i <= _sailed;
-            p.strokeColor = new Color(Ink.r, Ink.g, Ink.b, sailed ? 0.85f : 0.55f);
-            p.lineWidth = sailed ? 3f : 2.2f;
+            p.strokeColor = new Color(Ink.r, Ink.g, Ink.b, sailed ? 0.9f : 0.6f);
+            p.lineWidth = sailed ? 3f : 2f;
             p.lineCap = LineCap.Round;
             const int steps = 40;
             for (int k = 0; k < steps; k++)
@@ -161,8 +162,8 @@ public class ChartRoute : VisualElement
 }
 
 /// <summary>
-/// The engine-room lever on the SET SAIL plate: a slot with a brass handle that stands back
-/// at rest and throws forward (with a little overshoot) when the voyage starts.
+/// The engine-room lever beside SET SAIL, in ink on the shipyard's sand: a slot with a handle
+/// that stands back at rest and throws forward (with a little overshoot) when the voyage starts.
 /// </summary>
 public class SailLever : VisualElement
 {
@@ -205,26 +206,24 @@ public class SailLever : VisualElement
         if (r.width < 4f) return;
         var pivot = new Vector2(r.width / 2f, r.height - 10f);
         float reach = r.height - 18f;
-        Color ink = new Color(0.30f, 0.20f, 0.08f);
+        Color ink = UiTheme.Ink;
 
-        // The slot the lever runs in: a narrow arc, with a notch at each end (back, forward).
-        HudLook.Sector(p, pivot, reach - 12f, reach - 4f, 90f - Forward - 4f, 90f - Back + 4f, new Color(0.22f, 0.15f, 0.06f, 0.9f));
+        // The slot the lever runs in: an arc, with a notch at each end (back, forward).
+        HudLook.Ring(p, pivot, reach - 8f, UiTheme.InkLine, 2f, 90f - Forward - 4f, 90f - Back + 4f);
         foreach (float a in new[] { Back, Forward })
         {
             p.strokeColor = ink;
-            p.lineWidth = 2f;
+            p.lineWidth = 2.5f;
             p.BeginPath(); p.MoveTo(HudLook.OnCircle(pivot, reach - 15f, 90f - a)); p.LineTo(HudLook.OnCircle(pivot, reach - 1f, 90f - a)); p.Stroke();
         }
 
-        // The handle: a dark rod with a red knob, on a dark hub.
+        // The handle: an ink rod with a rust knob, on an ink hub.
         Vector2 tip = HudLook.OnCircle(pivot, reach, 90f - _angle);
         p.strokeColor = ink;
-        p.lineWidth = 6f;
+        p.lineWidth = 3f;
         p.lineCap = LineCap.Round;
         p.BeginPath(); p.MoveTo(pivot); p.LineTo(tip); p.Stroke();
-        HudLook.Disc(p, tip, 9f, new Color(0.72f, 0.18f, 0.12f));
-        HudLook.Disc(p, tip + new Vector2(-2.5f, -2.5f), 3f, new Color(1f, 0.6f, 0.5f));
-        HudLook.Disc(p, pivot, 8f, ink);
-        HudLook.Disc(p, pivot, 3f, new Color(0.85f, 0.7f, 0.4f));
+        HudLook.Disc(p, tip, 8f, UiTheme.Rust);
+        HudLook.Ring(p, pivot, 5f, ink, 2f);
     }
 }

@@ -1,6 +1,6 @@
-/* Menus shared by the title screen and the pause screen (pause, settings), in the bridge
-   style of the HUD: dark glass, brass rims, amber headings. The title screen's own board
-   is in Title.uss. */
+/* Menus shared by the title screen and the pause screen (pause, settings), in the game's
+   Alto-style look (UiTheme): thin spaced capitals, hairline pills, dusk cards, a peach accent.
+   The title screen's own column is in Title.uss. */
 
 .main-container {
     flex-grow: 1;
@@ -16,8 +16,7 @@
 
 .game-title {
     font-size: 72px;
-    color: rgb(242, 247, 250);
-    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
     letter-spacing: 6px;
     margin: 0;
     padding: 0;
@@ -25,24 +24,24 @@
 }
 
 .game-title--accent {
-    color: rgb(255, 199, 69);
+    color: rgb(255, 189, 148);
     margin-top: -18px;
 }
 
 .game-tagline {
     font-size: 21px;
-    color: rgb(196, 209, 221);
+    color: rgba(255, 255, 255, 0.72);
     white-space: normal;
     margin: 6px 0 36px 0;
 }
 
 .radio-status {
     font-size: 16px;
-    color: rgb(196, 209, 221);
+    color: rgba(255, 255, 255, 0.82);
     white-space: normal;
 }
 
-/* ---- Cards: a brass-rimmed glass board. */
+/* ---- Cards */
 
 .menu-panel {
     align-items: stretch;
@@ -51,27 +50,25 @@
 }
 
 .menu-title {
-    font-size: 34px;
-    color: rgb(255, 199, 69);
+    font-size: 30px;
+    color: rgb(255, 255, 255);
     -unity-text-align: middle-center;
-    letter-spacing: 6px;
-    margin-bottom: 24px;
-    -unity-font-style: bold;
+    letter-spacing: 14px;
+    margin-bottom: 26px;
 }
 
 .menu-emblem {
     align-self: center;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 }
 
-/* Settings over the live harbour, and every card on the pause screen. */
+/* Settings over the live harbour, and every card on the pause screen: soft dusk, no rim. */
 .title-screen .settings-panel,
 .pause-container .menu-panel {
-    padding: 28px 36px;
-    background-color: rgba(6, 14, 22, 0.97);
-    border-width: 2px;
-    border-color: rgb(140, 110, 56);
-    border-radius: 14px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
 }
 
 .pause-container {
@@ -80,55 +77,53 @@
     right: 0;
     top: 0;
     bottom: 0;
-    background-color: rgba(4, 10, 16, 0.86);
+    background-color: rgba(18, 13, 26, 0.86);
     align-items: center;
     justify-content: center;
 }
 
 .pause-container .menu-panel {
-    width: 400px;
+    width: 420px;
 }
 
-/* ---- Buttons: glass plates with a brass rim; brass when pressed. */
+/* ---- Buttons: hairline pills with spaced words; peach for the first choice. */
 
 .menu-button {
-    font-size: 23px;
-    color: rgb(242, 247, 250);
-    background-color: rgba(18, 34, 48, 0.95);
-    border-width: 2px;
-    border-color: rgba(140, 110, 56, 0.75);
-    border-radius: 10px;
-    padding: 13px 15px;
-    margin-top: 6px;
-    margin-bottom: 6px;
-    transition-duration: 0.15s;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
+    font-size: 19px;
+    letter-spacing: 7px;
+    color: rgb(255, 255, 255);
+    padding: 10px 15px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    transition-duration: 0.2s;
 }
 
 .menu-button:hover {
-    background-color: rgb(30, 54, 74);
-    border-color: rgb(205, 165, 90);
-    scale: 1.02 1.02;
+    color: rgb(255, 205, 175);
+    background-color: rgba(0, 0, 0, 0);
+    scale: 1.04 1.04;
 }
 
 .menu-button:active {
-    background-color: rgb(205, 160, 72);
-    border-color: rgb(255, 214, 120);
-    color: rgb(28, 20, 6);
     scale: 0.98 0.98;
 }
 
-/* The first button on a card (Resume) is the brass one. */
 .menu-button--primary,
 .pause-container #ResumeButton {
-    background-color: rgb(205, 160, 72);
-    border-color: rgb(255, 214, 120);
-    color: rgb(28, 20, 6);
-    -unity-font-style: bold;
+    color: rgb(255, 205, 175);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 2px;
+    border-color: rgb(255, 189, 148);
+    align-self: center;
 }
 
 .menu-button--primary:hover,
 .pause-container #ResumeButton:hover {
-    background-color: rgb(228, 184, 92);
+    background-color: rgba(0, 0, 0, 0);
 }
 
 /* ---- Settings page: two columns (sound | controls). Declared after the pause card rule
@@ -147,123 +142,213 @@
 .settings-column {
     flex-grow: 1;
     flex-basis: 0;
-    margin: 0 12px;
-    padding: 12px 16px;
-    background-color: rgba(255, 255, 255, 0.03);
-    border-width: 1px;
-    border-color: rgba(140, 110, 56, 0.45);
-    border-radius: 10px;
+    margin: 0 18px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
 }
 
 .settings-heading {
-    font-size: 15px;
-    color: rgb(205, 165, 90);
-    -unity-font-style: bold;
-    letter-spacing: 3px;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
+    font-size: 12px;
+    color: rgb(255, 189, 148);
+    letter-spacing: 7px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
     border-bottom-width: 1px;
-    border-color: rgba(140, 110, 56, 0.45);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
 .settings-row {
     flex-direction: column;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
 .settings-label {
-    color: rgb(242, 247, 250);
-    font-size: 18px;
-    margin-bottom: 5px;
-    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
 }
 
 .settings-note {
-    font-size: 15px;
-    color: rgb(196, 209, 221);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
     white-space: normal;
     margin-bottom: 12px;
 }
 
 .settings-dropdown {
     color: rgb(255, 255, 255);
-    font-size: 18px;
+    font-size: 16px;
 }
 
-/* The theme paints the dropdown's inner box light grey; make it dark glass so white text reads. */
+/* The theme paints the dropdown's inner box light grey; make it a hairline pill so white text reads. */
 .settings-dropdown .unity-base-popup-field__input {
-    background-color: rgb(18, 34, 48);
-    border-color: rgba(140, 110, 56, 0.75);
-    border-radius: 6px;
-    padding: 6px 10px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 1.5px;
+    border-color: rgba(255, 255, 255, 0.6);
+    border-radius: 0;
+    padding: 6px 4px;
 }
 
 .settings-dropdown .unity-base-popup-field__text {
-    color: rgb(242, 247, 250);
+    color: rgb(255, 255, 255);
 }
 
 .settings-dropdown .unity-base-popup-field__arrow {
-    -unity-background-image-tint-color: rgb(205, 165, 90);
+    -unity-background-image-tint-color: rgb(255, 189, 148);
 }
 
 .settings-slider {
     margin-top: 5px;
 }
 
-/* Brass slider: the track and the knob. */
+/* A thin slider: a hairline track and a small white knob. */
 .settings-slider .unity-base-slider__tracker {
-    background-color: rgba(255, 255, 255, 0.12);
-    border-color: rgba(140, 110, 56, 0.6);
+    height: 2px;
+    margin-top: -1px;
+    background-color: rgba(255, 255, 255, 0.35);
+    border-width: 0;
 }
 
 .settings-slider .unity-base-slider__dragger {
-    background-color: rgb(205, 160, 72);
-    border-color: rgb(255, 214, 120);
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    background-color: rgb(255, 255, 255);
+    border-width: 0;
+    border-radius: 8px;
 }
 
-/* The key boxes: brass plates; white while waiting for a key. */
+/* The key boxes: peach pills; white while waiting for a key. */
 .bind-button {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
     font-size: 22px;
-    -unity-font-style: bold;
-    color: rgb(28, 20, 6);
-    background-color: rgb(205, 160, 72);
-    border-width: 2px;
-    border-color: rgb(255, 214, 120);
-    border-radius: 6px;
-    padding: 8px 12px;
+    letter-spacing: 3px;
+    color: rgb(255, 205, 175);
+    border-bottom-width: 2px;
+    border-color: rgb(255, 189, 148);
+    padding: 4px 6px;
     margin: 4px 0 0 0;
-    width: 160px;
+    width: 120px;
 }
 
 .bind-button:hover {
-    background-color: rgb(228, 184, 92);
+    color: rgb(255, 255, 255);
 }
 
 .bind-button.listening {
-    background-color: rgb(242, 247, 250);
+    color: rgb(255, 255, 255);
+    border-color: rgb(255, 255, 255);
 }
 
 .settings-toggle {
-    color: rgb(242, 247, 250);
-    font-size: 17px;
+    color: rgb(255, 255, 255);
+    font-size: 15px;
     margin-left: 0;
 }
 
 .settings-toggle > .unity-label {
-    color: rgb(242, 247, 250);
+    color: rgb(255, 255, 255);
     white-space: normal;
     min-width: 0;
     flex-shrink: 1;
 }
 
 .settings-small-button {
-    font-size: 18px;
+    font-size: 14px;
     padding: 8px;
     margin-top: 4px;
 }
 
 .settings-back {
-    margin-top: 16px;
+    margin-top: 18px;
     align-self: center;
     width: 300px;
+}
+
+/* Settings over the title: a full-screen page, its columns centred. */
+.title-screen .settings-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: auto;
+    padding: 0 420px;
+    justify-content: center;
+}
+
+/* ...on paper, like the rest of the title screen: sand, navy ink, rust accents
+   (projector-safe). Here rather than in Title.uss, because the settings template brings its
+   own copy of this sheet, closer to the panel, which would win a tie. */
+.title-screen .settings-panel {
+    background-color: rgba(250, 242, 228, 0.97);
+}
+
+.title-screen .menu-title {
+    color: rgb(22, 36, 64);
+    -unity-font-style: bold;
+}
+
+.title-screen .settings-heading {
+    color: rgb(160, 50, 24);
+    font-size: 16px;
+    -unity-font-style: bold;
+    border-color: rgba(22, 36, 64, 0.3);
+}
+
+.title-screen .settings-label,
+.title-screen .settings-toggle,
+.title-screen .settings-toggle > .unity-label,
+.title-screen .settings-dropdown,
+.title-screen .settings-dropdown .unity-base-popup-field__text {
+    color: rgb(22, 36, 64);
+    font-size: 18px;
+}
+
+.title-screen .settings-note {
+    color: rgb(62, 74, 100);
+    font-size: 16px;
+}
+
+.title-screen .settings-dropdown .unity-base-popup-field__input {
+    border-color: rgba(22, 36, 64, 0.6);
+}
+
+.title-screen .settings-dropdown .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgb(160, 50, 24);
+}
+
+.title-screen .settings-slider .unity-base-slider__tracker {
+    height: 3px;
+    background-color: rgba(22, 36, 64, 0.35);
+}
+
+.title-screen .settings-slider .unity-base-slider__dragger {
+    background-color: rgb(160, 50, 24);
+}
+
+.title-screen .bind-button {
+    color: rgb(160, 50, 24);
+    border-color: rgb(160, 50, 24);
+    -unity-font-style: bold;
+}
+
+.title-screen .bind-button:hover,
+.title-screen .bind-button.listening {
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
+}
+
+.title-screen .menu-button {
+    color: rgb(22, 36, 64);
+    -unity-font-style: bold;
+}
+
+.title-screen .menu-button:hover {
+    color: rgb(160, 50, 24);
 }
