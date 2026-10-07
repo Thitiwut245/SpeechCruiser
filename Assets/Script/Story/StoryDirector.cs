@@ -274,7 +274,7 @@ public class StoryDirector : MonoBehaviour
         _queue.Enqueue(Mission.RescueAboard);
         if (ShipHUD.Instance != null) ShipHUD.Instance.ShowRadioNote("Aboard! Now sail to the dock.");
         if (AudioService.Instance != null && AudioService.Instance.Sfx != null)
-            AudioService.Instance.Play(AudioService.Instance.Sfx.RadioRoger, AudioBus.Effects, 0.8f);
+            AudioService.Instance.Play(AudioService.Instance.Sfx.RadioRoger, AudioBus.Effects, 0.4f);
     }
 
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);

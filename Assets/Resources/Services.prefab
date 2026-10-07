@@ -277,11 +277,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioService
   Library: {fileID: 11400000, guid: 74f069d4ed2bbe947bbc5907f5fd8bac, type: 2}
   OneShotVoices: 12
-  CalmVolume: 0.4
-  TensionVolume: 0.55
+  CalmVolume: 0.28
+  TensionVolume: 0.4
   DuckedLevel: 0.45
   HarrisPitch: 0.82
   FinnPitch: 1.15
   ChatterVolume: 0.55
-  StaticVolume: 0.12
+  StaticVolume: 0.05
   MaxChatterSeconds: 3.2

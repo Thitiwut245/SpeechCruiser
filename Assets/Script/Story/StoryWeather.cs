@@ -126,6 +126,9 @@ public class StoryWeather : MonoBehaviour
             if (_suns[i].type == LightType.Directional) _suns[i].intensity *= scale;
         }
 
+        // The sea sounds like the weather: big surf in a storm, no gulls in fog.
+        if (AudioService.Instance != null) AudioService.Instance.SeaWeather = Kind;
+
         var sfx = AudioService.Instance != null ? AudioService.Instance.Sfx : null;
         if (Kind == Weather.Storm && sfx != null && sfx.WashLoop != null)
         {
@@ -141,6 +144,7 @@ public class StoryWeather : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (AudioService.Instance != null) AudioService.Instance.SeaWeather = Weather.Clear;
         if (_suns == null) return;
         for (int i = 0; i < _suns.Length; i++) if (_suns[i] != null) _suns[i].intensity = _sunIntensity[i];
     }

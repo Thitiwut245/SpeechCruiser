@@ -11,7 +11,10 @@ public enum AudioBus { Music, Effects, Radio }
 /// (squelch when the player keys the mic, the crew's spoken lines and a roger beep when they
 /// answer) and button clicks. Crew lines are spoken with Windows' voices through CrewSpeech,
 /// Finn and Harris each with their own; where that isn't available they fall back to babble. Lives on the persistent Services prefab. Ship sounds that belong to the
-/// Game scene (engine, wash, hits) are in ShipAudio and play through this service.
+/// Game scene (engine, wash, hits) are in ShipAudio and play through this service. The sea
+/// itself (surf, lapping, gulls) is SeaAmbience, kept here so it carries on across scenes;
+/// ShipAudio and the story weather set its mood.
+/// The radio's beeps are kept soft: they mark a transmission, they shouldn't nag.
 /// Every sound runs on real time, so radio slow-mo and the pause menu never stretch it.
 /// </summary>
 public class AudioService : Singleton<AudioService>
@@ -20,8 +23,8 @@ public class AudioService : Singleton<AudioService>
     [SerializeField] private int OneShotVoices = 12;
 
     [Header("Music")]
-    [SerializeField] private float CalmVolume = 0.4f;
-    [SerializeField] private float TensionVolume = 0.55f;
+    [SerializeField] private float CalmVolume = 0.28f;
+    [SerializeField] private float TensionVolume = 0.4f;
     [Tooltip("Music level while a crew member is speaking, so the words stay clear.")]
     [SerializeField] private float DuckedLevel = 0.45f;
 
@@ -44,7 +47,7 @@ public class AudioService : Singleton<AudioService>
     [SerializeField] private float HarrisPitch = 0.82f;
     [SerializeField] private float FinnPitch = 1.15f;
     [SerializeField] private float ChatterVolume = 0.55f;
-    [SerializeField] private float StaticVolume = 0.12f;
+    [SerializeField] private float StaticVolume = 0.05f;
     [Tooltip("Long lines stop babbling after this; the subtitle carries the rest.")]
     [SerializeField] private float MaxChatterSeconds = 3.2f;
 
@@ -85,6 +88,25 @@ public class AudioService : Singleton<AudioService>
     private bool _faceWaiting;
     private const int FaceIdBase = 1000000;
 
+    // The sea: a mood (how loud, how rough, how many gulls) that the sound eases toward.
+    private SeaAmbience _sea;
+    private float _seaLevel = 0.55f, _seaSurf = 0.15f, _seaGulls = 0.8f;
+    private float _seaLevelNow, _seaSurfNow = 0.15f, _seaGullsNow = 0.8f;
+
+    /// <summary>Weather on the current story mission; it overrides the sea's mood (Clear = none).</summary>
+    public Weather SeaWeather { get; set; }
+
+    /// <summary>The harbour: quiet lapping and plenty of gulls (the title screen and the shipyard).</summary>
+    public void SetHarbourMood() => SetSeaMood(0.55f, 0.15f, 0.8f);
+
+    /// <summary>How loud the sea is (0..1), how rough (0..1) and how often gulls cry (0..1).</summary>
+    public void SetSeaMood(float level, float surf, float gulls)
+    {
+        _seaLevel = level;
+        _seaSurf = surf;
+        _seaGulls = gulls;
+    }
+
     /// <summary>The player's volume for a bus (0..1), or 1 before settings exist.</summary>
     public static float Volume(AudioBus bus)
     {
@@ -116,6 +138,8 @@ public class AudioService : Singleton<AudioService>
         var face = new GameObject("DialogueVoice");
         face.transform.SetParent(transform, false);
         _face = NewSource(face, false);
+
+        _sea = SeaAmbience.Create(transform);
 
         _speech = new CrewSpeech(System.IO.Path.Combine(Application.temporaryCachePath, "crewvoice"));
     }
@@ -168,6 +192,8 @@ public class AudioService : Singleton<AudioService>
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         _tensionTarget = 0f;
+        SeaWeather = Weather.Clear;
+        SetHarbourMood();
         RegisterButtonClicks();
     }
 
@@ -255,6 +281,28 @@ public class AudioService : Singleton<AudioService>
         _calm.volume = music * CalmVolume * (1f - 0.4f * _tensionLevel);
         _tension.volume = music * TensionVolume * _tensionLevel;
         _static.volume = _chatterActive ? StaticVolume * Volume(AudioBus.Radio) : 0f;
+
+        UpdateSea(dt);
+    }
+
+    private void UpdateSea(float dt)
+    {
+        if (_sea == null) return;
+        float level = _seaLevel, surf = _seaSurf, gulls = _seaGulls;
+        switch (SeaWeather)
+        {
+            case Weather.Storm: level = Mathf.Max(level, 0.85f); surf = 1f; gulls = 0f; break;
+            case Weather.Fog:
+            case Weather.NightFog: surf = Mathf.Min(surf, 0.25f); gulls = 0f; break;
+        }
+        // Ease between moods over a few seconds, the way weather changes.
+        _seaLevelNow = Mathf.MoveTowards(_seaLevelNow, level, 0.25f * dt);
+        _seaSurfNow = Mathf.MoveTowards(_seaSurfNow, surf, 0.2f * dt);
+        _seaGullsNow = Mathf.MoveTowards(_seaGullsNow, gulls, 0.3f * dt);
+        // The sea sits under the music when a crew member speaks, like everything else.
+        _sea.Level = _seaLevelNow * Volume(AudioBus.Effects) * Mathf.Lerp(0.6f, 1f, _duck);
+        _sea.Surf = _seaSurfNow;
+        _sea.Gulls = _seaGullsNow;
     }
 
     // ------------------------------------------------------------ radio
@@ -266,7 +314,7 @@ public class AudioService : Singleton<AudioService>
         if (status == RadioStatus.Recording)
         {
             StopChatter();
-            Play(Library.RadioKeyOn, AudioBus.Radio, 0.8f);
+            Play(Library.RadioKeyOn, AudioBus.Radio, 0.35f);
             _keyed = true;
             return;
         }
@@ -275,7 +323,7 @@ public class AudioService : Singleton<AudioService>
         if (_keyed)
         {
             _keyed = false;
-            Play(Library.RadioKeyOff, AudioBus.Radio, 0.8f);
+            Play(Library.RadioKeyOff, AudioBus.Radio, 0.3f);
         }
 
         switch (status)
@@ -284,17 +332,17 @@ public class AudioService : Singleton<AudioService>
             case RadioStatus.NoMic:
             case RadioStatus.ModelNotReady:
             case RadioStatus.NotAtSea:
-                Play(Library.RadioBusy, AudioBus.Radio, 0.55f);
+                Play(Library.RadioBusy, AudioBus.Radio, 0.3f);
                 break;
             case RadioStatus.Tested:
-                Play(Library.RadioRoger, AudioBus.Radio, 0.7f);
+                Play(Library.RadioRoger, AudioBus.Radio, 0.35f);
                 break;
             case RadioStatus.TooShort:
             case RadioStatus.TooQuiet:
             case RadioStatus.NoAudio:
             case RadioStatus.NotUnderstood:
             case RadioStatus.Failed:
-                Play(Library.RadioError, AudioBus.Radio, 0.5f, 1f, 0.3f);
+                Play(Library.RadioError, AudioBus.Radio, 0.3f, 1f, 0.3f);
                 break;
         }
     }
@@ -328,7 +376,7 @@ public class AudioService : Singleton<AudioService>
             Pitch = finn ? FinnVoicePitch : HarrisVoicePitch,
         }, line);
 
-        Play(Library.RadioKeyOn, AudioBus.Radio, 0.45f);
+        Play(Library.RadioKeyOn, AudioBus.Radio, 0.22f);
         if (Library.RadioStaticLoop != null)
         {
             _static.clip = Library.RadioStaticLoop;
@@ -352,8 +400,8 @@ public class AudioService : Singleton<AudioService>
 
         _static.Stop();
         _chatterActive = false;
-        Play(Library.RadioRoger, AudioBus.Radio, 0.4f);
-        Play(Library.RadioKeyOff, AudioBus.Radio, 0.45f, 1f, 0.17f);
+        // Just the soft click of the key being let go: no roger beep after every line.
+        Play(Library.RadioKeyOff, AudioBus.Radio, 0.2f, 1f, 0.1f);
         Destroy(_speechClip);
         _speechClip = null;
         _chatterRoutine = null;
@@ -376,7 +424,7 @@ public class AudioService : Singleton<AudioService>
         float basePitch = speaker != null && speaker.ToUpperInvariant().Contains("FINN") ? FinnPitch : HarrisPitch;
         bool question = line.TrimEnd().EndsWith("?");
 
-        Play(Library.RadioKeyOn, AudioBus.Radio, 0.45f);
+        Play(Library.RadioKeyOn, AudioBus.Radio, 0.22f);
         if (Library.RadioStaticLoop != null)
         {
             _static.clip = Library.RadioStaticLoop;
@@ -417,8 +465,7 @@ public class AudioService : Singleton<AudioService>
 
         _static.Stop();
         _chatterActive = false;
-        Play(Library.RadioRoger, AudioBus.Radio, 0.4f);
-        Play(Library.RadioKeyOff, AudioBus.Radio, 0.45f, 1f, 0.17f);
+        Play(Library.RadioKeyOff, AudioBus.Radio, 0.2f, 1f, 0.1f);
         _chatterRoutine = null;
     }
 
@@ -510,6 +557,6 @@ public class AudioService : Singleton<AudioService>
     {
         var element = evt.target as VisualElement;
         while (element != null && !(element is Button)) element = element.parent;
-        if (element != null && Library != null) Play(Library.UiClick, AudioBus.Effects, 0.6f);
+        if (element != null && Library != null) Play(Library.UiClick, AudioBus.Effects, 0.3f);
     }
 }
