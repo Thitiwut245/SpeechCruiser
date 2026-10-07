@@ -5,6 +5,7 @@ using UnityEngine.UIElements;
 /// <summary>
 /// In-game pause menu for the Game scene. Esc toggles it (or backs out of Settings).
 /// Pausing goes through TimeController so it can't fight slow-mo or the tutorial.
+/// It wears the title screen's compass-rose emblem on its brass-rimmed card.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
 public class PauseMenuController : MonoBehaviour
@@ -36,6 +37,13 @@ public class PauseMenuController : MonoBehaviour
         _quitButton = root.Q<Button>("QuitButton");
         _replayTutorialButton = root.Q<Button>("ReplayTutorialButton");
         _settings = new SettingsPanelController(root, ShowMainPanel);
+
+        if (_mainPanel != null && _mainPanel.Q<CompassRose>() == null)
+        {
+            var emblem = new CompassRose(70f, HudLook.Brass, new Color(0.85f, 0.88f, 0.9f), HudLook.Amber);
+            emblem.AddToClassList("menu-emblem");
+            _mainPanel.Insert(0, emblem);
+        }
 
         _resumeButton.clicked += Close;
         _settingButton.clicked += OnSettingClicked;

@@ -1,3 +1,7 @@
+/* Menus shared by the title screen and the pause screen (pause, settings), in the bridge
+   style of the HUD: dark glass, brass rims, amber headings. The title screen's own board
+   is in Title.uss. */
+
 .main-container {
     flex-grow: 1;
     background-color: rgba(0, 0, 0, 1);
@@ -5,22 +9,9 @@
     justify-content: center;
 }
 
-/* ---- Title screen: the harbour shows through; the panel sits on the left. */
+/* The title screen: the harbour shows through. */
 .title-screen {
     background-color: rgba(0, 0, 0, 0);
-}
-
-.title-screen .title-panel {
-    position: absolute;
-    left: 64px;
-    top: 0;
-    bottom: 0;
-    width: 440px;
-    padding: 0 36px;
-    justify-content: center;
-    background-color: rgb(8, 18, 28);
-    border-right-width: 1px;
-    border-color: rgba(255, 255, 255, 0.12);
 }
 
 .game-title {
@@ -45,47 +36,13 @@
     margin: 6px 0 36px 0;
 }
 
-.menu-button--primary {
-    background-color: rgb(40, 150, 90);
-    font-size: 28px;
-    -unity-font-style: bold;
-}
-
-.menu-button--primary:hover {
-    background-color: rgb(54, 176, 108);
-}
-
-.career-line {
-    font-size: 18px;
-    color: rgb(255, 199, 69);
-    margin: -24px 0 20px 0;
-    white-space: normal;
-}
-
-.menu-button--quiet {
-    font-size: 18px;
-    background-color: rgba(28, 52, 74, 0.6);
-}
-
-.menu-button--quiet.confirm {
-    background-color: rgb(150, 50, 40);
-}
-
 .radio-status {
     font-size: 16px;
     color: rgb(196, 209, 221);
-    margin-top: 24px;
     white-space: normal;
 }
 
-/* Settings over the live harbour gets its own card. */
-.title-screen .settings-panel {
-    padding: 28px 36px;
-    background-color: rgb(10, 22, 34);
-    border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.14);
-    border-radius: 14px;
-}
+/* ---- Cards: a brass-rimmed glass board. */
 
 .menu-panel {
     align-items: stretch;
@@ -94,80 +51,27 @@
 }
 
 .menu-title {
-    font-size: 36px;
-    color: rgb(255, 255, 255);
+    font-size: 34px;
+    color: rgb(255, 199, 69);
     -unity-text-align: middle-center;
-    margin-bottom: 40px;
+    letter-spacing: 6px;
+    margin-bottom: 24px;
     -unity-font-style: bold;
 }
 
-.menu-button {
-    font-size: 24px;
-    color: rgb(242, 247, 250);
-    background-color: rgb(28, 52, 74);
-    border-top-width: 0;
-    border-right-width: 0;
-    border-bottom-width: 0;
-    border-left-width: 0;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
-    border-bottom-left-radius: 8px;
-    padding-top: 15px;
-    padding-right: 15px;
-    padding-bottom: 15px;
-    padding-left: 15px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    transition-duration: 0.2s;
+.menu-emblem {
+    align-self: center;
+    margin-bottom: 6px;
 }
 
-.menu-button:hover {
-    background-color: rgb(46, 84, 116);
-    scale: 1.03 1.03;
-}
-
-.menu-button:active {
-    background-color: rgb(255, 199, 69);
-    color: rgb(20, 16, 4);
-    scale: 0.97 0.97;
-}
-
-.settings-row {
-    flex-direction: column;
-    margin-bottom: 14px;
-}
-
-.settings-label {
-    color: rgb(255, 255, 255);
-    font-size: 18px;
-    margin-bottom: 5px;
-    -unity-font-style: bold;
-}
-
-.settings-dropdown {
-    color: rgb(255, 255, 255);
-    font-size: 18px;
-}
-
-/* The theme paints the dropdown's inner box light grey; make it dark so white text reads. */
-.settings-dropdown .unity-base-popup-field__input {
-    background-color: rgb(34, 44, 54);
-    border-color: rgba(255, 255, 255, 0.25);
-    border-radius: 6px;
-    padding: 6px 10px;
-}
-
-.settings-dropdown .unity-base-popup-field__text {
-    color: rgb(242, 247, 250);
-}
-
-.settings-dropdown .unity-base-popup-field__arrow {
-    -unity-background-image-tint-color: rgb(242, 247, 250);
-}
-
-.settings-slider {
-    margin-top: 5px;
+/* Settings over the live harbour, and every card on the pause screen. */
+.title-screen .settings-panel,
+.pause-container .menu-panel {
+    padding: 28px 36px;
+    background-color: rgba(6, 14, 22, 0.97);
+    border-width: 2px;
+    border-color: rgb(140, 110, 56);
+    border-radius: 14px;
 }
 
 .pause-container {
@@ -176,26 +80,63 @@
     right: 0;
     top: 0;
     bottom: 0;
-    background-color: rgba(4, 10, 16, 0.93);
+    background-color: rgba(4, 10, 16, 0.86);
     align-items: center;
     justify-content: center;
 }
 
-/* Inside the pause screen the menus sit on a card, so nothing behind them competes. */
 .pause-container .menu-panel {
-    width: 380px;
-    padding: 28px 36px;
-    background-color: rgb(10, 22, 34);
-    border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.14);
-    border-radius: 14px;
+    width: 400px;
+}
+
+/* ---- Buttons: glass plates with a brass rim; brass when pressed. */
+
+.menu-button {
+    font-size: 23px;
+    color: rgb(242, 247, 250);
+    background-color: rgba(18, 34, 48, 0.95);
+    border-width: 2px;
+    border-color: rgba(140, 110, 56, 0.75);
+    border-radius: 10px;
+    padding: 13px 15px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    transition-duration: 0.15s;
+}
+
+.menu-button:hover {
+    background-color: rgb(30, 54, 74);
+    border-color: rgb(205, 165, 90);
+    scale: 1.02 1.02;
+}
+
+.menu-button:active {
+    background-color: rgb(205, 160, 72);
+    border-color: rgb(255, 214, 120);
+    color: rgb(28, 20, 6);
+    scale: 0.98 0.98;
+}
+
+/* The first button on a card (Resume) is the brass one. */
+.menu-button--primary,
+.pause-container #ResumeButton {
+    background-color: rgb(205, 160, 72);
+    border-color: rgb(255, 214, 120);
+    color: rgb(28, 20, 6);
+    -unity-font-style: bold;
+}
+
+.menu-button--primary:hover,
+.pause-container #ResumeButton:hover {
+    background-color: rgb(228, 184, 92);
 }
 
 /* ---- Settings page: two columns (sound | controls). Declared after the pause card rule
    so the wider size wins inside the pause menu too. */
+
 .settings-panel,
 .pause-container .settings-panel {
-    width: 900px;
+    width: 920px;
 }
 
 .settings-columns {
@@ -206,15 +147,35 @@
 .settings-column {
     flex-grow: 1;
     flex-basis: 0;
-    margin: 0 14px;
+    margin: 0 12px;
+    padding: 12px 16px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-width: 1px;
+    border-color: rgba(140, 110, 56, 0.45);
+    border-radius: 10px;
 }
 
 .settings-heading {
     font-size: 15px;
-    color: rgb(255, 199, 69);
+    color: rgb(205, 165, 90);
     -unity-font-style: bold;
     letter-spacing: 3px;
     margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom-width: 1px;
+    border-color: rgba(140, 110, 56, 0.45);
+}
+
+.settings-row {
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+.settings-label {
+    color: rgb(242, 247, 250);
+    font-size: 18px;
+    margin-bottom: 5px;
+    -unity-font-style: bold;
 }
 
 .settings-note {
@@ -224,12 +185,50 @@
     margin-bottom: 12px;
 }
 
+.settings-dropdown {
+    color: rgb(255, 255, 255);
+    font-size: 18px;
+}
+
+/* The theme paints the dropdown's inner box light grey; make it dark glass so white text reads. */
+.settings-dropdown .unity-base-popup-field__input {
+    background-color: rgb(18, 34, 48);
+    border-color: rgba(140, 110, 56, 0.75);
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.settings-dropdown .unity-base-popup-field__text {
+    color: rgb(242, 247, 250);
+}
+
+.settings-dropdown .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgb(205, 165, 90);
+}
+
+.settings-slider {
+    margin-top: 5px;
+}
+
+/* Brass slider: the track and the knob. */
+.settings-slider .unity-base-slider__tracker {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(140, 110, 56, 0.6);
+}
+
+.settings-slider .unity-base-slider__dragger {
+    background-color: rgb(205, 160, 72);
+    border-color: rgb(255, 214, 120);
+}
+
+/* The key boxes: brass plates; white while waiting for a key. */
 .bind-button {
     font-size: 22px;
     -unity-font-style: bold;
-    color: rgb(20, 16, 4);
-    background-color: rgb(255, 199, 69);
-    border-width: 0;
+    color: rgb(28, 20, 6);
+    background-color: rgb(205, 160, 72);
+    border-width: 2px;
+    border-color: rgb(255, 214, 120);
     border-radius: 6px;
     padding: 8px 12px;
     margin: 4px 0 0 0;
@@ -237,7 +236,7 @@
 }
 
 .bind-button:hover {
-    background-color: rgb(255, 216, 120);
+    background-color: rgb(228, 184, 92);
 }
 
 .bind-button.listening {
