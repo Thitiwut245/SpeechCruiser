@@ -3,29 +3,33 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-/// <summary>The bridge-instrument look: dark glass, brass rims, amber readouts, radar green.</summary>
+/// <summary>
+/// The HUD's look, after Alto's Adventure (see UiTheme): white hairlines and thin type straight
+/// over the scene, a warm peach accent, coral for danger. The old instrument names stay
+/// (Brass is now the hairline white, Amber the peach) so every widget follows.
+/// </summary>
 public static class HudLook
 {
-    public static readonly Color Glass = new Color(0.03f, 0.07f, 0.10f, 0.92f);
-    public static readonly Color GlassDeep = new Color(0.015f, 0.04f, 0.06f, 0.96f);
-    public static readonly Color Brass = new Color(0.80f, 0.64f, 0.34f);
-    public static readonly Color BrassDim = new Color(0.55f, 0.43f, 0.22f);
-    public static readonly Color Amber = new Color(1f, 0.78f, 0.27f);
-    public static readonly Color Text = new Color(0.95f, 0.97f, 0.98f);
-    public static readonly Color TextDim = new Color(0.72f, 0.78f, 0.84f);
-    public static readonly Color Scope = new Color(0.02f, 0.12f, 0.07f, 0.95f);
-    public static readonly Color ScopeLine = new Color(0.35f, 0.95f, 0.55f);
-    public static readonly Color Port = new Color(0.93f, 0.33f, 0.33f);
-    public static readonly Color Starboard = new Color(0.30f, 0.80f, 0.50f);
-    public static readonly Color Danger = new Color(0.80f, 0.16f, 0.12f);
+    public static readonly Color Glass = new Color(0f, 0f, 0f, 0f);
+    public static readonly Color GlassDeep = new Color(0.10f, 0.08f, 0.15f, 0.30f);
+    public static readonly Color Brass = new Color(1f, 1f, 1f, 0.85f);
+    public static readonly Color BrassDim = new Color(1f, 1f, 1f, 0.38f);
+    public static readonly Color Amber = new Color(1f, 0.74f, 0.58f);
+    public static readonly Color Text = new Color(1f, 1f, 1f, 0.96f);
+    public static readonly Color TextDim = new Color(1f, 1f, 1f, 0.86f);
+    public static readonly Color Scope = new Color(0.10f, 0.08f, 0.15f, 0.30f);
+    public static readonly Color ScopeLine = new Color(1f, 1f, 1f, 0.9f);
+    public static readonly Color Port = new Color(1f, 0.52f, 0.46f);
+    public static readonly Color Starboard = new Color(0.62f, 0.95f, 0.82f);
+    public static readonly Color Danger = new Color(0.95f, 0.38f, 0.33f);
 
-    /// <summary>A brass-rimmed glass panel.</summary>
+    /// <summary>No panel at all: just spacing (the text floats over the scene).</summary>
     public static void Panel(VisualElement e, float padding, float radius = 12f)
     {
         e.style.backgroundColor = Glass;
         e.style.paddingTop = padding; e.style.paddingBottom = padding;
         e.style.paddingLeft = padding + 2f; e.style.paddingRight = padding + 2f;
-        Border(e, 2f, BrassDim);
+        Border(e, 0f, Color.clear);
         Radius(e, radius);
     }
 
@@ -46,9 +50,10 @@ public static class HudLook
     public static Label Words(string text, float size, Color color, bool bold = false)
     {
         var l = new Label(text);
-        l.style.fontSize = size;
+        l.style.fontSize = Mathf.Max(size, 14f); // nothing smaller over the sea
         l.style.color = color;
-        l.style.unityFontStyleAndWeight = bold ? FontStyle.Bold : FontStyle.Normal;
+        l.style.unityFontStyleAndWeight = FontStyle.Normal; // thin type throughout, as in Alto
+        if (bold) l.style.letterSpacing = size <= 15f ? 3f : 1.5f; // "bold" captions are spaced out instead
         l.style.marginTop = 0; l.style.marginBottom = 0; l.style.marginLeft = 0; l.style.marginRight = 0;
         l.style.paddingTop = 0; l.style.paddingBottom = 0; l.style.paddingLeft = 0; l.style.paddingRight = 0;
         return l;
@@ -156,7 +161,7 @@ public class TelegraphDial : VisualElement
         for (int k = 0; k < _labels.Length; k++)
         {
             bool on = k == i;
-            _labels[k].style.color = on ? Color.white : (k < 2 ? new Color(0.95f, 0.6f, 0.55f) : k == 2 ? HudLook.Text : HudLook.TextDim);
+            _labels[k].style.color = on ? HudLook.Amber : (k < 2 ? HudLook.Port : k == 2 ? HudLook.Text : HudLook.TextDim);
             _labels[k].style.fontSize = on ? 12.5f : 11f;
         }
     }
@@ -172,35 +177,27 @@ public class TelegraphDial : VisualElement
     private void Draw(MeshGenerationContext ctx)
     {
         var p = ctx.painter2D;
-        // The face: astern sectors reddish, stop neutral, ahead sectors greenish.
-        HudLook.Sector(p, Hub, 0f, Radius + 6f, 0f, 180f, HudLook.GlassDeep);
+        // A faint dusk wash so the hairlines read over bright water, then one thin arc with a
+        // tick for each gear (astern ticks coral) and a peach dot on the gear ordered.
+        HudLook.Sector(p, Hub, 0f, Radius + 8f, 0f, 180f, HudLook.GlassDeep);
+        HudLook.Ring(p, Hub, Radius, HudLook.Brass, 1.5f, 0f, 180f);
         for (int i = 0; i < Order.Length; i++)
         {
             float a = AngleOf(i);
-            Color c = i < 2 ? new Color(0.45f, 0.10f, 0.08f, 0.55f) : i == 2 ? new Color(0.25f, 0.27f, 0.30f, 0.55f) : new Color(0.08f, 0.32f, 0.18f, 0.55f);
-            if (i == _current) c = new Color(0.55f, 0.42f, 0.12f, 0.75f);
-            HudLook.Sector(p, Hub, 30f, Radius - 4f, a + Step / 2f - 0.8f, a - Step / 2f + 0.8f, c);
+            p.strokeColor = i < 2 ? HudLook.Port : HudLook.BrassDim;
+            p.lineWidth = 1.5f;
+            p.BeginPath(); p.MoveTo(HudLook.OnCircle(Hub, Radius - 7f, a)); p.LineTo(HudLook.OnCircle(Hub, Radius, a)); p.Stroke();
         }
-        HudLook.Ring(p, Hub, Radius, HudLook.Brass, 4f, 0f, 180f);
-        HudLook.Ring(p, Hub, 30f, HudLook.BrassDim, 2f, 0f, 180f);
-        p.strokeColor = HudLook.Brass;
-        p.lineWidth = 3f;
-        p.BeginPath();
-        p.MoveTo(Hub + new Vector2(-Radius, 0f));
-        p.LineTo(Hub + new Vector2(Radius, 0f));
-        p.Stroke();
+        HudLook.Disc(p, HudLook.OnCircle(Hub, Radius, AngleOf(_current)), 5f, HudLook.Amber);
 
-        // The lever.
-        Vector2 tip = HudLook.OnCircle(Hub, Radius - 8f, _needle);
-        p.strokeColor = new Color(0f, 0f, 0f, 0.4f);
-        p.lineWidth = 9f;
+        // The lever: a thin white line to a small peach knob.
+        Vector2 tip = HudLook.OnCircle(Hub, Radius - 14f, _needle);
+        p.strokeColor = HudLook.Text;
+        p.lineWidth = 2f;
         p.lineCap = LineCap.Round;
-        p.BeginPath(); p.MoveTo(Hub + new Vector2(2f, 2f)); p.LineTo(tip + new Vector2(2f, 2f)); p.Stroke();
-        p.strokeColor = HudLook.Amber;
-        p.lineWidth = 6f;
         p.BeginPath(); p.MoveTo(Hub); p.LineTo(tip); p.Stroke();
-        HudLook.Disc(p, Hub, 11f, HudLook.Brass);
-        HudLook.Disc(p, Hub, 5f, HudLook.BrassDim);
+        HudLook.Disc(p, tip, 4.5f, HudLook.Amber);
+        HudLook.Ring(p, Hub, 6f, HudLook.Text, 1.5f);
     }
 }
 
@@ -358,7 +355,7 @@ public class ChartScope : VisualElement
         style.width = size;
         style.height = size;
         HudLook.Radius(this, size / 2f);
-        HudLook.Border(this, 3f, HudLook.Brass);
+        HudLook.Border(this, 1.5f, HudLook.Brass);
         style.backgroundColor = HudLook.Scope;
         style.overflow = Overflow.Hidden;
         pickingMode = PickingMode.Ignore;
@@ -369,7 +366,7 @@ public class ChartScope : VisualElement
         _north.style.width = 16f;
         _north.style.unityTextAlign = TextAnchor.MiddleCenter;
         Add(_north);
-        _range = HudLook.Words("", 11f, new Color(0.5f, 0.9f, 0.6f, 0.8f), false);
+        _range = HudLook.Words("", 11f, HudLook.TextDim, false);
         _range.style.position = Position.Absolute;
         _range.style.bottom = 14f;
         _range.style.left = 0; _range.style.right = 0;
@@ -421,7 +418,7 @@ public class ChartScope : VisualElement
         float r = Size / 2f - 4f;
 
         // Range rings and cross hairs.
-        var faint = new Color(0.35f, 0.95f, 0.55f, 0.18f);
+        var faint = new Color(1f, 1f, 1f, 0.16f);
         HudLook.Ring(p, c, r * 0.33f, faint, 1f);
         HudLook.Ring(p, c, r * 0.66f, faint, 1f);
         p.strokeColor = faint; p.lineWidth = 1f;
@@ -429,7 +426,7 @@ public class ChartScope : VisualElement
         p.BeginPath(); p.MoveTo(c + new Vector2(0, -r)); p.LineTo(c + new Vector2(0, r)); p.Stroke();
 
         // The channel: the safe way through.
-        p.strokeColor = new Color(0.4f, 0.85f, 1f, 0.35f);
+        p.strokeColor = new Color(1f, 1f, 1f, 0.22f);
         p.lineWidth = 5f;
         p.lineCap = LineCap.Round;
         for (int i = 1; i < _channel.Count; i++)
@@ -453,15 +450,15 @@ public class ChartScope : VisualElement
         {
             Vector2 at = ToChart(b.Position);
             if (!Inside(at)) continue;
-            if (b.Mine) { if (mineOn) HudLook.Disc(p, at, 4.5f, new Color(1f, 0.25f, 0.2f)); }
-            else HudLook.Disc(p, at, 5f, new Color(0.95f, 0.62f, 0.25f, 0.9f));
+            if (b.Mine) { if (mineOn) HudLook.Disc(p, at, 4f, HudLook.Port); }
+            else HudLook.Disc(p, at, 3.5f, new Color(1f, 1f, 1f, 0.8f));
         }
 
         if (_rescue.HasValue)
         {
             Vector2 at = ToChart(_rescue.Value);
-            if (Inside(at)) HudLook.Ring(p, at, 6f + 2f * Mathf.Sin(_blink * 5f), new Color(1f, 0.55f, 0.1f), 2.5f);
-            else Arrow(p, at, new Color(1f, 0.55f, 0.1f));
+            if (Inside(at)) HudLook.Ring(p, at, 6f + 2f * Mathf.Sin(_blink * 5f), HudLook.Amber, 2f);
+            else Arrow(p, at, HudLook.Amber);
         }
 
         if (_dock.HasValue)
@@ -481,7 +478,7 @@ public class ChartScope : VisualElement
         for (int i = 0; i < 10; i++)
         {
             float a = 90f - _sweep + i * 3f;
-            HudLook.Sector(p, c, 0f, r, a, a + 3.2f, new Color(0.35f, 0.95f, 0.55f, 0.16f * (1f - i / 10f)));
+            HudLook.Sector(p, c, 0f, r, a, a + 3.2f, new Color(1f, 1f, 1f, 0.10f * (1f - i / 10f)));
         }
 
         // The ship, bow up.

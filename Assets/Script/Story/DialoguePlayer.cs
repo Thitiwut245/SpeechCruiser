@@ -104,6 +104,7 @@ public class DialoguePlayer : MonoBehaviour
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += HandleSceneLoaded;
         var root = GetComponent<UIDocument>().rootVisualElement;
         root.pickingMode = PickingMode.Ignore;
+        UiTheme.Apply(root, overSea: true);
         var sheet = Resources.Load<StyleSheet>("Story/StoryUI");
         if (sheet != null) root.styleSheets.Add(sheet);
 

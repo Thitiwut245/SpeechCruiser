@@ -4,14 +4,15 @@ using UnityEngine.UIElements;
 using System.Collections.Generic;
 
 /// <summary>
-/// The sailing HUD, styled as bridge instruments (dark glass, brass rims, amber readouts):
+/// The sailing HUD, in the game's Alto-style look (UiTheme): thin white type and hairline
+/// instruments straight over the sea, with dusk gradients at the top and bottom edges:
 ///   top centre    one bar: engine order and speed, a compass tape, the hull
 ///                 (with a red ribbon under it when a hazard is on course)
 ///   top left      the radar chart, bow up: channel, reefs, mines, dock, rescue, wake
 ///   bottom left   the engine telegraph (click a gear to order it) and the rudder arc
 ///   bottom centre "Try saying" phrase chips, the radio state, and the crew's line with
 ///                 the speaker's portrait
-///   bottom right  F1 for the order card and the keys
+///   top right     HELP (the order card, also F1) and PAUSE (Esc), as words
 /// Also the tutorial coach panel, the F1 radio card and the red hit flash. Everything is
 /// built in code on the ShipUI document.
 /// </summary>
@@ -108,6 +109,7 @@ public class ShipHUD : MonoBehaviour
 
     // Coach panel: the live tutorial, docked on the left so the ship stays visible
     private VisualElement _coachPanel;
+    private VisualElement _coachScrim;
     private Label _coachStep;
     private Label _coachTitle;
     private Label _coachText;
@@ -234,6 +236,14 @@ public class ShipHUD : MonoBehaviour
     private void BuildHUD()
     {
         VisualElement root = Document.rootVisualElement;
+        UiTheme.Apply(root, overSea: true);
+        // Dusk at the top and bottom edges, and on the left while the coach is up: calm
+        // ground for the white text over the bright sea. No boxes.
+        root.Add(UiTheme.Scrim(true, 230f, 0.85f));
+        root.Add(UiTheme.Scrim(false, 400f, 0.9f));
+        _coachScrim = UiTheme.SideScrim(760f, 0.7f);
+        _coachScrim.style.display = DisplayStyle.None;
+        root.Add(_coachScrim);
 
         BuildTopBar(root);
         BuildChart(root);
@@ -304,12 +314,12 @@ public class ShipHUD : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             var block = new VisualElement();
-            block.style.width = 28f;
-            block.style.height = 16f;
-            block.style.marginLeft = 3f; block.style.marginRight = 3f;
-            HudLook.Radius(block, 3f);
-            HudLook.Border(block, 1f, HudLook.BrassDim);
-            block.style.backgroundColor = RadioGreen;
+            block.style.width = 14f;
+            block.style.height = 14f;
+            block.style.marginLeft = 4f; block.style.marginRight = 4f;
+            HudLook.Radius(block, 7f);
+            HudLook.Border(block, 1.5f, UiTheme.White);
+            block.style.backgroundColor = UiTheme.White;
             _healthBlocks.Add(block);
             pips.Add(block);
         }
@@ -319,11 +329,12 @@ public class ShipHUD : MonoBehaviour
         // A hazard on course: a red ribbon under the bar, in plain words.
         _warning = HudLook.Words("", 19f, Color.white, true);
         _warning.style.marginTop = 6f;
-        _warning.style.backgroundColor = new Color(HudLook.Danger.r, HudLook.Danger.g, HudLook.Danger.b, 0.94f);
-        _warning.style.paddingTop = 6f; _warning.style.paddingBottom = 6f;
-        _warning.style.paddingLeft = 16f; _warning.style.paddingRight = 16f;
-        HudLook.Radius(_warning, 8f);
-        HudLook.Border(_warning, 2f, new Color(1f, 0.6f, 0.5f));
+        _warning.style.color = UiTheme.Coral;
+        _warning.style.fontSize = 21f;
+        _warning.style.letterSpacing = 3f;
+        _warning.style.paddingBottom = 4f;
+        _warning.style.borderBottomWidth = 2f;
+        _warning.style.borderBottomColor = UiTheme.Coral;
         _warning.style.display = DisplayStyle.None;
         holder.Add(_warning);
     }
@@ -350,9 +361,7 @@ public class ShipHUD : MonoBehaviour
         holder.Add(_chart);
         var caption = HudLook.Words("RADAR · bow up", 12f, HudLook.Brass, true);
         caption.style.marginTop = 4f;
-        caption.style.backgroundColor = HudLook.Glass;
-        caption.style.paddingLeft = 8f; caption.style.paddingRight = 8f; caption.style.paddingTop = 2f; caption.style.paddingBottom = 2f;
-        HudLook.Radius(caption, 6f);
+        caption.style.paddingTop = 2f;
         holder.Add(caption);
         root.Add(holder);
     }
@@ -424,9 +433,9 @@ public class ShipHUD : MonoBehaviour
         _crewPortrait.style.height = 76f;
         _crewPortrait.style.flexShrink = 0f;
         _crewPortrait.style.marginRight = 14f;
-        _crewPortrait.style.backgroundColor = Hud.PanelRaised;
-        HudLook.Radius(_crewPortrait, 10f);
-        HudLook.Border(_crewPortrait, 2f, Hud.Harris);
+        _crewPortrait.style.backgroundColor = new Color(0f, 0f, 0f, 0.2f);
+        HudLook.Radius(_crewPortrait, 38f); // a round portrait in a thin ring
+        HudLook.Border(_crewPortrait, 1.5f, Hud.Harris);
         _crewPanel.Add(_crewPortrait);
 
         var text = new VisualElement();
@@ -599,7 +608,12 @@ public class ShipHUD : MonoBehaviour
             int health = hull.CurrentHealth;
             _shownHealth = health;
             for (int i = 0; i < 3; i++)
-                _healthBlocks[i].style.backgroundColor = i < health ? (health == 1 ? RadioRed : RadioGreen) : new Color(0.12f, 0.14f, 0.16f);
+            {
+                bool full = i < health;
+                Color c = health == 1 ? UiTheme.Coral : UiTheme.White;
+                _healthBlocks[i].style.backgroundColor = full ? c : new Color(0f, 0f, 0f, 0f);
+                HudLook.Border(_healthBlocks[i], 1.5f, full ? c : UiTheme.Dim);
+            }
         }
     }
 
@@ -633,7 +647,7 @@ public class ShipHUD : MonoBehaviour
         Color c = finn ? Hud.Finn : Hud.Harris;
         _crewName.text = finn ? "LOOKOUT FINN" : "CHIEF HARRIS";
         _crewName.style.color = c;
-        HudLook.Border(_crewPortrait, 2f, c);
+        HudLook.Border(_crewPortrait, 1.5f, c);
         SetPortrait(false);
     }
 
@@ -686,11 +700,8 @@ public class ShipHUD : MonoBehaviour
         _hints.Clear();
         _hints.AddRange(hints);
         _hintsRow.Clear();
-        var label = HudLook.Words("TRY SAYING", 12f, HudLook.Brass, true);
-        label.style.marginRight = 8f;
-        label.style.backgroundColor = HudLook.Glass;
-        label.style.paddingLeft = 8f; label.style.paddingRight = 8f; label.style.paddingTop = 4f; label.style.paddingBottom = 4f;
-        HudLook.Radius(label, 6f);
+        var label = HudLook.Words("TRY SAYING", 12f, HudLook.Amber, true);
+        label.style.marginRight = 10f;
         _hintsRow.Add(label);
         foreach (var phrase in hints) _hintsRow.Add(HintChip(phrase));
     }
@@ -706,14 +717,12 @@ public class ShipHUD : MonoBehaviour
                 AudioService.Instance.SpeakFace(new CrewSpeech.Voice { Name = "Zira", Rate = 0.9f, Pitch = 1f }, phrase);
         })
         { text = "\"" + phrase + "\"" };
-        chip.style.fontSize = 17f;
-        chip.style.color = HudLook.Text;
-        chip.style.unityFontStyleAndWeight = FontStyle.Bold;
-        chip.style.backgroundColor = new Color(0.05f, 0.16f, 0.14f, 0.94f);
-        HudLook.Border(chip, 1.5f, new Color(0.45f, 0.85f, 0.7f, 0.8f));
-        HudLook.Radius(chip, 14f);
-        chip.style.paddingLeft = 12f; chip.style.paddingRight = 12f; chip.style.paddingTop = 4f; chip.style.paddingBottom = 4f;
-        chip.style.marginLeft = 4f; chip.style.marginRight = 4f;
+        // A phrase in words with a mint line under it: no pill.
+        UiTheme.WordButton(chip, false, 19f);
+        chip.style.letterSpacing = 0.5f;
+        chip.style.borderBottomWidth = 2f;
+        chip.style.borderBottomColor = UiTheme.Mint;
+        chip.style.marginLeft = 10f; chip.style.marginRight = 10f;
         chip.tooltip = "Click to hear it";
         return chip;
     }
@@ -729,8 +738,10 @@ public class ShipHUD : MonoBehaviour
         _coachPanel.style.left = Margin;
         _coachPanel.style.top = 16f + ChartSize + 40f;
         _coachPanel.style.width = 480f;
-        StylePanel(_coachPanel, 14f);
-        HudLook.Border(_coachPanel, 2f, new Color(0.35f, 0.75f, 1f));
+        // No box: a peach line down its left side, on the dusk gradient from the screen edge.
+        _coachPanel.style.paddingLeft = 18f;
+        _coachPanel.style.borderLeftWidth = 3f;
+        _coachPanel.style.borderLeftColor = UiTheme.Peach;
         _coachPanel.style.display = DisplayStyle.None;
 
         var header = new VisualElement();
@@ -745,7 +756,7 @@ public class ShipHUD : MonoBehaviour
         _coachStep.style.flexGrow = 1f;
         header.Add(_coachStep);
 
-        _coachSkip = MakeButton("Skip tutorial", new Color(1f, 1f, 1f, 0.14f), Hud.TextDim, Hud.Caption);
+        _coachSkip = MakeButton("SKIP TUTORIAL", false, Hud.Caption);
         _coachSkip.clicked += () => CoachSkipPressed?.Invoke();
         header.Add(_coachSkip);
 
@@ -768,13 +779,13 @@ public class ShipHUD : MonoBehaviour
         _coachTry.style.color = Hud.Text;
         _coachTry.style.unityFontStyleAndWeight = FontStyle.Bold;
         _coachTry.style.whiteSpace = WhiteSpace.Normal;
-        _coachTry.style.backgroundColor = Hud.PanelRaised;
+        _coachTry.style.color = UiTheme.Mint;
         _coachTry.style.marginTop = 10f;
-        _coachTry.style.paddingTop = 8f;
-        _coachTry.style.paddingBottom = 8f;
+        _coachTry.style.paddingTop = 2f;
+        _coachTry.style.paddingBottom = 2f;
         _coachTry.style.paddingLeft = 12f;
-        _coachTry.style.paddingRight = 12f;
-        HudLook.Radius(_coachTry, 6f);
+        _coachTry.style.borderLeftWidth = 2f;
+        _coachTry.style.borderLeftColor = UiTheme.Mint;
         _coachPanel.Add(_coachTry);
 
         _coachHint = new Label("");
@@ -785,7 +796,8 @@ public class ShipHUD : MonoBehaviour
         _coachHint.style.display = DisplayStyle.None;
         _coachPanel.Add(_coachHint);
 
-        _coachNext = MakeButton("Next", new Color(0.2f, 0.5f, 0.8f), Color.white, Hud.Body);
+        _coachNext = MakeButton("NEXT", true, Hud.Body);
+        _coachNext.style.alignSelf = Align.FlexStart;
         _coachNext.style.marginTop = 12f;
         _coachNext.clicked += () => CoachNextPressed?.Invoke();
         _coachPanel.Add(_coachNext);
@@ -812,6 +824,7 @@ public class ShipHUD : MonoBehaviour
         _coachNext.text = nextLabel ?? "";
         _coachNext.style.display = nextLabel == null ? DisplayStyle.None : DisplayStyle.Flex;
         _coachPanel.style.display = DisplayStyle.Flex;
+        _coachScrim.style.display = DisplayStyle.Flex;
     }
 
     public void ShowCoachHint(string hint)
@@ -824,6 +837,7 @@ public class ShipHUD : MonoBehaviour
     public void HideCoach()
     {
         if (_coachPanel != null) _coachPanel.style.display = DisplayStyle.None;
+        if (_coachScrim != null) _coachScrim.style.display = DisplayStyle.None;
         Highlight(null);
     }
 
@@ -838,18 +852,23 @@ public class ShipHUD : MonoBehaviour
     // Each highlightable part goes back to its own rim when the highlight moves on.
     private void RestoreBorder(VisualElement e)
     {
-        if (e == _chart) HudLook.Border(e, 3f, HudLook.Brass);
-        else if (e == _hullBox) HudLook.Border(e, 0f, Color.clear);
-        else HudLook.Border(e, 2f, HudLook.BrassDim);
+        if (e == _chart) HudLook.Border(e, 1.5f, HudLook.Brass);
+        else HudLook.Border(e, 0f, Color.clear);
     }
 
+    // The part being taught gets a pulsing peach line under it (a ring round the radar), not a box.
     private void UpdateHighlight()
     {
         if (_highlighted == null) return;
         float pulse = 0.35f + 0.65f * Mathf.PingPong(Time.unscaledTime * 1.6f, 1f);
         Color c = Hud.Accent;
         c.a = pulse;
-        HudLook.Border(_highlighted, 4f, c);
+        if (_highlighted == _chart) HudLook.Border(_highlighted, 4f, c);
+        else
+        {
+            _highlighted.style.borderBottomWidth = 4f;
+            _highlighted.style.borderBottomColor = c;
+        }
     }
 
     // ==================================================================
@@ -859,15 +878,11 @@ public class ShipHUD : MonoBehaviour
     private void BuildRadioCard(VisualElement root)
     {
         _radioCard = new VisualElement();
-        _radioCard.style.position = Position.Absolute;
-        _radioCard.style.left = Length.Percent(50f);
-        _radioCard.style.top = Length.Percent(50f);
-        _radioCard.style.translate = new Translate(Length.Percent(-50f), Length.Percent(-50f));
-        _radioCard.style.width = 820f;
-        StylePanel(_radioCard, 18f);
-        // Fully opaque: it covers the radio and subtitle panels, which must not show through.
-        _radioCard.style.backgroundColor = new Color(0.03f, 0.07f, 0.11f, 1f);
-        HudLook.Border(_radioCard, 2f, HudLook.Brass);
+        // A full-screen dim, not a box: dark enough that the panels behind don't show through.
+        UiTheme.FullDim(_radioCard, 0.92f);
+        _radioCard.style.paddingLeft = Length.Percent(24f);
+        _radioCard.style.paddingRight = Length.Percent(24f);
+        _radioCard.style.alignItems = Align.Stretch;
         _radioCard.style.display = DisplayStyle.None;
         _radioCard.pickingMode = PickingMode.Ignore;
 
@@ -986,33 +1001,35 @@ public class ShipHUD : MonoBehaviour
         if (_crewSttLogText != null) _crewSttLogText.style.fontSize = Hud.Body * scale;
     }
 
-    /// <summary>A small "F1 · help and keys" tab in the corner: the full list is on the card.</summary>
+    /// <summary>Words in the top-right corner: HELP opens the order card (F1), PAUSE pauses (Esc).</summary>
     private void BuildKeyStrip(VisualElement root)
     {
-        var help = new Button(() => SetRadioCardOpen(!IsRadioCardOpen)) { text = "F1  ·  orders & keys" };
-        help.style.position = Position.Absolute;
-        help.style.right = Margin;
-        help.style.bottom = 16f;
-        help.style.fontSize = Hud.Caption;
-        help.style.color = HudLook.Brass;
-        help.style.unityFontStyleAndWeight = FontStyle.Bold;
-        StylePanel(help, 6f);
-        root.Add(help);
+        var row = new VisualElement();
+        row.style.position = Position.Absolute;
+        row.style.right = Margin;
+        row.style.top = 18f;
+        row.style.flexDirection = FlexDirection.Row;
+        row.Add(RoundIcon("HELP", "Orders and keys (F1)", () => SetRadioCardOpen(!IsRadioCardOpen)));
+        row.Add(RoundIcon("PAUSE", "Pause (Esc)", () =>
+        {
+            var pause = FindAnyObjectByType<PauseMenuController>();
+            if (pause != null) pause.Open();
+        }));
+        root.Add(row);
     }
 
-    private static Button MakeButton(string text, Color background, Color textColor, float fontSize)
+    private static Button RoundIcon(string glyph, string tip, System.Action onClick)
+    {
+        var b = new Button(onClick) { text = glyph, tooltip = tip };
+        UiTheme.WordButton(b, false, 16f);
+        b.style.marginLeft = 22f;
+        return b;
+    }
+
+    private static Button MakeButton(string text, bool primary, float fontSize)
     {
         var b = new Button { text = text };
-        b.style.backgroundColor = background;
-        b.style.color = textColor;
-        b.style.fontSize = fontSize;
-        b.style.unityFontStyleAndWeight = FontStyle.Bold;
-        b.style.paddingTop = 6f;
-        b.style.paddingBottom = 6f;
-        b.style.paddingLeft = 12f;
-        b.style.paddingRight = 12f;
-        HudLook.Border(b, 0f, Color.clear);
-        HudLook.Radius(b, 6f);
+        UiTheme.WordButton(b, primary, fontSize);
         return b;
     }
 
