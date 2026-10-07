@@ -11,102 +11,65 @@
          ship at the dock stays visible on the right. -->
     <ui:VisualElement name="shipyard-root" class="shipyard-root" picking-mode="Ignore">
 
-        <!-- A brass-rimmed board: credits and hull always in view, then three tabs
-             (jobs or the story mission, upgrades, repair), then the SET SAIL lever. -->
+        <!-- On paper (navy ink on sand, projector-safe): the heading and credits, the jobs
+             (or the story mission and its phrases), a link to the upgrades, then SET SAIL.
+             The hull is repaired free between voyages, so there is nothing to manage there. -->
         <ui:VisualElement name="store-panel" class="store-panel">
-            <ui:Label text="SHIPYARD" class="eyebrow" />
-            <ui:Label name="status-text" text="Welcome aboard, Captain" class="store-title" />
+            <ui:VisualElement class="store-head">
+                <ui:Label name="status-text" text="Shipyard" class="store-title" />
+                <ui:Label name="credits-text" text="$0" class="credits-value" />
+            </ui:VisualElement>
             <ui:Label name="toast-text" text="" class="toast" />
 
-            <ui:VisualElement class="stat-row">
-                <ui:VisualElement class="stat-box">
-                    <ui:Label text="CREDITS" class="stat-caption" />
-                    <ui:Label name="credits-text" text="$0" class="credits-value" />
-                </ui:VisualElement>
-                <ui:VisualElement class="stat-box stat-box--grow">
-                    <ui:Label text="HULL" class="stat-caption" />
-                    <ui:VisualElement class="hull-line">
-                        <ui:VisualElement name="hull-pips" class="hull-pips" />
-                        <ui:Label name="hull-text" text="3/3" class="hull-text" />
+            <ui:VisualElement name="page-jobs" class="yard-page shown">
+                <ui:Label text="CHOOSE A JOB" class="section-label" />
+                <ui:Button name="job-btn-easy" class="card job-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="EASY" class="card-title" />
+                        <ui:Label name="route-easy" text="Rocks only" class="card-desc" />
                     </ui:VisualElement>
+                    <ui:Label text="$300" class="card-pay" />
+                </ui:Button>
+                <ui:Button name="job-btn-normal" class="card job-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="NORMAL" class="card-title" />
+                        <ui:Label name="route-normal" text="Rocks and mines" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Label text="$700" class="card-pay" />
+                </ui:Button>
+                <ui:Button name="job-btn-hard" class="card job-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="HARD" class="card-title" />
+                        <ui:Label name="route-hard" text="A long, crowded route" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Label text="$1500" class="card-pay" />
+                </ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="page-upgrades" class="yard-page">
+                <ui:Label text="UPGRADE YOUR SHIP" class="section-label" />
+                <ui:VisualElement class="card upgrade-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="ENGINE" class="card-title" />
+                        <ui:Label name="engine-level-text" text="Faster  ·  level 1 of 3" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Button name="upgrade-engine-btn" text="$100" class="buy-btn" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card upgrade-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="RUDDER" class="card-title" />
+                        <ui:Label name="helm-level-text" text="Sharper turns  ·  level 1 of 3" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Button name="upgrade-helm-btn" text="$100" class="buy-btn" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <ui:VisualElement name="yard-tabs" class="yard-tabs">
-                <ui:Button name="tab-jobs" text="JOBS" class="yard-tab" />
-                <ui:Button name="tab-upgrades" text="UPGRADES" class="yard-tab" />
-                <ui:Button name="tab-repair" text="REPAIR" class="yard-tab" />
-            </ui:VisualElement>
-
-            <ui:VisualElement class="yard-page-frame">
-                <ui:VisualElement name="page-jobs" class="yard-page">
-                    <ui:Label text="CHOOSE A JOB" class="section-label" />
-                    <ui:Button name="job-btn-easy" class="card job-card">
-                        <ui:VisualElement class="card-main">
-                            <ui:Label text="EASY RUN" class="card-title" />
-                            <ui:Label text="5 containers · rocks only" class="card-desc" />
-                            <ui:Label name="route-easy" text="" class="card-route" />
-                        </ui:VisualElement>
-                        <ui:Label text="$300" class="card-pay" />
-                    </ui:Button>
-                    <ui:Button name="job-btn-normal" class="card job-card">
-                        <ui:VisualElement class="card-main">
-                            <ui:Label text="NORMAL RUN" class="card-title" />
-                            <ui:Label text="10 containers · rocks and mines" class="card-desc" />
-                            <ui:Label name="route-normal" text="" class="card-route" />
-                        </ui:VisualElement>
-                        <ui:Label text="$700" class="card-pay" />
-                    </ui:Button>
-                    <ui:Button name="job-btn-hard" class="card job-card">
-                        <ui:VisualElement class="card-main">
-                            <ui:Label text="HARD RUN" class="card-title" />
-                            <ui:Label text="15 containers · crowded, longer route, mines" class="card-desc" />
-                            <ui:Label name="route-hard" text="" class="card-route" />
-                        </ui:VisualElement>
-                        <ui:Label text="$1500" class="card-pay" />
-                    </ui:Button>
-                </ui:VisualElement>
-
-                <ui:VisualElement name="page-upgrades" class="yard-page">
-                    <ui:Label text="UPGRADES" class="section-label" />
-                    <ui:VisualElement class="card upgrade-card">
-                        <ui:VisualElement class="card-main">
-                            <ui:Label name="engine-level-text" text="ENGINE  Mk 1" class="card-title" />
-                            <ui:Label text="+20% speed, brakes to match · max Mk 3" class="card-desc" />
-                        </ui:VisualElement>
-                        <ui:Button name="upgrade-engine-btn" text="$100" class="buy-btn" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="card upgrade-card">
-                        <ui:VisualElement class="card-main">
-                            <ui:Label name="helm-level-text" text="RUDDER  Mk 1" class="card-title" />
-                            <ui:Label text="+15% faster turns, tighter circle · max Mk 3" class="card-desc" />
-                        </ui:VisualElement>
-                        <ui:Button name="upgrade-helm-btn" text="$100" class="buy-btn" />
-                    </ui:VisualElement>
-                    <ui:Label text="Upgrades stay with your ship for every voyage, in the story and in Free Sail." class="note" />
-                </ui:VisualElement>
-
-                <ui:VisualElement name="page-repair" class="yard-page">
-                    <ui:Label text="REPAIR THE HULL" class="section-label" />
-                    <ui:VisualElement class="card repair-card">
-                        <ui:VisualElement class="card-main">
-                            <ui:Label name="repair-state" text="The hull is sound." class="card-title" />
-                            <ui:Label text="Each hit on a rock or a mine breaks one hull point. At zero, the ship sinks." class="card-desc" />
-                        </ui:VisualElement>
-                        <ui:Button name="repair-btn" text="REPAIR" class="buy-btn" />
-                    </ui:VisualElement>
-                    <ui:Label text="Repairs cost $50 a point. Short of money? You can repair one point at a time." class="note" />
-                </ui:VisualElement>
-            </ui:VisualElement>
+            <ui:Button name="upgrades-link" text="UPGRADE SHIP" class="yard-link" />
 
             <ui:VisualElement class="spacer" />
-            <ui:Label name="start-warning" text="" class="start-warning" />
-            <ui:Button name="start-mission-btn" class="start-btn sail-lever">
+            <ui:Button name="start-mission-btn" class="sail-lever">
                 <ui:VisualElement name="lever-slot" class="lever-slot" />
-                <ui:VisualElement class="lever-text">
-                    <ui:Label name="start-title" text="SET SAIL" class="start-title" />
-                    <ui:Label name="start-detail" text="Easy run · 5 containers · up to $300" class="start-detail" />
-                </ui:VisualElement>
+                <ui:Label name="start-title" text="SET SAIL" class="start-title" />
             </ui:Button>
         </ui:VisualElement>
 

@@ -173,7 +173,6 @@ public class GameManager : Singleton<GameManager>
         var hull = ShipNavigator.Instance != null ? ShipNavigator.Instance.GetComponentInChildren<ShipHull>() : null;
         result.HullMax = hull != null ? hull.MaxHealthAmount : hullMax;
         result.HullAfter = session.HullHealth >= 0 ? Mathf.Min(session.HullHealth, result.HullMax) : result.HullMax;
-        result.RepairCost = (result.HullMax - result.HullAfter) * GameSession.RepairCostPerHullPoint;
         result.CreditsAfter = session.Credits;
         session.LastResult = result;
     }

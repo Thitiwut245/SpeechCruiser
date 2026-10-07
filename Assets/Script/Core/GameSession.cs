@@ -110,13 +110,12 @@ public class GameSession : Singleton<GameSession>
     public int CargoLoaded { get; private set; }
     public int CargoAboard { get; private set; }
 
-    /// <summary>One line describing how the last mission went, shown in the shipyard.</summary>
+    /// <summary>One line describing how the last mission went (an abandoned one is mentioned in the shipyard).</summary>
     public string LastMissionSummary { get; set; } = "";
 
     /// <summary>Set when a voyage ends; null before the first one.</summary>
     public MissionResult LastResult { get; set; }
 
-    public const int RepairCostPerHullPoint = 50;
     // Mk 2 costs the base, Mk 3 twice that: $750 per upgrade line, something worth saving for.
     public const int EngineBaseCost = 250;
     public const int HelmBaseCost = 250;

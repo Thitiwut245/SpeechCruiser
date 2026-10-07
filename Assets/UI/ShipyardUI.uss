@@ -1,5 +1,9 @@
-/* The shipyard, ship's-bridge style like the HUD (HudLook): dark glass, brass rims, amber
-   readouts. Sizes are 1080p pixels (the panel scales). */
+/* The shipyard and the voyage report, in the game's Alto-style look (UiTheme).
+   The store is on paper (UiTheme.Paper): navy ink on a sand gradient from the left edge,
+   projector-safe, bold words, nothing under 16px. One page, few choices: the job (or the
+   story mission and its phrases), then SET SAIL. Upgrades are one link away.
+   The report stays white on a dusk dim, like the rest of the game at sea.
+   Sizes are 1080p pixels (the panel scales). */
 
 .shipyard-root {
     position: absolute;
@@ -11,15 +15,14 @@
 
 .store-panel {
     position: absolute;
-    left: 24px;
-    top: 24px;
-    bottom: 24px;
-    width: 580px;
-    padding: 18px 24px;
-    background-color: rgba(6, 14, 22, 0.95);
-    border-width: 2px;
-    border-color: rgb(140, 110, 56);
-    border-radius: 14px;
+    left: 100px;
+    top: 56px;
+    bottom: 44px;
+    width: 600px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
 }
 
 /* Nothing in the store squashes when content grows; the spacer above SET SAIL absorbs it. */
@@ -31,155 +34,41 @@
     flex-shrink: 1;
 }
 
-.eyebrow {
-    font-size: 15px;
-    color: rgb(255, 199, 69);
-    -unity-font-style: bold;
-    letter-spacing: 3px;
+/* The heading and the money: one line. */
+.store-head {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom-width: 1px;
+    border-color: rgba(22, 36, 64, 0.3);
 }
 
 .store-title {
-    font-size: 30px;
-    color: rgb(242, 247, 250);
+    flex-shrink: 1;
+    font-size: 34px;
     -unity-font-style: bold;
+    color: rgb(22, 36, 64);
     white-space: normal;
-    margin-top: 2px;
-}
-
-/* Floats in the header, so a purchase message never pushes SET SAIL down. */
-.toast {
-    position: absolute;
-    top: 18px;
-    right: 24px;
-    max-width: 330px;
-    font-size: 16px;
-    color: rgb(98, 214, 150);
-    -unity-font-style: bold;
-    white-space: normal;
-    -unity-text-align: upper-right;
-}
-
-/* Credits and hull, always in view: two brass-rimmed gauges. */
-.stat-row {
-    flex-direction: row;
-    margin-top: 8px;
-    margin-bottom: 10px;
-}
-
-.stat-box {
-    background-color: rgba(255, 255, 255, 0.04);
-    border-width: 1px;
-    border-color: rgba(140, 110, 56, 0.6);
-    border-radius: 10px;
-    padding: 8px 14px;
-    margin-right: 10px;
-}
-
-.stat-box--grow {
-    flex-grow: 1;
-    margin-right: 0;
-}
-
-.stat-caption {
-    font-size: 13px;
-    color: rgb(205, 165, 90);
-    -unity-font-style: bold;
-    letter-spacing: 2px;
+    margin: 0;
 }
 
 .credits-value {
+    flex-shrink: 0;
     font-size: 30px;
-    color: rgb(255, 199, 69);
     -unity-font-style: bold;
+    color: rgb(12, 108, 98);
+    margin: 0 0 0 20px;
 }
 
-.hull-line {
-    flex-direction: row;
-    align-items: center;
-    margin-top: 6px;
-}
-
-.hull-pips {
-    flex-direction: row;
-}
-
-.hull-pip {
-    width: 30px;
-    height: 18px;
-    margin-right: 6px;
-    border-radius: 3px;
-    border-width: 1px;
-    border-color: rgb(140, 110, 56);
-    background-color: rgb(77, 217, 115);
-}
-
-.hull-pip--empty {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 90, 70, 0.8);
-}
-
-.hull-text {
+/* What the radio heard, and other news: room is kept for it, so nothing jumps. */
+.toast {
+    min-height: 58px;
     font-size: 20px;
-    color: rgb(242, 247, 250);
     -unity-font-style: bold;
-    margin-left: 6px;
-    flex-grow: 1;
-}
-
-/* Tabs: brass plates over the page they open. */
-.yard-tabs {
-    flex-direction: row;
-}
-
-.yard-tab {
-    flex-grow: 1;
-    flex-basis: 0;
-    font-size: 16px;
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(196, 209, 221);
-    background-color: rgba(18, 34, 48, 0.95);
-    border-width: 2px;
-    border-bottom-width: 0;
-    border-color: rgba(140, 110, 56, 0.55);
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    padding: 9px 4px;
-    margin: 0 2px;
-}
-
-.yard-tab:hover {
-    color: rgb(242, 247, 250);
-    background-color: rgb(30, 54, 74);
-}
-
-.yard-tab.selected {
-    color: rgb(28, 20, 6);
-    background-color: rgb(205, 160, 72);
-    border-color: rgb(255, 214, 120);
-}
-
-/* A damaged hull: the Repair tab glows red until it's fixed. */
-.yard-tab.alert {
-    color: rgb(255, 150, 130);
-    border-color: rgb(210, 80, 60);
-}
-
-.yard-tab.selected.alert {
-    color: rgb(28, 20, 6);
-}
-
-.yard-page-frame {
-    padding: 4px 14px 12px 14px;
-    background-color: rgba(18, 34, 48, 0.55);
-    border-width: 2px;
-    border-color: rgba(140, 110, 56, 0.55);
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
+    color: rgb(12, 108, 98);
+    white-space: normal;
+    margin: 8px 0 0 0;
 }
 
 .yard-page {
@@ -190,216 +79,219 @@
     display: flex;
 }
 
-.small-btn {
-    font-size: 16px;
-    -unity-font-style: bold;
-    color: rgb(28, 20, 6);
-    background-color: rgb(205, 160, 72);
-    border-width: 1px;
-    border-color: rgb(255, 214, 120);
-    border-radius: 6px;
-    padding: 6px 12px;
-    margin: 0;
-}
-
-.small-btn:hover {
-    background-color: rgb(228, 184, 92);
-}
-
-.small-btn:disabled {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgb(170, 184, 198);
-    opacity: 1;
-}
-
 .section-label {
-    font-size: 14px;
-    color: rgb(205, 165, 90);
+    font-size: 17px;
+    letter-spacing: 5px;
     -unity-font-style: bold;
-    letter-spacing: 3px;
-    margin-top: 10px;
-    margin-bottom: 6px;
+    color: rgb(160, 50, 24);
+    margin: 0 0 6px 0;
 }
 
+/* Items in a list: no boxes, a rule between them. */
 .card {
     flex-direction: row;
     align-items: center;
-    margin: 0 0 6px 0;
-    padding: 8px 14px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-width: 2px;
-    border-color: rgba(140, 110, 56, 0.25);
-    border-radius: 10px;
-    -unity-text-align: middle-left;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 1px;
+    border-color: rgba(22, 36, 64, 0.2);
+    border-radius: 0;
+    margin: 0;
+    padding: 12px 0 12px 18px;
+}
+
+/* A job: the chosen one has a rust bar on its left. */
+.job-card {
+    border-left-width: 5px;
+    border-left-color: rgba(0, 0, 0, 0);
+    transition-duration: 0.15s;
 }
 
 .job-card:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(22, 36, 64, 0.06);
 }
 
 .job-card.active-job {
-    border-color: rgb(255, 199, 69);
-    background-color: rgba(255, 199, 69, 0.12);
+    border-left-color: rgb(160, 50, 24);
+    background-color: rgba(160, 50, 24, 0.08);
 }
 
+.job-card:disabled {
+    opacity: 0.7;
+}
+
+/* A button centres its content by default: the words line up on the left instead. */
 .card-main {
     flex-grow: 1;
     flex-shrink: 1;
+    align-items: flex-start;
+}
+
+.card-main > Label {
+    -unity-text-align: middle-left;
 }
 
 .card-title {
-    font-size: 21px;
-    color: rgb(242, 247, 250);
+    font-size: 26px;
+    letter-spacing: 3px;
     -unity-font-style: bold;
-    white-space: normal;
+    color: rgb(22, 36, 64);
+    margin: 0;
+}
+
+.job-card.active-job .card-title {
+    color: rgb(160, 50, 24);
 }
 
 .card-desc {
-    font-size: 16px;
-    color: rgb(196, 209, 221);
+    font-size: 18px;
+    color: rgb(62, 74, 100);
     white-space: normal;
-}
-
-.card-route {
-    font-size: 15px;
-    color: rgb(255, 199, 69);
+    margin: 2px 0 0 0;
 }
 
 .card-pay {
     font-size: 24px;
-    color: rgb(255, 199, 69);
     -unity-font-style: bold;
-    margin-left: 10px;
+    color: rgb(12, 108, 98);
+    margin: 0 4px 0 12px;
 }
 
+/* Buy: a rust word with a line under it. */
 .buy-btn {
-    font-size: 17px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
+    border-radius: 0;
+    font-size: 20px;
+    letter-spacing: 2px;
     -unity-font-style: bold;
-    color: rgb(28, 20, 6);
-    background-color: rgb(205, 160, 72);
-    border-width: 1px;
-    border-color: rgb(255, 214, 120);
-    border-radius: 6px;
-    padding: 8px 12px;
-    min-width: 128px;
-    margin: 0 0 0 10px;
+    color: rgb(160, 50, 24);
+    padding: 4px 4px;
+    margin: 0 4px 0 12px;
 }
 
 .buy-btn:hover {
-    background-color: rgb(228, 184, 92);
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
 }
 
 .buy-btn:disabled {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.08);
-    color: rgb(170, 184, 198);
+    color: rgb(62, 74, 100);
+    border-color: rgba(0, 0, 0, 0);
     opacity: 1;
 }
 
-.note {
-    font-size: 15px;
-    color: rgb(196, 209, 221);
-    white-space: normal;
-    margin-top: 4px;
+/* The link between the job list and the upgrades. */
+.yard-link {
+    align-self: flex-start;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
+    font-size: 18px;
+    letter-spacing: 3px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    padding: 4px 0;
+    margin: 14px 0 0 0;
+}
+
+.yard-link:hover {
+    color: rgb(160, 50, 24);
 }
 
 .spacer {
     flex-grow: 1;
 }
 
-.start-warning {
-    font-size: 17px;
-    color: rgb(255, 140, 110);
-    -unity-font-style: bold;
-    white-space: normal;
-    margin-bottom: 6px;
-}
-
-/* Buttons that move on to the next screen (the report's Continue uses this too). */
+/* Buttons that move on to the next screen on the report (Continue): a peach word. */
 .start-btn {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
     align-items: center;
-    padding: 12px 20px;
+    padding: 8px 10px;
     margin: 0;
-    background-color: rgb(205, 160, 72);
-    border-width: 2px;
-    border-color: rgb(255, 214, 120);
-    border-radius: 10px;
-    color: rgb(28, 20, 6);
-    font-size: 26px;
-    -unity-font-style: bold;
+    color: rgb(255, 205, 175);
+    font-size: 20px;
+    letter-spacing: 8px;
 }
 
 .start-btn:hover {
-    background-color: rgb(228, 184, 92);
+    background-color: rgba(0, 0, 0, 0);
+    scale: 1.03 1.03;
 }
 
 .start-btn:active {
-    background-color: rgb(180, 138, 56);
+    scale: 0.98 0.98;
 }
 
 .start-btn:disabled {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0);
     opacity: 1;
 }
 
-/* SET SAIL: an engine-room lever on a brass plate. The lever (drawn by ShipyardManager)
-   throws forward when it's pressed. */
+/* SET SAIL: the lever (drawn by ShipyardManager) beside a big rust word; it throws when pressed. */
 .sail-lever {
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    padding: 10px 18px;
-    border-width: 3px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-top-width: 1px;
+    border-color: rgba(22, 36, 64, 0.3);
+    border-radius: 0;
+    padding: 12px 4px 4px 0;
+    margin: 0;
+    transition-duration: 0.15s;
+}
+
+.sail-lever:hover {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.sail-lever:active {
+    scale: 0.98 0.98;
+}
+
+.sail-lever:disabled {
+    opacity: 0.5;
 }
 
 .lever-slot {
     width: 64px;
-    height: 74px;
-    margin-right: 14px;
+    height: 72px;
+    margin-right: 16px;
     flex-shrink: 0;
 }
 
-.lever-text {
-    flex-grow: 1;
-    flex-shrink: 1;
-}
-
 .start-title {
-    font-size: 32px;
-    color: rgb(28, 20, 6);
+    font-size: 40px;
+    letter-spacing: 12px;
     -unity-font-style: bold;
-    letter-spacing: 3px;
+    color: rgb(160, 50, 24);
+    padding-bottom: 4px;
+    border-bottom-width: 4px;
+    border-color: rgb(160, 50, 24);
+    margin: 0;
 }
 
-.start-detail {
-    font-size: 16px;
-    color: rgb(56, 40, 14);
-    white-space: normal;
-}
-
-.start-btn:disabled .start-title {
-    color: rgb(170, 184, 198);
-}
-
-.start-btn:disabled .start-detail {
-    color: rgb(150, 162, 174);
+.sail-lever:hover .start-title {
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
 }
 
 .loading-caption {
     position: absolute;
-    bottom: 60px;
+    bottom: 64px;
     align-self: center;
-    font-size: 22px;
-    color: rgb(255, 199, 69);
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    padding: 10px 22px;
-    background-color: rgba(6, 14, 22, 0.92);
-    border-width: 2px;
-    border-color: rgb(140, 110, 56);
-    border-radius: 10px;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    letter-spacing: 8px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-radius: 0;
     display: none;
 }
 

@@ -6,12 +6,14 @@ using System.Collections.Generic;
 using Unity.Cinemachine;
 
 /// <summary>
-/// The shipyard phase of the Game scene. The store is a brass-rimmed board on the left, with
-/// credits and hull always in view and three tabs: the jobs (or the story mission), upgrades,
-/// and repair (red while the hull is damaged). The harbour is built and the ship moored as
-/// soon as the scene loads, so the player sees the ship they are upgrading on the right.
-/// SET SAIL is a lever plate, always visible: pressing it throws the lever, hides the store,
-/// and the cargo loading becomes the mission intro (Space skips it).
+/// The shipyard phase of the Game scene. The store is one page on paper (navy ink on a sand
+/// gradient from the left edge, projector-safe): the heading and credits, the jobs (or the
+/// story mission with its phrases to practise out loud), a link to the upgrades, and SET SAIL.
+/// Kept small on purpose, so the time goes on sailing and speaking: the hull is repaired free
+/// between voyages, and jobs say only what makes them different. The harbour is built and the
+/// ship moored as soon as the scene loads, so the player sees their ship on the right.
+/// SET SAIL is a lever: pressing it throws the lever, hides the store, and the cargo loading
+/// becomes the mission intro (Space skips it).
 /// Attach to the GameObject with the Shipyard UIDocument.
 /// </summary>
 public class ShipyardManager : MonoBehaviour
@@ -42,9 +44,6 @@ public class ShipyardManager : MonoBehaviour
     private Label _statusText;
     private Label _toastText;
     private Label _creditsText;
-    private VisualElement _hullPips;
-    private Label _hullText;
-    private Button _repairBtn;
     private Button _jobEasyBtn;
     private Button _jobNormalBtn;
     private Button _jobHardBtn;
@@ -52,17 +51,15 @@ public class ShipyardManager : MonoBehaviour
     private Label _helmLevelText;
     private Button _upgradeEngineBtn;
     private Button _upgradeHelmBtn;
-    private Label _startWarning;
     private Button _startMissionBtn;
-    private Label _startTitle;
-    private Label _startDetail;
     private Label _loadingCaption;
 
-    // Tabs: jobs (or the story mission), upgrades, repair.
-    private readonly System.Collections.Generic.Dictionary<string, Button> _tabs = new System.Collections.Generic.Dictionary<string, Button>();
-    private readonly System.Collections.Generic.Dictionary<string, VisualElement> _pages = new System.Collections.Generic.Dictionary<string, VisualElement>();
-    private Label _repairState;
+    // The page shows the jobs (or the story mission), or, one link away, the upgrades.
+    private VisualElement _jobsPage;
+    private VisualElement _upgradesPage;
+    private Button _upgradesLink;
     private SailLever _lever;
+    private VisualElement _storeScrim;
     private const float LeverSeconds = 0.35f;
 
     private JobSpec _selectedJob = JobSpec.Easy;
@@ -72,7 +69,6 @@ public class ShipyardManager : MonoBehaviour
     /// <summary>Cargo is being loaded after SET SAIL: the radio check is over, the voyage is starting.</summary>
     public static bool IsLoadingCargo => _instance != null && _instance._loading;
     private bool _skipLoading;
-    private bool _confirmDamagedStart;
     private float _toastUntil;
     private CinemachinePositionComposer _composer;
     private CinemachineCamera _vcam;
@@ -94,14 +90,16 @@ public class ShipyardManager : MonoBehaviour
         if (_document == null) return;
 
         var root = _document.rootVisualElement;
+        UiTheme.Apply(root, overSea: true); // the report and the loading caption, over the sea
+        // The store stands on a sand gradient from the left edge (no board), in navy ink.
+        _storeScrim = UiTheme.SideScrim(1400f, 0.96f, UiTheme.Sand);
+        root.Insert(0, _storeScrim);
 
         _storePanel = root.Q<VisualElement>("store-panel");
+        UiTheme.Paper(_storePanel);
         _statusText = root.Q<Label>("status-text");
         _toastText = root.Q<Label>("toast-text");
         _creditsText = root.Q<Label>("credits-text");
-        _hullPips = root.Q<VisualElement>("hull-pips");
-        _hullText = root.Q<Label>("hull-text");
-        _repairBtn = root.Q<Button>("repair-btn");
         _jobEasyBtn = root.Q<Button>("job-btn-easy");
         _jobNormalBtn = root.Q<Button>("job-btn-normal");
         _jobHardBtn = root.Q<Button>("job-btn-hard");
@@ -109,23 +107,12 @@ public class ShipyardManager : MonoBehaviour
         _helmLevelText = root.Q<Label>("helm-level-text");
         _upgradeEngineBtn = root.Q<Button>("upgrade-engine-btn");
         _upgradeHelmBtn = root.Q<Button>("upgrade-helm-btn");
-        _startWarning = root.Q<Label>("start-warning");
         _startMissionBtn = root.Q<Button>("start-mission-btn");
-        _startTitle = root.Q<Label>("start-title");
-        _startDetail = root.Q<Label>("start-detail");
         _loadingCaption = root.Q<Label>("loading-caption");
-        _repairState = root.Q<Label>("repair-state");
-        foreach (var key in new[] { "jobs", "upgrades", "repair" })
-        {
-            var tab = root.Q<Button>("tab-" + key);
-            var page = root.Q<VisualElement>("page-" + key);
-            if (tab == null || page == null) continue;
-            string k = key;
-            tab.clicked += () => ShowTab(k);
-            _tabs[key] = tab;
-            _pages[key] = page;
-        }
-        ShowTab("jobs");
+        _jobsPage = root.Q<VisualElement>("page-jobs");
+        _upgradesPage = root.Q<VisualElement>("page-upgrades");
+        _upgradesLink = root.Q<Button>("upgrades-link");
+        _upgradesLink.clicked += () => ShowUpgrades(!_upgradesPage.ClassListContains("shown"));
         var slot = root.Q<VisualElement>("lever-slot");
         if (slot != null)
         {
@@ -133,7 +120,6 @@ public class ShipyardManager : MonoBehaviour
             slot.Add(_lever);
         }
 
-        _repairBtn.clicked += OnRepairHull;
         _jobEasyBtn.clicked += () => SelectJob(JobSpec.Easy);
         _jobNormalBtn.clicked += () => SelectJob(JobSpec.Normal);
         _jobHardBtn.clicked += () => SelectJob(JobSpec.Hard);
@@ -151,7 +137,6 @@ public class ShipyardManager : MonoBehaviour
         _mic = FindAnyObjectByType<RadioMic>();
         if (_mic != null) _mic.OnRadioStatus += HandleRadioStatus;
         ShipHull.OnHullHit += DropCargo;
-        ShipHull.OnHealthChanged += HandleHullChanged;
 
         SelectJob(GameSession.Instance != null ? GameSession.Instance.CurrentJob : JobSpec.Easy); // remembers the last job
         PrepareHarbour();
@@ -163,6 +148,11 @@ public class ShipyardManager : MonoBehaviour
         }
 
         RefreshUI();
+
+        // A voyage left unfinished last time (the game was closed at sea): say what it cost, once.
+        string last = GameSession.Instance != null ? GameSession.Instance.LastMissionSummary : "";
+        if (!string.IsNullOrEmpty(last) && (last.StartsWith("VOYAGE ABANDONED") || last.StartsWith("TUTORIAL VOYAGE LEFT")))
+            ShowToast(last.Substring(0, 1) + last.Substring(1).ToLowerInvariant(), 8f);
 
         // The briefing plays the first time; a retry goes straight to the ship ("Replay briefing" brings it back).
         if (StoryProgress.TakeBriefing(_story)) PlayBriefing();
@@ -184,7 +174,6 @@ public class ShipyardManager : MonoBehaviour
             if (label.text != "CHOOSE A JOB") continue;
             label.text = StoryCatalog.Chapters[_story.Chapter - 1].Title.ToUpperInvariant() + "  ·  " + _story.Label.ToUpperInvariant();
         }
-        if (_tabs.TryGetValue("jobs", out var jobsTab)) jobsTab.text = "MISSION";
         _jobEasyBtn.style.display = DisplayStyle.None;
         _jobNormalBtn.style.display = DisplayStyle.None;
         _jobHardBtn.style.display = DisplayStyle.None;
@@ -207,8 +196,7 @@ public class ShipyardManager : MonoBehaviour
         _practiceHint = new Label();
         _practiceHint.AddToClassList("story-brief-text");
         RefreshPractice();
-        var replay = new Button(PlayBriefing) { text = "Replay briefing" };
-        replay.AddToClassList("small-btn");
+        var replay = new Button(PlayBriefing) { text = "REPLAY BRIEFING" };
         replay.AddToClassList("story-brief-replay");
         card.Add(title);
         card.Add(text);
@@ -233,8 +221,8 @@ public class ShipyardManager : MonoBehaviour
         for (int i = 0; i < _phraseChips.Count; i++)
             _phraseChips[i].EnableInClassList("done", _practised.Contains(_story.Phrases[i]));
         _practiceHint.text = _practised.Count >= _story.Phrases.Length
-            ? "All practised. You're ready to set sail!"
-            : "Practise: " + char.ToLowerInvariant(TalkHint()[0]) + TalkHint().Substring(1) + " and say each new phrase. They turn green.";
+            ? "All practised. Ready to set sail!"
+            : TalkHint() + " and say each phrase out loud.";
     }
 
     /// <summary>A radio check in the shipyard during a story mission: was it one of the new phrases?</summary>
@@ -278,7 +266,6 @@ public class ShipyardManager : MonoBehaviour
         if (_mic != null) _mic.OnRadioStatus -= HandleRadioStatus; // RadioMic outlives this scene
         if (_instance == this) _instance = null;
         ShipHull.OnHullHit -= DropCargo;
-        ShipHull.OnHealthChanged -= HandleHullChanged;
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged -= HandleStateChanged;
     }
 
@@ -308,18 +295,25 @@ public class ShipyardManager : MonoBehaviour
         _composer.Composition = composition;
     }
 
-    /// <summary>Shows one tab's page: "jobs", "upgrades" or "repair".</summary>
-    private void ShowTab(string key)
+    /// <summary>Swaps the page between the jobs (or the story mission) and the upgrades.</summary>
+    private void ShowUpgrades(bool show)
     {
-        foreach (var pair in _tabs) pair.Value.EnableInClassList("selected", pair.Key == key);
-        foreach (var pair in _pages) pair.Value.EnableInClassList("shown", pair.Key == key);
+        _jobsPage.EnableInClassList("shown", !show);
+        _upgradesPage.EnableInClassList("shown", show);
+        _upgradesLink.text = show ? (_story != null ? "BACK TO THE MISSION" : "BACK TO THE JOBS") : "UPGRADE SHIP";
+    }
+
+    /// <summary>The yard mends the hull between voyages, free: one less thing to manage before sailing.</summary>
+    private void RepairForFree()
+    {
+        var hull = Hull();
+        if (hull != null && hull.CurrentHealth < hull.MaxHealthAmount) hull.RepairShip();
     }
 
     private void SelectJob(JobSpec job)
     {
         if (GameSession.Instance != null && !GameSession.Instance.IsUnlocked(job)) job = JobSpec.Easy;
         _selectedJob = job;
-        _confirmDamagedStart = false;
 
         _jobEasyBtn.EnableInClassList("active-job", job.Name == JobSpec.Easy.Name);
         _jobNormalBtn.EnableInClassList("active-job", job.Name == JobSpec.Normal.Name);
@@ -337,15 +331,16 @@ public class ShipyardManager : MonoBehaviour
         root.style.display = state == GameState.Playing ? DisplayStyle.None : DisplayStyle.Flex;
         bool store = state == GameState.Shipyard && !_loading && !_briefing;
         _storePanel.style.display = store ? DisplayStyle.Flex : DisplayStyle.None;
+        if (_storeScrim != null) _storeScrim.style.display = store ? DisplayStyle.Flex : DisplayStyle.None;
         if (state != GameState.Shipyard) _loadingCaption.style.display = DisplayStyle.None;
         SetShipyardFraming(store);
 
         if (state == GameState.Shipyard)
         {
             if (_lever != null && !_loading) _lever.ResetBack();
-            string summary = GameSession.Instance != null ? GameSession.Instance.LastMissionSummary : "";
+            if (!_loading) RepairForFree();
             _statusText.text = _story != null ? "Chapter " + _story.Chapter + ": " + StoryCatalog.Chapters[_story.Chapter - 1].Title
-                             : string.IsNullOrEmpty(summary) ? "Welcome aboard, Captain" : summary;
+                                              : "Shipyard";
             RefreshUI();
         }
     }
@@ -392,11 +387,6 @@ public class ShipyardManager : MonoBehaviour
         }
     }
 
-    private void HandleHullChanged(int current, int max)
-    {
-        RefreshUI();
-    }
-
     private ShipHull Hull()
     {
         var nav = ShipNavigator.Instance;
@@ -410,88 +400,32 @@ public class ShipyardManager : MonoBehaviour
 
         _creditsText.text = "$" + session.Credits;
 
-        // Hull meter with one-click repair.
-        var hull = Hull();
-        if (hull != null)
-        {
-            _hullPips.Clear();
-            for (int i = 0; i < hull.MaxHealthAmount; i++)
-            {
-                var pip = new VisualElement();
-                pip.AddToClassList("hull-pip");
-                if (i >= hull.CurrentHealth) pip.AddToClassList("hull-pip--empty");
-                _hullPips.Add(pip);
-            }
-            _hullText.text = hull.CurrentHealth + "/" + hull.MaxHealthAmount;
+        SetJobCard(_jobEasyBtn, "route-easy", JobSpec.Easy, "Rocks only");
+        SetJobCard(_jobNormalBtn, "route-normal", JobSpec.Normal, "Rocks and mines");
+        SetJobCard(_jobHardBtn, "route-hard", JobSpec.Hard, "A long, crowded route");
 
-            int missing = hull.MaxHealthAmount - hull.CurrentHealth;
-            int affordable = RepairablePoints(hull, session.Credits);
-            if (_repairState != null)
-                _repairState.text = missing <= 0 ? "The hull is sound."
-                                  : hull.CurrentHealth == 1 ? "Hull 1/" + hull.MaxHealthAmount + ": one more hit sinks the ship!"
-                                  : "Hull " + hull.CurrentHealth + "/" + hull.MaxHealthAmount + ": the ship is damaged.";
-            if (_tabs.TryGetValue("repair", out var repairTab))
-            {
-                repairTab.EnableInClassList("alert", missing > 0);
-                repairTab.text = missing > 0 ? "REPAIR  !" : "REPAIR";
-            }
-            if (missing <= 0)
-            {
-                _repairBtn.text = "FULL";
-                _repairBtn.SetEnabled(false);
-            }
-            else if (affordable > 0)
-            {
-                // Short of money, repair what can be paid for, one point at a time.
-                _repairBtn.text = (affordable < missing ? "REPAIR " + affordable + "  $" : "REPAIR  $") + affordable * GameSession.RepairCostPerHullPoint;
-                _repairBtn.SetEnabled(true);
-            }
-            else
-            {
-                _repairBtn.text = "NEED $" + (GameSession.RepairCostPerHullPoint - session.Credits);
-                _repairBtn.SetEnabled(false);
-            }
-        }
-
-        SetJobCard(_jobEasyBtn, "route-easy", JobSpec.Easy);
-        SetJobCard(_jobNormalBtn, "route-normal", JobSpec.Normal);
-        SetJobCard(_jobHardBtn, "route-hard", JobSpec.Hard);
-
-        _engineLevelText.text = "ENGINE  Mk " + session.EngineLevel;
-        _helmLevelText.text = "RUDDER  Mk " + session.HelmLevel;
+        _engineLevelText.text = "Faster  ·  level " + session.EngineLevel + " of " + GameSession.MaxUpgradeLevel;
+        _helmLevelText.text = "Sharper turns  ·  level " + session.HelmLevel + " of " + GameSession.MaxUpgradeLevel;
         SetBuyButton(_upgradeEngineBtn, session.EngineUpgradeCost, session.Credits, session.EngineLevel >= GameSession.MaxUpgradeLevel);
         SetBuyButton(_upgradeHelmBtn, session.HelmUpgradeCost, session.Credits, session.HelmLevel >= GameSession.MaxUpgradeLevel);
 
         RefreshStartButton();
     }
 
-    /// <summary>Pay at the current tier, route length, and whether the job is open yet.</summary>
-    private void SetJobCard(Button card, string routeLabel, JobSpec job)
+    /// <summary>Pay at the current tier, what makes the job different, and whether it is open yet.</summary>
+    private void SetJobCard(Button card, string descLabel, JobSpec job, string blurb)
     {
-        var label = _document.rootVisualElement.Q<Label>(routeLabel);
+        var label = _document.rootVisualElement.Q<Label>(descLabel);
         var session = GameSession.Instance;
-        if (label == null || LevelGenerator.Instance == null || session == null) return;
+        if (label == null || session == null) return;
 
         var pay = card.Q<Label>(className: "card-pay");
         if (pay != null) pay.text = "$" + session.RewardFor(job);
 
         bool open = session.IsUnlocked(job);
         card.SetEnabled(open);
-        if (!open)
-        {
-            int more = job.UnlockDeliveries - session.MissionsCompleted;
-            label.text = "Opens after " + job.UnlockDeliveries + " deliveries (" + more + " to go)";
-            return;
-        }
-        string text = Mathf.RoundToInt(LevelGenerator.Instance.RouteLength(job)) + " m route";
-        if (session.IsGentle(job)) text += " · learning layout";
-        label.text = text;
-    }
-
-    private static int RepairablePoints(ShipHull hull, int credits)
-    {
-        int missing = hull.MaxHealthAmount - hull.CurrentHealth;
-        return Mathf.Clamp(credits / GameSession.RepairCostPerHullPoint, 0, missing);
+        int more = job.UnlockDeliveries - session.MissionsCompleted;
+        label.text = open ? blurb : "Opens after " + more + (more == 1 ? " more delivery" : " more deliveries");
     }
 
     private static void SetBuyButton(Button button, int cost, int credits, bool maxed)
@@ -503,43 +437,13 @@ public class ShipyardManager : MonoBehaviour
             return;
         }
         bool affordable = credits >= cost;
-        button.text = affordable ? "BUY  $" + cost : "NEED $" + (cost - credits) + " MORE";
+        button.text = affordable ? "BUY  $" + cost : "$" + cost;
         button.SetEnabled(affordable);
     }
 
     private void RefreshStartButton()
     {
-        if (_startDetail == null) return;
-
-        var job = _story != null ? _story.Job : _selectedJob;
-        string name = _story != null ? _story.Label : _selectedJob.Name.Substring(0, 1) + _selectedJob.Name.Substring(1).ToLowerInvariant() + " run";
-        int reward = GameSession.Instance != null ? GameSession.Instance.RewardFor(job) : job.Reward;
-        int bonus = GameManager.Instance != null ? Mathf.RoundToInt(reward * GameManager.Instance.OnTimeShare) : 0;
-        _startDetail.text = $"{name} · {job.Containers} containers · ${reward} (+${bonus} on time)";
-
-        var hull = Hull();
-        bool damaged = hull != null && hull.CurrentHealth < hull.MaxHealthAmount;
-        if (hull != null && hull.CurrentHealth <= 0)
-        {
-            _startWarning.text = "The hull is broken. Repair it before you sail.";
-            _startTitle.text = "SET SAIL";
-            _startMissionBtn.SetEnabled(false);
-            return;
-        }
-
-        _startMissionBtn.SetEnabled(!_loading);
-        if (damaged)
-        {
-            _startWarning.text = hull.CurrentHealth == 1
-                ? "Hull 1/" + hull.MaxHealthAmount + ": one more hit sinks the ship. Repair first?"
-                : "Hull " + hull.CurrentHealth + "/" + hull.MaxHealthAmount + ": the ship is damaged. Repair first?";
-            _startTitle.text = _confirmDamagedStart ? "PRESS AGAIN TO SAIL" : "SET SAIL";
-        }
-        else
-        {
-            _startWarning.text = "";
-            _startTitle.text = "SET SAIL";
-        }
+        if (_startMissionBtn != null) _startMissionBtn.SetEnabled(!_loading);
     }
 
     private void ShowToast(string message, float seconds = 2.5f)
@@ -562,38 +466,11 @@ public class ShipyardManager : MonoBehaviour
             ShowToast("Rudder upgraded to Mk " + session.HelmLevel);
     }
 
-    private void OnRepairHull()
-    {
-        var hull = Hull();
-        if (hull == null) return;
-
-        int points = RepairablePoints(hull, GameSession.Instance.Credits);
-        if (points <= 0) return;
-
-        GameSession.Instance.SpendCredits(points * GameSession.RepairCostPerHullPoint);
-        hull.RepairPoints(points);
-        _confirmDamagedStart = false;
-        ShowToast(hull.CurrentHealth >= hull.MaxHealthAmount ? "Hull repaired" : "Hull patched: " + hull.CurrentHealth + "/" + hull.MaxHealthAmount);
-        RefreshUI();
-    }
-
     private void OnStartMission()
     {
         if (_loading) return;
 
-        var hull = Hull();
-        if (hull != null && hull.CurrentHealth <= 0) return;
-
-        // Sailing damaged takes a second press, so nobody leaves on one hull point by accident.
-        if (hull != null && hull.CurrentHealth < hull.MaxHealthAmount && !_confirmDamagedStart)
-        {
-            _confirmDamagedStart = true;
-            ShowTab("repair"); // the repair is one click away
-            RefreshStartButton();
-            return;
-        }
-
-        _confirmDamagedStart = false;
+        RepairForFree(); // in case a hit landed while moored
         if (_mic != null) _mic.EndRadioCheck();
         _loading = true;
         _skipLoading = false;
@@ -615,6 +492,7 @@ public class ShipyardManager : MonoBehaviour
         PrepareHarbour();
 
         _storePanel.style.display = DisplayStyle.None;
+        if (_storeScrim != null) _storeScrim.style.display = DisplayStyle.None;
         SetShipyardFraming(false);
         StartCoroutine(LoadContainersRoutine(_story != null ? _story.Job.Containers : _selectedJob.Containers));
     }
