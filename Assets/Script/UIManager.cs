@@ -189,7 +189,8 @@ public class UIManager : MonoBehaviour
     public void UpdateAISubtitle(string aiResponse, string crewRole)
     {
         if (ShipHUD.Instance == null) return;
-        if (ShipHUD.Instance.CrewSubtitleText != null) ShipHUD.Instance.CrewSubtitleText.text = $"<b>[{crewRole}]:</b> {aiResponse}";
+        // The HUD shows the speaker's name and face above the line.
+        if (ShipHUD.Instance.CrewSubtitleText != null) ShipHUD.Instance.CrewSubtitleText.text = aiResponse;
         ShipHUD.Instance.SetSpeaker(crewRole);
         // "..." means a reply is on its way: it stays until the reply replaces it.
         _crewLineAt = aiResponse == "..." ? float.PositiveInfinity : Time.unscaledTime;

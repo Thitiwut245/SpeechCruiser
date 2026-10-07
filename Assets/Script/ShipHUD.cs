@@ -3,6 +3,18 @@ using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
 
+/// <summary>
+/// The sailing HUD, styled as bridge instruments (dark glass, brass rims, amber readouts):
+///   top centre    one bar: engine order and speed, a compass tape, the hull
+///                 (with a red ribbon under it when a hazard is on course)
+///   top left      the radar chart, bow up: channel, reefs, mines, dock, rescue, wake
+///   bottom left   the engine telegraph (click a gear to order it) and the rudder arc
+///   bottom centre "Try saying" phrase chips, the radio state, and the crew's line with
+///                 the speaker's portrait
+///   bottom right  F1 for the order card and the keys
+/// Also the tutorial coach panel, the F1 radio card and the red hit flash. Everything is
+/// built in code on the ShipUI document.
+/// </summary>
 public class ShipHUD : MonoBehaviour
 {
     public static ShipHUD Instance { get; private set; }
@@ -13,29 +25,17 @@ public class ShipHUD : MonoBehaviour
 
     [Header("Layout")]
     [SerializeField] private float Margin = 24f;
-    [SerializeField] private float TopClearance = 84f; // Gives space for the engine status line
-    [SerializeField] private float BottomClearance = 120f; // Gives space for the rudder gauge
-    [SerializeField] private float RadarSize = 160f;
-    [SerializeField] private float CompassWidth = 240f;
-    [SerializeField] private float CompassHeight = 40f;
-    [SerializeField] private float RudderWidth = 320f;
-    [SerializeField] private float RudderHeight = 14f;
+    [SerializeField] private float ChartSize = 230f;
 
-    /// <summary>
-    /// One palette and type scale for every HUD widget, in 1080p pixels (the panel scales
-    /// with the screen). Panels are near-opaque and text is never darker than TextDim,
-    /// so everything stays readable over the bright, busy water.
-    /// </summary>
+    /// <summary>Type sizes in 1080p pixels (the panel scales with the screen).</summary>
     private static class Hud
     {
-        public static readonly Color Panel = new Color(0.03f, 0.07f, 0.11f, 0.96f);
+        public static readonly Color Panel = HudLook.Glass;
         public static readonly Color PanelRaised = new Color(0.10f, 0.16f, 0.22f, 1f);
-        public static readonly Color Text = new Color(0.95f, 0.97f, 0.98f);
-        public static readonly Color TextDim = new Color(0.77f, 0.82f, 0.87f);
-        public static readonly Color Accent = new Color(1f, 0.78f, 0.27f);
+        public static readonly Color Text = HudLook.Text;
+        public static readonly Color TextDim = HudLook.TextDim;
+        public static readonly Color Accent = HudLook.Amber;
         public static readonly Color AccentInk = new Color(0.10f, 0.08f, 0.02f);
-        public static readonly Color Port = new Color(0.93f, 0.33f, 0.33f);
-        public static readonly Color Starboard = new Color(0.30f, 0.80f, 0.50f);
         public static readonly Color Harris = new Color(0.86f, 0.64f, 0.25f);
         public static readonly Color Finn = new Color(0.30f, 0.76f, 0.70f);
 
@@ -45,36 +45,27 @@ public class ShipHUD : MonoBehaviour
         public const float Title = 22f;
     }
 
-    private static void StylePanel(VisualElement e, float padding)
-    {
-        e.style.backgroundColor = Hud.Panel;
-        e.style.paddingTop = padding;
-        e.style.paddingBottom = padding;
-        e.style.paddingLeft = padding + 4f;
-        e.style.paddingRight = padding + 4f;
-        SetRadius(e, 10f);
-    }
-    
-    // UI Elements
-    private VisualElement _radarContainer;
-    private VisualElement _radarBlip;
-    
-    private VisualElement _compassContainer;
-    private Label _compassLabel;
-    
-    private VisualElement _healthContainer;
-    private List<VisualElement> _healthBlocks = new List<VisualElement>();
-    
-    private VisualElement _telegraphContainer;
-    private Dictionary<ShipEngine.TelegraphGear, Label> _gearLabels = new Dictionary<ShipEngine.TelegraphGear, Label>();
-    
-    private VisualElement _rudderContainer;
-    private VisualElement _rudderMarker;
-    private Label _rudderLabel;
-    private Label _portraitIcon;
-    
+    private static void StylePanel(VisualElement e, float padding) => HudLook.Panel(e, padding);
+
+    // Top bar
+    private VisualElement _topBar;
+    private Label _gearText;
+    private Label _speedText;
+    private CompassTape _compass;
+    private Label _headingText;
+    private VisualElement _hullBox;
+    private readonly List<VisualElement> _healthBlocks = new List<VisualElement>();
+    private Label _warning;
+
+    // Instruments
+    private ChartScope _chart;
+    private VisualElement _helmPanel;
+    private TelegraphDial _telegraph;
+    private RudderArc _rudder;
+
     // Radio: what the microphone and crew are doing right now
     private VisualElement _commsPanel;
+    private VisualElement _radioPanel;
     private VisualElement _radioDot;
     private Label _radioState;
     private Label _radioHint;
@@ -94,13 +85,23 @@ public class ShipHUD : MonoBehaviour
 
     private RadioMic _radioMic;
 
-    // Crew Panel
+    // "Try saying"
+    private VisualElement _hintsRow;
+    private readonly List<string> _hints = new List<string>();
+    private float _nextHints;
+
+    // Crew line
     private VisualElement _crewPanel;
     private VisualElement _crewPortrait;
+    private Label _crewName;
     private Label _crewChannelText;
     private Label _crewSubtitleText;
     private Label _crewSttLogText;
+    private CharacterId _speaker = CharacterId.Harris;
+    private bool _mouthOpen;
+    private float _nextFlap;
 
+    /// <summary>Which crew member the radio is tuned to (orders go to them), e.g. "FREQ: CH 1: CHIEF HARRIS".</summary>
     public Label CrewChannelText => _crewChannelText;
     public Label CrewSubtitleText => _crewSubtitleText;
     public Label CrewSttLogText => _crewSttLogText;
@@ -119,13 +120,19 @@ public class ShipHUD : MonoBehaviour
     public event System.Action CoachSkipPressed;
 
     // Highlight: a pulsing outline on the HUD part the tutorial is teaching
-    private VisualElement _rudderPanel;
     private readonly Dictionary<string, VisualElement> _highlightTargets = new Dictionary<string, VisualElement>();
     private VisualElement _highlighted;
 
     // Radio card (F1): every order, plain English first
     private VisualElement _radioCard;
     public bool IsRadioCardOpen => _radioCard != null && _radioCard.style.display == DisplayStyle.Flex;
+
+    // Chart data
+    private readonly List<ChartScope.Blip> _blips = new List<ChartScope.Blip>();
+    private readonly List<Vector3> _trail = new List<Vector3>();
+    private float _nextTrail;
+    private RescueTarget _rescue;
+    private float _nextRescueLook;
 
     private void Awake()
     {
@@ -152,6 +159,33 @@ public class ShipHUD : MonoBehaviour
         if (_radioMic != null) _radioMic.OnRadioStatus -= HandleRadioStatus;
         ShipHull.OnHullHit -= HandleHullHit;
         if (SettingsService.Instance != null) SettingsService.Instance.OnControlsChanged -= ApplySettings;
+        if (LevelGenerator.Instance != null)
+        {
+            LevelGenerator.Instance.OnLevelGenerated -= RefreshChartWorld;
+            LevelGenerator.Instance.OnHazardCleared -= RefreshChartWorld;
+        }
+    }
+
+    private void Start()
+    {
+        if (SettingsService.Instance != null) SettingsService.Instance.OnControlsChanged += ApplySettings;
+        ApplySettings();
+
+        // The old engine/warning line from ShipUI.uxml: the top bar does that job now.
+        var oldStatus = Document.rootVisualElement.Q<Label>("status-text");
+        if (oldStatus != null) oldStatus.style.display = DisplayStyle.None;
+
+        if (LevelGenerator.Instance != null)
+        {
+            LevelGenerator.Instance.OnLevelGenerated += RefreshChartWorld;
+            LevelGenerator.Instance.OnHazardCleared += RefreshChartWorld;
+            if (LevelGenerator.Instance.IsLevelReady) RefreshChartWorld();
+        }
+
+        // Render the crew's faces now, in the shipyard, not mid-voyage.
+        PortraitStudio.Get(CharacterId.Finn);
+        PortraitStudio.Get(CharacterId.Harris);
+        SetSpeaker("CHIEF HARRIS");
     }
 
     // ------------------------------------------------------------ hit feedback
@@ -195,367 +229,286 @@ public class ShipHUD : MonoBehaviour
         foreach (var block in _healthBlocks) block.style.opacity = blink ? 0.25f : 1f;
     }
 
+    // ------------------------------------------------------------ building
+
     private void BuildHUD()
     {
         VisualElement root = Document.rootVisualElement;
 
-        // --- RADAR (Top Left) ---
-        _radarContainer = new VisualElement();
-        _radarContainer.style.position = Position.Absolute;
-        _radarContainer.style.left = Margin;
-        _radarContainer.style.top = TopClearance;
-        _radarContainer.style.width = RadarSize;
-        _radarContainer.style.height = RadarSize;
-        _radarContainer.style.backgroundColor = new Color(0.02f, 0.12f, 0.06f, 0.96f);
-        _radarContainer.style.borderTopLeftRadius = RadarSize / 2f;
-        _radarContainer.style.borderTopRightRadius = RadarSize / 2f;
-        _radarContainer.style.borderBottomLeftRadius = RadarSize / 2f;
-        _radarContainer.style.borderBottomRightRadius = RadarSize / 2f;
-        _radarContainer.style.borderTopWidth = 2f;
-        _radarContainer.style.borderBottomWidth = 2f;
-        _radarContainer.style.borderLeftWidth = 2f;
-        _radarContainer.style.borderRightWidth = 2f;
-        _radarContainer.style.borderTopColor = Color.green;
-        _radarContainer.style.borderBottomColor = Color.green;
-        _radarContainer.style.borderLeftColor = Color.green;
-        _radarContainer.style.borderRightColor = Color.green;
-        _radarContainer.pickingMode = PickingMode.Ignore;
-
-        _radarBlip = new VisualElement();
-        _radarBlip.style.position = Position.Absolute;
-        _radarBlip.style.width = 8f;
-        _radarBlip.style.height = 8f;
-        _radarBlip.style.backgroundColor = Color.red;
-        _radarBlip.style.borderTopLeftRadius = 4f;
-        _radarBlip.style.borderTopRightRadius = 4f;
-        _radarBlip.style.borderBottomLeftRadius = 4f;
-        _radarBlip.style.borderBottomRightRadius = 4f;
-        _radarBlip.style.display = DisplayStyle.None;
-        _radarBlip.style.translate = new Translate(Length.Percent(-50f), Length.Percent(-50f));
-        _radarContainer.Add(_radarBlip);
-        
-        // Radar center dot
-        var radarCenter = new VisualElement();
-        radarCenter.style.position = Position.Absolute;
-        radarCenter.style.width = 4f;
-        radarCenter.style.height = 4f;
-        radarCenter.style.backgroundColor = Color.green;
-        radarCenter.style.borderTopLeftRadius = 2f;
-        radarCenter.style.borderTopRightRadius = 2f;
-        radarCenter.style.borderBottomLeftRadius = 2f;
-        radarCenter.style.borderBottomRightRadius = 2f;
-        radarCenter.style.left = Length.Percent(50f);
-        radarCenter.style.top = Length.Percent(50f);
-        radarCenter.style.translate = new Translate(Length.Percent(-50f), Length.Percent(-50f));
-        _radarContainer.Add(radarCenter);
-
-        root.Add(_radarContainer);
-
-        // --- COMPASS (Top Center) ---
-        _compassContainer = new VisualElement();
-        _compassContainer.style.position = Position.Absolute;
-        _compassContainer.style.top = Margin;
-        _compassContainer.style.left = Length.Percent(50f);
-        _compassContainer.style.translate = new Translate(Length.Percent(-50f), 0f);
-        _compassContainer.style.width = CompassWidth;
-        _compassContainer.style.height = CompassHeight;
-        _compassContainer.style.backgroundColor = Hud.Panel;
-        SetRadius(_compassContainer, 10f);
-        _compassContainer.style.justifyContent = Justify.Center;
-        _compassContainer.style.alignItems = Align.Center;
-
-        _compassLabel = new Label("HEADING 000°");
-        _compassLabel.style.color = Hud.Text;
-        _compassLabel.style.fontSize = Hud.Title;
-        _compassLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        _compassContainer.Add(_compassLabel);
-        root.Add(_compassContainer);
-
-        // --- HULL INTEGRITY (Top Right) ---
-        _healthContainer = new VisualElement();
-        _healthContainer.style.position = Position.Absolute;
-        _healthContainer.style.top = Margin;
-        _healthContainer.style.right = Margin;
-        _healthContainer.style.flexDirection = FlexDirection.Row;
-        _healthContainer.style.alignItems = Align.Center;
-        StylePanel(_healthContainer, 8f);
-        
-        var healthLabel = new Label("HULL");
-        healthLabel.style.color = Hud.Text;
-        healthLabel.style.fontSize = Hud.Body;
-        healthLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        healthLabel.style.marginRight = 10f;
-        _healthContainer.Add(healthLabel);
-
-        for (int i = 0; i < 3; i++)
-        {
-            var block = new VisualElement();
-            block.style.width = 24f;
-            block.style.height = 24f;
-            block.style.marginLeft = 6f;
-            SetRadius(block, 4f);
-            block.style.backgroundColor = Color.green;
-            _healthBlocks.Add(block);
-            _healthContainer.Add(block);
-        }
-        root.Add(_healthContainer);
-
-        // --- ENGINE TELEGRAPH (Bottom Left) ---
-        _telegraphContainer = new VisualElement();
-        _telegraphContainer.style.position = Position.Absolute;
-        _telegraphContainer.style.bottom = BottomClearance;
-        _telegraphContainer.style.left = Margin;
-        StylePanel(_telegraphContainer, 10f);
-        _telegraphContainer.style.width = 180f;
-
-        var telegraphTitle = new Label("ENGINE");
-        telegraphTitle.style.fontSize = Hud.Caption;
-        telegraphTitle.style.color = Hud.TextDim;
-        telegraphTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
-        telegraphTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
-        telegraphTitle.style.marginBottom = 4f;
-        _telegraphContainer.Add(telegraphTitle);
-
-        // Add gears in descending order
-        var gears = new[] 
-        { 
-            ShipEngine.TelegraphGear.Flank,
-            ShipEngine.TelegraphGear.Full,
-            ShipEngine.TelegraphGear.Half,
-            ShipEngine.TelegraphGear.Slow,
-            ShipEngine.TelegraphGear.DeadSlow,
-            ShipEngine.TelegraphGear.Stop,
-            ShipEngine.TelegraphGear.SlowAstern,
-            ShipEngine.TelegraphGear.FullAstern
-        };
-
-        foreach (var gear in gears)
-        {
-            var label = new Label(GearName(gear));
-            label.style.fontSize = Hud.Body;
-            label.style.color = Hud.TextDim;
-            label.style.unityTextAlign = TextAnchor.MiddleCenter;
-            label.style.paddingTop = 2f;
-            label.style.paddingBottom = 2f;
-            label.style.marginTop = gear == ShipEngine.TelegraphGear.Stop || gear == ShipEngine.TelegraphGear.SlowAstern ? 4f : 0f;
-            SetRadius(label, 6f);
-            _telegraphContainer.Add(label);
-            _gearLabels[gear] = label;
-        }
-        root.Add(_telegraphContainer);
-
-        // --- RUDDER (bottom centre): label, then PORT [bar] STBD, all on one panel ---
-        var rudderPanel = new VisualElement();
-        _rudderPanel = rudderPanel;
-        rudderPanel.style.position = Position.Absolute;
-        rudderPanel.style.bottom = 16f;
-        rudderPanel.style.left = Length.Percent(50f);
-        rudderPanel.style.translate = new Translate(Length.Percent(-50f), 0f);
-        rudderPanel.style.alignItems = Align.Center;
-        StylePanel(rudderPanel, 6f);
-        rudderPanel.pickingMode = PickingMode.Ignore;
-
-        _rudderLabel = new Label("RUDDER MIDSHIPS");
-        _rudderLabel.style.color = Hud.Text;
-        _rudderLabel.style.fontSize = Hud.Caption;
-        _rudderLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        _rudderLabel.style.whiteSpace = WhiteSpace.NoWrap;
-        _rudderLabel.style.marginBottom = 6f;
-        rudderPanel.Add(_rudderLabel);
-
-        var rudderRow = new VisualElement();
-        rudderRow.style.flexDirection = FlexDirection.Row;
-        rudderRow.style.alignItems = Align.Center;
-        rudderRow.style.paddingTop = 7f;
-        rudderRow.style.paddingBottom = 7f;
-        rudderPanel.Add(rudderRow);
-
-        rudderRow.Add(SideLabel("PORT", Hud.Port));
-
-        _rudderContainer = new VisualElement();
-        _rudderContainer.style.width = RudderWidth;
-        _rudderContainer.style.height = RudderHeight;
-        _rudderContainer.style.backgroundColor = new Color(1f, 1f, 1f, 0.16f);
-        SetRadius(_rudderContainer, RudderHeight / 2f);
-        rudderRow.Add(_rudderContainer);
-
-        rudderRow.Add(SideLabel("STBD", Hud.Starboard));
-
-        var rudderCenterLine = new VisualElement();
-        rudderCenterLine.style.position = Position.Absolute;
-        rudderCenterLine.style.left = Length.Percent(50f);
-        rudderCenterLine.style.top = 0f;
-        rudderCenterLine.style.bottom = 0f;
-        rudderCenterLine.style.width = 2f;
-        rudderCenterLine.style.backgroundColor = Hud.Text;
-        rudderCenterLine.style.translate = new Translate(Length.Percent(-50f), 0f);
-        _rudderContainer.Add(rudderCenterLine);
-
-        _rudderMarker = new VisualElement();
-        _rudderMarker.style.position = Position.Absolute;
-        _rudderMarker.style.width = 12f;
-        _rudderMarker.style.height = RudderHeight + 14f;
-        _rudderMarker.style.top = -7f;
-        _rudderMarker.style.backgroundColor = Hud.Accent;
-        SetRadius(_rudderMarker, 3f);
-        _rudderMarker.style.left = Length.Percent(50f); // Default center
-        _rudderMarker.style.translate = new Translate(Length.Percent(-50f), 0f);
-        _rudderContainer.Add(_rudderMarker);
-
-        root.Add(rudderPanel);
-
-        // --- COMMS (bottom centre): radio state stacked above the crew panel ---
-        _commsPanel = new VisualElement();
-        _commsPanel.style.position = Position.Absolute;
-        _commsPanel.style.bottom = BottomClearance;
-        _commsPanel.style.left = Length.Percent(50f);
-        _commsPanel.style.translate = new Translate(Length.Percent(-50f), 0f);
-        _commsPanel.style.width = 640f;
-        _commsPanel.pickingMode = PickingMode.Ignore;
-        root.Add(_commsPanel);
-
-        var radioPanel = new VisualElement();
-        radioPanel.style.backgroundColor = Hud.Panel;
-        SetRadius(radioPanel, 10f);
-        radioPanel.style.paddingTop = 10f;
-        radioPanel.style.paddingBottom = 10f;
-        radioPanel.style.paddingLeft = 16f;
-        radioPanel.style.paddingRight = 16f;
-        radioPanel.style.marginBottom = 8f;
-        _commsPanel.Add(radioPanel);
-
-        var radioRow = new VisualElement();
-        radioRow.style.flexDirection = FlexDirection.Row;
-        radioRow.style.alignItems = Align.Center;
-        radioPanel.Add(radioRow);
-
-        _radioDot = new VisualElement();
-        _radioDot.style.width = 14f;
-        _radioDot.style.height = 14f;
-        _radioDot.style.marginRight = 10f;
-        SetRadius(_radioDot, 7f);
-        radioRow.Add(_radioDot);
-
-        _radioState = new Label("RADIO READY");
-        _radioState.style.fontSize = 20f;
-        _radioState.style.color = Color.white;
-        _radioState.style.unityFontStyleAndWeight = FontStyle.Bold;
-        _radioState.style.flexGrow = 1f;
-        radioRow.Add(_radioState);
-
-        _radioHint = new Label("");
-        _radioHint.style.fontSize = 16f;
-        _radioHint.style.color = new Color(0.80f, 0.86f, 0.92f);
-        radioRow.Add(_radioHint);
-
-        _radioMeter = MakeBar(8f, out _radioMeterFill);
-        _radioMeter.style.marginTop = 8f;
-        radioPanel.Add(_radioMeter);
-
-        _radioTimer = MakeBar(6f, out _radioTimerFill);
-        _radioTimer.style.marginTop = 6f;
-        radioPanel.Add(_radioTimer);
-
-        _radioFlash = new Label("");
-        _radioFlash.style.fontSize = 18f;
-        _radioFlash.style.color = RadioAmber;
-        _radioFlash.style.unityFontStyleAndWeight = FontStyle.Bold;
-        _radioFlash.style.marginTop = 6f;
-        _radioFlash.style.whiteSpace = WhiteSpace.Normal;
-        _radioFlash.style.display = DisplayStyle.None;
-        radioPanel.Add(_radioFlash);
-
-        // --- CREW INTERACTION PANEL (Middle/Bottom Center) ---
-        _crewPanel = new VisualElement();
-        _crewPanel.style.minHeight = 100f;
-        _crewPanel.style.backgroundColor = Hud.Panel;
-        _crewPanel.style.borderTopLeftRadius = 10f;
-        _crewPanel.style.borderTopRightRadius = 10f;
-        _crewPanel.style.borderBottomLeftRadius = 10f;
-        _crewPanel.style.borderBottomRightRadius = 10f;
-        _crewPanel.style.flexDirection = FlexDirection.Row;
-        _crewPanel.style.paddingTop = 15f;
-        _crewPanel.style.paddingBottom = 15f;
-        _crewPanel.style.paddingLeft = 15f;
-        _crewPanel.style.paddingRight = 15f;
-
-        // Portrait Placeholder
-        _crewPortrait = new VisualElement();
-        _crewPortrait.style.width = 80f;
-        _crewPortrait.style.height = 80f;
-        _crewPortrait.style.backgroundColor = Hud.PanelRaised;
-        _crewPortrait.style.borderTopLeftRadius = 5f;
-        _crewPortrait.style.borderTopRightRadius = 5f;
-        _crewPortrait.style.borderBottomLeftRadius = 5f;
-        _crewPortrait.style.borderBottomRightRadius = 5f;
-        _crewPortrait.style.marginRight = 15f;
-        
-        // Portrait Icon
-        // Until real portraits exist: the speaker's initial in their colour.
-        _portraitIcon = new Label("H");
-        _portraitIcon.style.color = Hud.Harris;
-        _portraitIcon.style.fontSize = 44f;
-        _portraitIcon.style.unityFontStyleAndWeight = FontStyle.Bold;
-        _portraitIcon.style.unityTextAlign = TextAnchor.MiddleCenter;
-        _portraitIcon.style.flexGrow = 1;
-        _crewPortrait.Add(_portraitIcon);
-        
-        _crewPanel.Add(_crewPortrait);
-
-        // Text Container
-        var textContainer = new VisualElement();
-        textContainer.style.flexDirection = FlexDirection.Column;
-        textContainer.style.flexGrow = 1;
-        textContainer.style.justifyContent = Justify.SpaceBetween;
-        _crewPanel.Add(textContainer);
-
-        // Channel Info
-        _crewChannelText = new Label("FREQ: CH 1: CHIEF HARRIS");
-        _crewChannelText.style.color = Hud.TextDim;
-        _crewChannelText.style.fontSize = Hud.Caption;
-        _crewChannelText.style.unityFontStyleAndWeight = FontStyle.Bold;
-        textContainer.Add(_crewChannelText);
-
-        // Subtitle (AI Response)
-        _crewSubtitleText = new Label("");
-        _crewSubtitleText.style.color = Hud.Text;
-        _crewSubtitleText.style.fontSize = Hud.Subtitle;
-        _crewSubtitleText.style.marginTop = 5f;
-        _crewSubtitleText.style.unityFontStyleAndWeight = FontStyle.Bold;
-        _crewSubtitleText.style.whiteSpace = WhiteSpace.Normal;
-        textContainer.Add(_crewSubtitleText);
-        
-        // STT Log (Player input)
-        _crewSttLogText = new Label("");
-        _crewSttLogText.style.color = Hud.TextDim;
-        _crewSttLogText.style.fontSize = Hud.Body;
-        _crewSttLogText.style.marginTop = 5f;
-        _crewSttLogText.style.whiteSpace = WhiteSpace.Normal;
-        textContainer.Add(_crewSttLogText);
-
-        _commsPanel.Add(_crewPanel);
-
+        BuildTopBar(root);
+        BuildChart(root);
+        BuildHelm(root);
+        BuildComms(root);
         BuildHitFlash(root);
         BuildCoachPanel(root);
         BuildRadioCard(root);
         BuildKeyStrip(root);
 
-        _highlightTargets["radar"] = _radarContainer;
-        _highlightTargets["telegraph"] = _telegraphContainer;
-        _highlightTargets["rudder"] = _rudderPanel;
-        _highlightTargets["radio"] = _commsPanel;
+        _highlightTargets["radar"] = _chart;
+        _highlightTargets["telegraph"] = _helmPanel;
+        _highlightTargets["rudder"] = _helmPanel;
+        _highlightTargets["radio"] = _radioPanel;
         _highlightTargets["crew"] = _crewPanel;
-        _highlightTargets["hull"] = _healthContainer;
+        _highlightTargets["hull"] = _hullBox;
     }
+
+    private void BuildTopBar(VisualElement root)
+    {
+        var holder = new VisualElement();
+        holder.style.position = Position.Absolute;
+        holder.style.top = 16f;
+        holder.style.left = 0; holder.style.right = 0;
+        holder.style.alignItems = Align.Center;
+        holder.pickingMode = PickingMode.Ignore;
+        root.Add(holder);
+
+        _topBar = new VisualElement();
+        _topBar.style.flexDirection = FlexDirection.Row;
+        _topBar.style.alignItems = Align.Center;
+        StylePanel(_topBar, 8f);
+        _topBar.pickingMode = PickingMode.Ignore;
+        holder.Add(_topBar);
+
+        // Engine order and speed.
+        var engine = new VisualElement();
+        engine.style.width = 170f;
+        engine.style.alignItems = Align.Center;
+        engine.Add(HudLook.Words("ENGINE", 12f, HudLook.Brass, true));
+        _gearText = HudLook.Words("STOP", 20f, HudLook.Amber, true);
+        engine.Add(_gearText);
+        _speedText = HudLook.Words("0 kn", 14f, HudLook.TextDim);
+        engine.Add(_speedText);
+        _topBar.Add(engine);
+        _topBar.Add(Divider());
+
+        // The compass.
+        var compass = new VisualElement();
+        compass.style.alignItems = Align.Center;
+        compass.style.marginLeft = 8f; compass.style.marginRight = 8f;
+        _compass = new CompassTape();
+        compass.Add(_compass);
+        _headingText = HudLook.Words("HEADING 000° N", 15f, HudLook.Text, true);
+        _headingText.style.marginTop = 2f;
+        compass.Add(_headingText);
+        _topBar.Add(compass);
+        _topBar.Add(Divider());
+
+        // The hull.
+        _hullBox = new VisualElement();
+        _hullBox.style.width = 150f;
+        _hullBox.style.alignItems = Align.Center;
+        _hullBox.Add(HudLook.Words("HULL", 12f, HudLook.Brass, true));
+        var pips = new VisualElement();
+        pips.style.flexDirection = FlexDirection.Row;
+        pips.style.marginTop = 6f;
+        for (int i = 0; i < 3; i++)
+        {
+            var block = new VisualElement();
+            block.style.width = 28f;
+            block.style.height = 16f;
+            block.style.marginLeft = 3f; block.style.marginRight = 3f;
+            HudLook.Radius(block, 3f);
+            HudLook.Border(block, 1f, HudLook.BrassDim);
+            block.style.backgroundColor = RadioGreen;
+            _healthBlocks.Add(block);
+            pips.Add(block);
+        }
+        _hullBox.Add(pips);
+        _topBar.Add(_hullBox);
+
+        // A hazard on course: a red ribbon under the bar, in plain words.
+        _warning = HudLook.Words("", 19f, Color.white, true);
+        _warning.style.marginTop = 6f;
+        _warning.style.backgroundColor = new Color(HudLook.Danger.r, HudLook.Danger.g, HudLook.Danger.b, 0.94f);
+        _warning.style.paddingTop = 6f; _warning.style.paddingBottom = 6f;
+        _warning.style.paddingLeft = 16f; _warning.style.paddingRight = 16f;
+        HudLook.Radius(_warning, 8f);
+        HudLook.Border(_warning, 2f, new Color(1f, 0.6f, 0.5f));
+        _warning.style.display = DisplayStyle.None;
+        holder.Add(_warning);
+    }
+
+    private static VisualElement Divider()
+    {
+        var d = new VisualElement();
+        d.style.width = 2f;
+        d.style.height = 46f;
+        d.style.backgroundColor = new Color(HudLook.BrassDim.r, HudLook.BrassDim.g, HudLook.BrassDim.b, 0.6f);
+        d.style.marginLeft = 8f; d.style.marginRight = 8f;
+        return d;
+    }
+
+    private void BuildChart(VisualElement root)
+    {
+        var holder = new VisualElement();
+        holder.style.position = Position.Absolute;
+        holder.style.left = Margin;
+        holder.style.top = 16f;
+        holder.style.alignItems = Align.Center;
+        holder.pickingMode = PickingMode.Ignore;
+        _chart = new ChartScope(ChartSize);
+        holder.Add(_chart);
+        var caption = HudLook.Words("RADAR · bow up", 12f, HudLook.Brass, true);
+        caption.style.marginTop = 4f;
+        caption.style.backgroundColor = HudLook.Glass;
+        caption.style.paddingLeft = 8f; caption.style.paddingRight = 8f; caption.style.paddingTop = 2f; caption.style.paddingBottom = 2f;
+        HudLook.Radius(caption, 6f);
+        holder.Add(caption);
+        root.Add(holder);
+    }
+
+    private void BuildHelm(VisualElement root)
+    {
+        _helmPanel = new VisualElement();
+        _helmPanel.style.position = Position.Absolute;
+        _helmPanel.style.left = Margin;
+        _helmPanel.style.bottom = 16f;
+        _helmPanel.style.alignItems = Align.Center;
+        StylePanel(_helmPanel, 8f);
+        HudLook.Radius(_helmPanel, 16f);
+
+        _telegraph = new TelegraphDial();
+        _telegraph.GearClicked += OrderGearByClick;
+        _helmPanel.Add(_telegraph);
+        _rudder = new RudderArc();
+        _rudder.style.marginTop = 4f;
+        _helmPanel.Add(_rudder);
+        root.Add(_helmPanel);
+    }
+
+    /// <summary>A gear clicked on the telegraph: ordered at once, and the words to say it next time.</summary>
+    private void OrderGearByClick(ShipEngine.TelegraphGear gear)
+    {
+        var nav = ShipNavigator.Instance;
+        if (nav == null || GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Playing) return;
+        nav.SetGear(gear);
+        ShowRadioNote("Next time, say it on the radio: \"" + SayFor(gear) + "\"");
+    }
+
+    private static string SayFor(ShipEngine.TelegraphGear gear)
+    {
+        switch (gear)
+        {
+            case ShipEngine.TelegraphGear.FullAstern: return "full astern";
+            case ShipEngine.TelegraphGear.SlowAstern: return "slow astern";
+            case ShipEngine.TelegraphGear.DeadSlow: return "dead slow";
+            case ShipEngine.TelegraphGear.Slow: return "slow ahead";
+            case ShipEngine.TelegraphGear.Half: return "half ahead";
+            case ShipEngine.TelegraphGear.Full: return "full ahead";
+            case ShipEngine.TelegraphGear.Flank: return "flank speed";
+            default: return "stop";
+        }
+    }
+
+    private void BuildComms(VisualElement root)
+    {
+        _commsPanel = new VisualElement();
+        _commsPanel.style.position = Position.Absolute;
+        _commsPanel.style.bottom = 16f;
+        _commsPanel.style.left = Length.Percent(50f);
+        _commsPanel.style.translate = new Translate(Length.Percent(-50f), 0f);
+        _commsPanel.style.width = 660f;
+        _commsPanel.pickingMode = PickingMode.Ignore;
+        root.Add(_commsPanel);
+
+        // The crew's line, with the speaker's face.
+        _crewPanel = new VisualElement();
+        _crewPanel.style.flexDirection = FlexDirection.Row;
+        _crewPanel.style.alignItems = Align.Center;
+        StylePanel(_crewPanel, 10f);
+        _crewPanel.style.marginBottom = 8f;
+        _crewPanel.style.display = DisplayStyle.None;
+
+        _crewPortrait = new VisualElement();
+        _crewPortrait.style.width = 76f;
+        _crewPortrait.style.height = 76f;
+        _crewPortrait.style.flexShrink = 0f;
+        _crewPortrait.style.marginRight = 14f;
+        _crewPortrait.style.backgroundColor = Hud.PanelRaised;
+        HudLook.Radius(_crewPortrait, 10f);
+        HudLook.Border(_crewPortrait, 2f, Hud.Harris);
+        _crewPanel.Add(_crewPortrait);
+
+        var text = new VisualElement();
+        text.style.flexGrow = 1f;
+        text.style.flexShrink = 1f;
+        _crewName = HudLook.Words("CHIEF HARRIS", 15f, Hud.Harris, true);
+        text.Add(_crewName);
+        _crewSubtitleText = HudLook.Words("", Hud.Subtitle, Hud.Text, true);
+        _crewSubtitleText.style.whiteSpace = WhiteSpace.Normal;
+        _crewSubtitleText.style.marginTop = 2f;
+        text.Add(_crewSubtitleText);
+        _crewSttLogText = HudLook.Words("", Hud.Body, Hud.TextDim);
+        _crewSttLogText.style.whiteSpace = WhiteSpace.Normal;
+        _crewSttLogText.style.marginTop = 4f;
+        text.Add(_crewSttLogText);
+        _crewPanel.Add(text);
+        _commsPanel.Add(_crewPanel);
+
+        // "Try saying": phrases for the moment. Click one to hear it.
+        _hintsRow = new VisualElement();
+        _hintsRow.style.flexDirection = FlexDirection.Row;
+        _hintsRow.style.alignItems = Align.Center;
+        _hintsRow.style.justifyContent = Justify.Center;
+        _hintsRow.style.marginBottom = 6f;
+        _commsPanel.Add(_hintsRow);
+
+        // The radio's state.
+        _radioPanel = new VisualElement();
+        StylePanel(_radioPanel, 8f);
+        _commsPanel.Add(_radioPanel);
+
+        var radioRow = new VisualElement();
+        radioRow.style.flexDirection = FlexDirection.Row;
+        radioRow.style.alignItems = Align.Center;
+        _radioPanel.Add(radioRow);
+
+        _radioDot = new VisualElement();
+        _radioDot.style.width = 14f;
+        _radioDot.style.height = 14f;
+        _radioDot.style.marginRight = 10f;
+        HudLook.Radius(_radioDot, 7f);
+        radioRow.Add(_radioDot);
+
+        _radioState = HudLook.Words("RADIO READY", 18f, Color.white, true);
+        _radioState.style.flexGrow = 1f;
+        radioRow.Add(_radioState);
+
+        // Who the orders go to.
+        _crewChannelText = HudLook.Words("FREQ: CH 1: CHIEF HARRIS", 13f, HudLook.Brass, true);
+        radioRow.Add(_crewChannelText);
+
+        _radioHint = HudLook.Words("", 14f, new Color(0.80f, 0.86f, 0.92f));
+        _radioHint.style.marginTop = 3f;
+        _radioPanel.Add(_radioHint);
+
+        _radioMeter = MakeBar(8f, out _radioMeterFill);
+        _radioMeter.style.marginTop = 6f;
+        _radioPanel.Add(_radioMeter);
+
+        _radioTimer = MakeBar(6f, out _radioTimerFill);
+        _radioTimer.style.marginTop = 5f;
+        _radioPanel.Add(_radioTimer);
+
+        _radioFlash = HudLook.Words("", 17f, RadioAmber, true);
+        _radioFlash.style.marginTop = 5f;
+        _radioFlash.style.whiteSpace = WhiteSpace.Normal;
+        _radioFlash.style.display = DisplayStyle.None;
+        _radioPanel.Add(_radioFlash);
+    }
+
+    // ------------------------------------------------------------ every frame
 
     private void Update()
     {
-        UpdateCompass();
-        UpdateRadar();
+        float dt = Time.unscaledDeltaTime;
+        UpdateTopBar();
+        UpdateChart(dt);
         UpdateHull();
-        UpdateTelegraph();
-        UpdateRudder();
+        UpdateHelm(dt);
         UpdateRadio();
+        UpdateCrewPanel();
+        UpdateHints();
         UpdateHighlight();
         UpdateHitFeedback();
 
@@ -564,45 +517,74 @@ public class ShipHUD : MonoBehaviour
 
     private int _shownHeading = -1;
 
-    private void UpdateCompass()
+    private void UpdateTopBar()
     {
-        if (ShipNavigator.Instance != null && _compassLabel != null)
+        var nav = ShipNavigator.Instance;
+        if (nav == null) return;
+
+        float heading = nav.transform.eulerAngles.y;
+        _compass.Set(heading);
+        int h = Mathf.RoundToInt(heading) % 360;
+        if (h != _shownHeading)
         {
-            int heading = Mathf.RoundToInt(ShipNavigator.Instance.transform.eulerAngles.y) % 360;
-            if (heading == _shownHeading) return;
-            _shownHeading = heading;
-            _compassLabel.text = $"HEADING {heading:000}°";
+            _shownHeading = h;
+            _headingText.text = $"HEADING {h:000}°  " + ShipTelemetry.CompassPoint(heading);
         }
+
+        if (nav.Engine != null)
+        {
+            _gearText.text = GearName(nav.Engine.Gear);
+            _gearText.style.color = nav.Engine.Gear < 0 ? HudLook.Port : nav.Engine.Gear == ShipEngine.TelegraphGear.Stop ? HudLook.Text : HudLook.Amber;
+            _speedText.text = Mathf.Abs(nav.currentSpeed).ToString("0.0") + " kn" + (nav.currentSpeed < -0.05f ? " astern" : "");
+        }
+
+        // A hazard on course: say what, where, how far, and which way to turn.
+        var radar = RadarSystem.Instance;
+        if (radar != null && radar.IsThreat)
+        {
+            var t = ShipTelemetry.Capture();
+            string avoid = t.HazardAvoid.StartsWith("left") ? "LEFT" : "RIGHT";
+            _warning.text = $"{t.HazardKind.ToUpperInvariant()} {t.HazardWhere.ToUpperInvariant()} · {t.HazardDistanceM} m · TURN {avoid}";
+            _warning.style.display = DisplayStyle.Flex;
+        }
+        else _warning.style.display = DisplayStyle.None;
     }
 
-    private void UpdateRadar()
+    private void RefreshChartWorld()
     {
-        if (RadarSystem.Instance != null && _radarBlip != null)
+        _blips.Clear();
+        foreach (var c in FindObjectsByType<Collider>(FindObjectsSortMode.None))
         {
-            if (RadarSystem.Instance.IsHazardDetected)
-            {
-                _radarBlip.style.display = DisplayStyle.Flex;
-                
-                float angle = RadarSystem.Instance.CurrentHazardAngle;
-                float normalizedDist = Mathf.Clamp01(RadarSystem.Instance.CurrentHazardDistance / Mathf.Max(1f, RadarSystem.Instance.Range));
-                
-                float radius = (RadarSize / 2f) * normalizedDist;
-                
-                // Unity angle is clockwise from North (forward)
-                float rad = (angle - 90f) * Mathf.Deg2Rad; // -90 so 0 is up
-                
-                float x = Mathf.Cos(rad) * radius;
-                float y = Mathf.Sin(rad) * radius;
-
-                // Center is 50%, 50%
-                _radarBlip.style.left = (RadarSize / 2f) + x;
-                _radarBlip.style.top = (RadarSize / 2f) + y;
-            }
-            else
-            {
-                _radarBlip.style.display = DisplayStyle.None;
-            }
+            if (!c.enabled || !c.CompareTag("Hazard")) continue;
+            _blips.Add(new ChartScope.Blip { Position = c.bounds.center, Mine = RadarSystem.KindOf(c) == "Mine" });
         }
+        _trail.Clear();
+        var level = LevelGenerator.Instance;
+        if (_chart != null) _chart.SetWorld(_blips, level != null ? level.SolutionWorldPath : null);
+    }
+
+    private void UpdateChart(float dt)
+    {
+        var nav = ShipNavigator.Instance;
+        var level = LevelGenerator.Instance;
+        if (nav == null || _chart == null) return;
+
+        Vector3 ship = nav.transform.position;
+        if (Time.unscaledTime >= _nextTrail)
+        {
+            _nextTrail = Time.unscaledTime + 0.6f;
+            if (_trail.Count == 0 || (_trail[_trail.Count - 1] - ship).sqrMagnitude > 4f) _trail.Add(ship);
+            if (_trail.Count > 60) _trail.RemoveAt(0);
+        }
+        if (Time.unscaledTime >= _nextRescueLook)
+        {
+            _nextRescueLook = Time.unscaledTime + 1f;
+            _rescue = FindAnyObjectByType<RescueTarget>();
+        }
+        Vector3? rescue = _rescue != null && !_rescue.Boarded ? _rescue.transform.position : (Vector3?)null;
+        Vector3? dock = level != null && level.IsLevelReady ? level.EndPosition : (Vector3?)null;
+        if (RadarSystem.Instance != null) _chart.RangeMetres = Mathf.Max(90f, RadarSystem.Instance.Range * 1.4f);
+        _chart.Set(ship, nav.transform.eulerAngles.y, _trail, dock, rescue, dt);
     }
 
     private ShipHull _hull;
@@ -617,59 +599,123 @@ public class ShipHUD : MonoBehaviour
             int health = hull.CurrentHealth;
             _shownHealth = health;
             for (int i = 0; i < 3; i++)
-            {
-                if (i < health)
-                {
-                    _healthBlocks[i].style.backgroundColor = (health == 1) ? Color.red : Color.green;
-                }
-                else
-                {
-                    _healthBlocks[i].style.backgroundColor = new Color(0.2f, 0.2f, 0.2f);
-                }
-            }
+                _healthBlocks[i].style.backgroundColor = i < health ? (health == 1 ? RadioRed : RadioGreen) : new Color(0.12f, 0.14f, 0.16f);
         }
     }
 
     private ShipEngine.TelegraphGear? _shownGear;
 
-    private void UpdateTelegraph()
+    private void UpdateHelm(float dt)
     {
         ShipNavigator nav = ShipNavigator.Instance;
-        if (nav != null && nav.Engine != null && nav.Engine.Gear != _shownGear)
+        if (nav == null) return;
+        if (nav.Engine != null && nav.Engine.Gear != _shownGear)
         {
-            ShipEngine.TelegraphGear current = nav.Engine.Gear;
-            _shownGear = current;
-            foreach (var kvp in _gearLabels)
-            {
-                bool active = kvp.Key == current;
-                kvp.Value.style.backgroundColor = active ? Hud.Accent : Color.clear;
-                kvp.Value.style.color = active ? Hud.AccentInk : Hud.TextDim;
-                kvp.Value.style.unityFontStyleAndWeight = active ? FontStyle.Bold : FontStyle.Normal;
-            }
+            _shownGear = nav.Engine.Gear;
+            _telegraph.SetGear(nav.Engine.Gear);
+        }
+        _telegraph.Tick(dt);
+        if (nav.Helm != null)
+        {
+            float max = Mathf.Max(1f, nav.Helm.MaxAngle);
+            _rudder.Set(nav.Helm.CurrentRudderAngle / max, nav.Helm.CurrentRudderAngle);
         }
     }
 
-    private void UpdateRudder()
-    {
-        ShipNavigator nav = ShipNavigator.Instance;
-        if (nav != null && nav.Helm != null && _rudderMarker != null)
-        {
-            float maxRudder = nav.Helm.MaxAngle;
-            float current = nav.Helm.CurrentRudderAngle;
-            
-            // map -max..max to 0..100%
-            float normalized = (current + maxRudder) / (maxRudder * 2f);
-            normalized = Mathf.Clamp01(normalized);
-            
-            _rudderMarker.style.left = Length.Percent(normalized * 100f);
+    // ------------------------------------------------------------ crew line and hints
 
-            int angle = Mathf.RoundToInt(Mathf.Abs(current));
-            if (_rudderLabel != null)
-            {
-                _rudderLabel.text = angle < 2 ? "RUDDER MIDSHIPS"
-                                  : "RUDDER " + angle + "° " + (current < 0f ? "PORT (LEFT)" : "STBD (RIGHT)");
-            }
+    /// <summary>Shows who is speaking in the crew panel: their face, name and colour.</summary>
+    public void SetSpeaker(string crewDisplayName)
+    {
+        if (_crewName == null || string.IsNullOrEmpty(crewDisplayName)) return;
+        bool finn = crewDisplayName.IndexOf("FINN", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        _speaker = finn ? CharacterId.Finn : CharacterId.Harris;
+        Color c = finn ? Hud.Finn : Hud.Harris;
+        _crewName.text = finn ? "LOOKOUT FINN" : "CHIEF HARRIS";
+        _crewName.style.color = c;
+        HudLook.Border(_crewPortrait, 2f, c);
+        SetPortrait(false);
+    }
+
+    private void SetPortrait(bool open)
+    {
+        _mouthOpen = open;
+        var tex = PortraitStudio.Get(_speaker, open) as RenderTexture;
+        _crewPortrait.style.backgroundImage = tex != null ? Background.FromRenderTexture(tex) : new StyleBackground(StyleKeyword.None);
+    }
+
+    private void UpdateCrewPanel()
+    {
+        bool any = !string.IsNullOrEmpty(_crewSubtitleText.text) || !string.IsNullOrEmpty(_crewSttLogText.text);
+        _crewPanel.style.display = any ? DisplayStyle.Flex : DisplayStyle.None;
+        if (!any) return;
+
+        // The speaker's mouth moves while they are on the air.
+        bool talking = AudioService.Instance != null && AudioService.Instance.IsChattering;
+        if (talking && Time.unscaledTime >= _nextFlap)
+        {
+            _nextFlap = Time.unscaledTime + 0.11f * Random.Range(0.7f, 1.4f);
+            SetPortrait(!_mouthOpen);
         }
+        else if (!talking && _mouthOpen) SetPortrait(false);
+    }
+
+    private void UpdateHints()
+    {
+        if (Time.unscaledTime < _nextHints || _hintsRow == null) return;
+        _nextHints = Time.unscaledTime + 0.5f;
+
+        var nav = ShipNavigator.Instance;
+        if (nav == null || nav.Engine == null) return;
+        var t = ShipTelemetry.Capture();
+        var mission = StoryProgress.ActiveMission;
+        var s = new PhraseHints.Situation
+        {
+            Threat = RadarSystem.Instance != null && RadarSystem.Instance.IsThreat,
+            AvoidSide = t.HazardAvoid.StartsWith("left") ? "left" : "right",
+            Gear = (int)nav.Engine.Gear,
+            SpeedKn = Mathf.RoundToInt(Mathf.Abs(nav.currentSpeed)),
+            DockClose = t.DestinationKnown && t.DestinationDistanceM < 140,
+            Fog = mission != null && (mission.Weather == Weather.Fog || mission.Weather == Weather.NightFog),
+            RescueNear = _rescue != null && !_rescue.Boarded && (Flat(_rescue.transform.position - nav.transform.position)).magnitude < 80f,
+            Polite = mission != null && mission.Chapter == 3,
+        };
+        var hints = PhraseHints.For(s);
+        if (hints.Count == _hints.Count && hints.TrueForAll(_hints.Contains)) return;
+
+        _hints.Clear();
+        _hints.AddRange(hints);
+        _hintsRow.Clear();
+        var label = HudLook.Words("TRY SAYING", 12f, HudLook.Brass, true);
+        label.style.marginRight = 8f;
+        label.style.backgroundColor = HudLook.Glass;
+        label.style.paddingLeft = 8f; label.style.paddingRight = 8f; label.style.paddingTop = 4f; label.style.paddingBottom = 4f;
+        HudLook.Radius(label, 6f);
+        _hintsRow.Add(label);
+        foreach (var phrase in hints) _hintsRow.Add(HintChip(phrase));
+    }
+
+    private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
+
+    /// <summary>A phrase chip: clicking it says the phrase aloud, so the learner hears how it sounds.</summary>
+    private static Button HintChip(string phrase)
+    {
+        var chip = new Button(() =>
+        {
+            if (AudioService.Instance != null)
+                AudioService.Instance.SpeakFace(new CrewSpeech.Voice { Name = "Zira", Rate = 0.9f, Pitch = 1f }, phrase);
+        })
+        { text = "\"" + phrase + "\"" };
+        chip.style.fontSize = 17f;
+        chip.style.color = HudLook.Text;
+        chip.style.unityFontStyleAndWeight = FontStyle.Bold;
+        chip.style.backgroundColor = new Color(0.05f, 0.16f, 0.14f, 0.94f);
+        HudLook.Border(chip, 1.5f, new Color(0.45f, 0.85f, 0.7f, 0.8f));
+        HudLook.Radius(chip, 14f);
+        chip.style.paddingLeft = 12f; chip.style.paddingRight = 12f; chip.style.paddingTop = 4f; chip.style.paddingBottom = 4f;
+        chip.style.marginLeft = 4f; chip.style.marginRight = 4f;
+        chip.tooltip = "Click to hear it";
+        return chip;
     }
 
     // ==================================================================
@@ -681,10 +727,10 @@ public class ShipHUD : MonoBehaviour
         _coachPanel = new VisualElement();
         _coachPanel.style.position = Position.Absolute;
         _coachPanel.style.left = Margin;
-        _coachPanel.style.top = TopClearance + RadarSize + 16f;
+        _coachPanel.style.top = 16f + ChartSize + 40f;
         _coachPanel.style.width = 480f;
         StylePanel(_coachPanel, 14f);
-        SetBorder(_coachPanel, 2f, new Color(0.35f, 0.75f, 1f));
+        HudLook.Border(_coachPanel, 2f, new Color(0.35f, 0.75f, 1f));
         _coachPanel.style.display = DisplayStyle.None;
 
         var header = new VisualElement();
@@ -728,7 +774,7 @@ public class ShipHUD : MonoBehaviour
         _coachTry.style.paddingBottom = 8f;
         _coachTry.style.paddingLeft = 12f;
         _coachTry.style.paddingRight = 12f;
-        SetRadius(_coachTry, 6f);
+        HudLook.Radius(_coachTry, 6f);
         _coachPanel.Add(_coachTry);
 
         _coachHint = new Label("");
@@ -784,9 +830,17 @@ public class ShipHUD : MonoBehaviour
     /// <summary>Outlines one HUD part ("radio", "telegraph", "rudder", "crew", "radar", "hull"); null clears.</summary>
     public void Highlight(string key)
     {
-        if (_highlighted != null) SetBorder(_highlighted, 0f, Color.clear);
+        if (_highlighted != null) RestoreBorder(_highlighted);
         _highlighted = null;
         if (key != null) _highlightTargets.TryGetValue(key, out _highlighted);
+    }
+
+    // Each highlightable part goes back to its own rim when the highlight moves on.
+    private void RestoreBorder(VisualElement e)
+    {
+        if (e == _chart) HudLook.Border(e, 3f, HudLook.Brass);
+        else if (e == _hullBox) HudLook.Border(e, 0f, Color.clear);
+        else HudLook.Border(e, 2f, HudLook.BrassDim);
     }
 
     private void UpdateHighlight()
@@ -795,11 +849,11 @@ public class ShipHUD : MonoBehaviour
         float pulse = 0.35f + 0.65f * Mathf.PingPong(Time.unscaledTime * 1.6f, 1f);
         Color c = Hud.Accent;
         c.a = pulse;
-        SetBorder(_highlighted, 3f, c);
+        HudLook.Border(_highlighted, 4f, c);
     }
 
     // ==================================================================
-    // Radio card (F1) and key strip
+    // Radio card (F1) and the help button
     // ==================================================================
 
     private void BuildRadioCard(VisualElement root)
@@ -813,7 +867,7 @@ public class ShipHUD : MonoBehaviour
         StylePanel(_radioCard, 18f);
         // Fully opaque: it covers the radio and subtitle panels, which must not show through.
         _radioCard.style.backgroundColor = new Color(0.03f, 0.07f, 0.11f, 1f);
-        SetBorder(_radioCard, 2f, Hud.Accent);
+        HudLook.Border(_radioCard, 2f, HudLook.Brass);
         _radioCard.style.display = DisplayStyle.None;
         _radioCard.pickingMode = PickingMode.Ignore;
 
@@ -858,6 +912,14 @@ public class ShipHUD : MonoBehaviour
         CardLine(radio, "\"belay that\"", "undo the last order");
         CardLine(radio, "\"radio check\"", "test your microphone");
         CardLine(radio, "Y (hold)", "just talk to the crew");
+
+        // The keys live here now instead of along the bottom of the screen.
+        _keyStrip = new Label("");
+        _keyStrip.style.fontSize = Hud.Caption;
+        _keyStrip.style.color = Hud.TextDim;
+        _keyStrip.style.marginTop = 12f;
+        _keyStrip.style.whiteSpace = WhiteSpace.Normal;
+        _radioCard.Add(_keyStrip);
 
         root.Add(_radioCard);
     }
@@ -917,31 +979,25 @@ public class ShipHUD : MonoBehaviour
         if (_radioCardTitle != null)
             _radioCardTitle.text = "RADIO CARD · " + (ToggleToTalk ? "press " : "hold ") + OrderKey + " and say an order · F1 to close";
         if (_keyStrip != null)
-            _keyStrip.text = OrderKey + ": order · " + TalkKey + ": talk · Enter: type · Tab: channel · " + ChartKey + ": chart · F1: orders · Esc: pause";
+            _keyStrip.text = "KEYS   " + OrderKey + ": order · " + TalkKey + ": talk · Enter: type · Tab: channel · " + ChartKey + ": chart · F1: this card · Esc: pause";
 
         float scale = SettingsService.Instance != null ? SettingsService.Instance.SubtitleScale : 1f;
         if (_crewSubtitleText != null) _crewSubtitleText.style.fontSize = Hud.Subtitle * scale;
         if (_crewSttLogText != null) _crewSttLogText.style.fontSize = Hud.Body * scale;
     }
 
-    private void Start()
-    {
-        if (SettingsService.Instance != null) SettingsService.Instance.OnControlsChanged += ApplySettings;
-        ApplySettings();
-    }
-
+    /// <summary>A small "F1 · help and keys" tab in the corner: the full list is on the card.</summary>
     private void BuildKeyStrip(VisualElement root)
     {
-        var strip = new Label("");
-        _keyStrip = strip;
-        strip.style.position = Position.Absolute;
-        strip.style.right = Margin;
-        strip.style.bottom = 16f;
-        strip.style.fontSize = Hud.Caption;
-        strip.style.color = Hud.TextDim;
-        StylePanel(strip, 6f);
-        strip.pickingMode = PickingMode.Ignore;
-        root.Add(strip);
+        var help = new Button(() => SetRadioCardOpen(!IsRadioCardOpen)) { text = "F1  ·  orders & keys" };
+        help.style.position = Position.Absolute;
+        help.style.right = Margin;
+        help.style.bottom = 16f;
+        help.style.fontSize = Hud.Caption;
+        help.style.color = HudLook.Brass;
+        help.style.unityFontStyleAndWeight = FontStyle.Bold;
+        StylePanel(help, 6f);
+        root.Add(help);
     }
 
     private static Button MakeButton(string text, Color background, Color textColor, float fontSize)
@@ -955,21 +1011,9 @@ public class ShipHUD : MonoBehaviour
         b.style.paddingBottom = 6f;
         b.style.paddingLeft = 12f;
         b.style.paddingRight = 12f;
-        SetBorder(b, 0f, Color.clear);
-        SetRadius(b, 6f);
+        HudLook.Border(b, 0f, Color.clear);
+        HudLook.Radius(b, 6f);
         return b;
-    }
-
-    private static void SetBorder(VisualElement e, float width, Color color)
-    {
-        e.style.borderTopWidth = width;
-        e.style.borderBottomWidth = width;
-        e.style.borderLeftWidth = width;
-        e.style.borderRightWidth = width;
-        e.style.borderTopColor = color;
-        e.style.borderBottomColor = color;
-        e.style.borderLeftColor = color;
-        e.style.borderRightColor = color;
     }
 
     private static string GearName(ShipEngine.TelegraphGear gear)
@@ -979,37 +1023,11 @@ public class ShipHUD : MonoBehaviour
             case ShipEngine.TelegraphGear.DeadSlow: return "DEAD SLOW";
             case ShipEngine.TelegraphGear.SlowAstern: return "SLOW ASTERN";
             case ShipEngine.TelegraphGear.FullAstern: return "FULL ASTERN";
+            case ShipEngine.TelegraphGear.Slow: return "SLOW AHEAD";
+            case ShipEngine.TelegraphGear.Half: return "HALF AHEAD";
+            case ShipEngine.TelegraphGear.Full: return "FULL AHEAD";
             default: return gear.ToString().ToUpperInvariant();
         }
-    }
-
-    private static Label SideLabel(string text, Color color)
-    {
-        var label = new Label(text);
-        label.style.marginLeft = 10f;
-        label.style.marginRight = 10f;
-        label.style.color = color;
-        label.style.fontSize = Hud.Caption;
-        label.style.unityFontStyleAndWeight = FontStyle.Bold;
-        return label;
-    }
-
-    /// <summary>Shows who is speaking in the crew panel: their initial in their colour.</summary>
-    public void SetSpeaker(string crewDisplayName)
-    {
-        if (_portraitIcon == null || string.IsNullOrEmpty(crewDisplayName)) return;
-
-        bool finn = crewDisplayName.IndexOf("FINN", System.StringComparison.OrdinalIgnoreCase) >= 0;
-        _portraitIcon.text = finn ? "F" : "H";
-        _portraitIcon.style.color = finn ? Hud.Finn : Hud.Harris;
-    }
-
-    private static void SetRadius(VisualElement e, float r)
-    {
-        e.style.borderTopLeftRadius = r;
-        e.style.borderTopRightRadius = r;
-        e.style.borderBottomLeftRadius = r;
-        e.style.borderBottomRightRadius = r;
     }
 
     private static VisualElement MakeBar(float height, out VisualElement fill)
@@ -1018,15 +1036,17 @@ public class ShipHUD : MonoBehaviour
         bar.style.height = height;
         bar.style.backgroundColor = new Color(1f, 1f, 1f, 0.12f);
         bar.style.overflow = Overflow.Hidden;
-        SetRadius(bar, height / 2f);
+        HudLook.Radius(bar, height / 2f);
 
         fill = new VisualElement();
         fill.style.height = Length.Percent(100f);
         fill.style.width = Length.Percent(0f);
-        SetRadius(fill, height / 2f);
+        HudLook.Radius(fill, height / 2f);
         bar.Add(fill);
         return bar;
     }
+
+    // ------------------------------------------------------------ radio state
 
     private void UpdateRadio()
     {
@@ -1080,13 +1100,14 @@ public class ShipHUD : MonoBehaviour
             dot = RadioGreen;
             state = "RADIO READY";
             string verb = ToggleToTalk ? "Press " : "Hold ";
-            hint = verb + OrderKey + ": give order · " + verb + TalkKey + ": talk · Enter: type";
+            hint = verb + OrderKey + ": give an order  ·  " + verb + TalkKey + ": talk  ·  Enter: type";
         }
 
         dot.a = 1f;
         _radioDot.style.backgroundColor = dot;
         _radioState.text = state;
         _radioHint.text = hint;
+        _radioHint.style.display = string.IsNullOrEmpty(hint) ? DisplayStyle.None : DisplayStyle.Flex;
 
         _radioMeter.style.display = recording ? DisplayStyle.Flex : DisplayStyle.None;
         _radioTimer.style.display = recording ? DisplayStyle.Flex : DisplayStyle.None;
