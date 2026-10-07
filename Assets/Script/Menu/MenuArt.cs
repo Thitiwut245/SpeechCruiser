@@ -203,20 +203,28 @@ public class SailLever : VisualElement
         var p = ctx.painter2D;
         var r = contentRect;
         if (r.width < 4f) return;
-        var pivot = new Vector2(r.width / 2f, r.height - 12f);
+        var pivot = new Vector2(r.width / 2f, r.height - 10f);
+        float reach = r.height - 18f;
+        Color ink = new Color(0.30f, 0.20f, 0.08f);
 
-        // The quadrant plate the lever moves along.
-        HudLook.Sector(p, pivot, 0f, r.height - 16f, 90f - Forward - 6f, 90f - Back + 6f, new Color(0.12f, 0.09f, 0.04f, 0.85f));
-        HudLook.Ring(p, pivot, r.height - 18f, new Color(0.35f, 0.25f, 0.1f), 2f, 90f - Forward - 6f, 90f - Back + 6f);
+        // The slot the lever runs in: a narrow arc, with a notch at each end (back, forward).
+        HudLook.Sector(p, pivot, reach - 12f, reach - 4f, 90f - Forward - 4f, 90f - Back + 4f, new Color(0.22f, 0.15f, 0.06f, 0.9f));
+        foreach (float a in new[] { Back, Forward })
+        {
+            p.strokeColor = ink;
+            p.lineWidth = 2f;
+            p.BeginPath(); p.MoveTo(HudLook.OnCircle(pivot, reach - 15f, 90f - a)); p.LineTo(HudLook.OnCircle(pivot, reach - 1f, 90f - a)); p.Stroke();
+        }
 
-        // The handle: a dark rod with a brass knob.
-        Vector2 tip = HudLook.OnCircle(pivot, r.height - 24f, 90f - _angle);
-        p.strokeColor = new Color(0.16f, 0.12f, 0.06f);
-        p.lineWidth = 7f;
+        // The handle: a dark rod with a red knob, on a dark hub.
+        Vector2 tip = HudLook.OnCircle(pivot, reach, 90f - _angle);
+        p.strokeColor = ink;
+        p.lineWidth = 6f;
         p.lineCap = LineCap.Round;
         p.BeginPath(); p.MoveTo(pivot); p.LineTo(tip); p.Stroke();
-        HudLook.Disc(p, tip, 8f, new Color(0.95f, 0.85f, 0.6f));
-        HudLook.Ring(p, tip, 8f, new Color(0.35f, 0.25f, 0.1f), 2f);
-        HudLook.Disc(p, pivot, 7f, new Color(0.25f, 0.18f, 0.08f));
+        HudLook.Disc(p, tip, 9f, new Color(0.72f, 0.18f, 0.12f));
+        HudLook.Disc(p, tip + new Vector2(-2.5f, -2.5f), 3f, new Color(1f, 0.6f, 0.5f));
+        HudLook.Disc(p, pivot, 8f, ink);
+        HudLook.Disc(p, pivot, 3f, new Color(0.85f, 0.7f, 0.4f));
     }
 }
