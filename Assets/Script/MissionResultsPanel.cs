@@ -3,8 +3,9 @@ using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// The voyage report after a delivery or a sinking: what was delivered, what it paid, hits,
-/// time, the repair bill and one plain-English tip. It waits a moment so the player sees the
+/// The voyage report after a delivery or a sinking, as a page of the ship's log: what was
+/// delivered, what it paid, hits, time, the repair bill and one plain-English tip, under a
+/// rubber stamp (DELIVERED, COMPLETE or LOST). It waits a moment so the player sees the
 /// arrival (or the wreck), then waits for Continue (button, Enter or Space) instead of a timer.
 /// Lives next to ShipyardManager and uses the same UIDocument.
 /// </summary>
@@ -28,6 +29,8 @@ public class MissionResultsPanel : MonoBehaviour
     private VisualElement _rows;
     private Label _totalValue;
     private Label _tip;
+    private Label _stamp;
+    private Label _voyage;
     private Button _continue;
 
     private float _showAt = -1f;
@@ -51,6 +54,8 @@ public class MissionResultsPanel : MonoBehaviour
         _rows = root.Q<VisualElement>("results-rows");
         _totalValue = root.Q<Label>("results-total-value");
         _tip = root.Q<Label>("results-tip");
+        _stamp = root.Q<Label>("results-stamp");
+        _voyage = root.Q<Label>("results-voyage");
         _continue = root.Q<Button>("results-continue-btn");
         _continue.clicked += Continue;
 
@@ -119,6 +124,13 @@ public class MissionResultsPanel : MonoBehaviour
         _shown = true;
         _continueAt = Time.unscaledTime + ContinueDelay;
         _panel.EnableInClassList("failed", !result.Delivered);
+        var mission = StoryProgress.ActiveMission;
+        if (_stamp != null) _stamp.text = !result.Delivered ? "LOST" : mission != null ? "COMPLETE" : "DELIVERED";
+        if (_voyage != null)
+        {
+            int voyage = GameSession.Instance != null ? GameSession.Instance.VoyagesStarted : 0;
+            _voyage.text = (mission != null ? mission.Label + "  ·  " : "") + (voyage > 0 ? "Voyage no. " + voyage : "");
+        }
         _rows.Clear();
 
         var story = StoryProgress.ActiveMission;

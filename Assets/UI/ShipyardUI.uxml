@@ -113,8 +113,13 @@
         <ui:Label name="loading-caption" text="" class="loading-caption" />
 
         <ui:VisualElement name="results-backdrop" class="results-backdrop">
+            <!-- The report is a page of the ship's log: parchment, ruled lines, a rubber stamp. -->
             <ui:VisualElement name="results-panel" class="results-panel">
-                <ui:Label name="results-eyebrow" text="VOYAGE REPORT" class="eyebrow" />
+                <ui:VisualElement class="log-header">
+                    <ui:Label name="results-eyebrow" text="SHIP'S LOG  ·  VOYAGE REPORT" class="log-eyebrow" />
+                    <ui:Label name="results-voyage" text="" class="log-voyage" />
+                </ui:VisualElement>
+                <ui:Label name="results-stamp" text="DELIVERED" class="log-stamp" />
                 <ui:Label name="results-title" text="CARGO DELIVERED" class="results-title" />
                 <ui:Label name="results-subtitle" text="" class="results-subtitle" />
                 <ui:VisualElement name="results-rows" class="results-rows" />

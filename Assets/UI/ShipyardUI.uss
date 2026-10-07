@@ -403,13 +403,15 @@
     display: none;
 }
 
+/* ------------------------------------------------------------ voyage report: a page of the ship's log */
+
 .results-backdrop {
     position: absolute;
     left: 0;
     top: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(4, 10, 16, 0.55);
+    background-color: rgba(4, 10, 16, 0.6);
     align-items: center;
     justify-content: center;
     display: none;
@@ -423,92 +425,144 @@
 }
 
 .results-panel {
-    width: 680px;
-    padding: 28px 34px;
-    background-color: rgb(8, 18, 28);
-    border-width: 2px;
-    border-color: rgb(255, 199, 69);
-    border-radius: 16px;
+    width: 700px;
+    padding: 24px 36px 26px 36px;
+    background-color: rgb(232, 218, 184);
+    border-width: 3px;
+    border-color: rgb(140, 110, 56);
+    border-radius: 6px;
+    border-left-width: 14px;
+    border-left-color: rgb(92, 52, 30);
 }
 
-.results-panel.failed {
-    border-color: rgb(235, 90, 70);
+.log-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 6px;
+    border-bottom-width: 2px;
+    border-color: rgb(120, 86, 46);
+}
+
+.log-eyebrow {
+    font-size: 14px;
+    letter-spacing: 3px;
+    -unity-font-style: bold;
+    color: rgb(120, 82, 34);
+    margin: 0;
+}
+
+.log-voyage {
+    font-size: 14px;
+    -unity-font-style: italic;
+    color: rgb(120, 82, 34);
+    margin: 0;
+}
+
+/* A rubber stamp across the top corner: green on delivery, red when the ship was lost. */
+.log-stamp {
+    position: absolute;
+    right: 30px;
+    top: 52px;
+    rotate: -12deg;
+    font-size: 26px;
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    color: rgba(40, 120, 70, 0.85);
+    border-width: 4px;
+    border-color: rgba(40, 120, 70, 0.85);
+    border-radius: 6px;
+    padding: 4px 14px;
+}
+
+.results-panel.failed .log-stamp {
+    color: rgba(170, 40, 30, 0.85);
+    border-color: rgba(170, 40, 30, 0.85);
 }
 
 .results-title {
-    font-size: 44px;
-    color: rgb(255, 199, 69);
+    font-size: 40px;
+    color: rgb(64, 43, 23);
     -unity-font-style: bold;
+    margin-top: 10px;
 }
 
 .results-panel.failed .results-title {
-    color: rgb(255, 110, 90);
+    color: rgb(150, 40, 28);
 }
 
 .results-subtitle {
-    font-size: 19px;
-    color: rgb(196, 209, 221);
-    margin-bottom: 14px;
+    font-size: 18px;
+    color: rgb(92, 66, 38);
+    margin-bottom: 10px;
     white-space: normal;
+    -unity-font-style: italic;
 }
 
+/* Ruled lines, like the log's printed rows. */
 .results-row {
     flex-direction: row;
     justify-content: space-between;
     padding: 7px 0;
     border-bottom-width: 1px;
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(120, 86, 46, 0.35);
 }
 
 .results-row-label {
-    font-size: 20px;
-    color: rgb(196, 209, 221);
+    font-size: 19px;
+    color: rgb(92, 66, 38);
 }
 
 .results-row-value {
-    font-size: 20px;
-    color: rgb(242, 247, 250);
+    font-size: 19px;
+    color: rgb(48, 32, 16);
     -unity-font-style: bold;
 }
 
 .results-row-value.good {
-    color: rgb(98, 214, 150);
+    color: rgb(30, 110, 60);
 }
 
 .results-row-value.bad {
-    color: rgb(255, 130, 110);
+    color: rgb(165, 40, 28);
 }
 
 .results-total {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 12px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top-width: 2px;
+    border-color: rgb(120, 86, 46);
 }
 
 .results-total-label {
-    font-size: 20px;
-    color: rgb(196, 209, 221);
+    font-size: 18px;
+    color: rgb(120, 82, 34);
     -unity-font-style: bold;
     letter-spacing: 2px;
 }
 
 .results-total-value {
-    font-size: 34px;
-    color: rgb(255, 199, 69);
+    font-size: 32px;
+    color: rgb(64, 43, 23);
     -unity-font-style: bold;
 }
 
+/* The tip: a note pinned to the page. */
 .results-tip {
-    font-size: 18px;
-    color: rgb(242, 247, 250);
+    font-size: 17px;
+    color: rgb(48, 40, 20);
     white-space: normal;
-    margin: 14px 0 18px 0;
+    margin: 14px 0 16px 0;
     padding: 10px 14px;
-    background-color: rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
+    background-color: rgb(250, 238, 170);
+    border-left-width: 4px;
+    border-color: rgb(205, 160, 72);
+    border-radius: 4px;
 }
 
 .results-continue {
-    font-size: 24px;
+    font-size: 22px;
 }
