@@ -107,7 +107,7 @@ public class TelegraphDial : VisualElement
         ShipEngine.TelegraphGear.DeadSlow, ShipEngine.TelegraphGear.Slow, ShipEngine.TelegraphGear.Half,
         ShipEngine.TelegraphGear.Full, ShipEngine.TelegraphGear.Flank,
     };
-    private static readonly string[] Names = { "FULL\nASTERN", "SLOW\nASTERN", "STOP", "DEAD\nSLOW", "SLOW", "HALF", "FULL", "FLANK" };
+    private static readonly string[] Names = { "FULL ASTERN", "SLOW ASTERN", "STOP", "DEAD SLOW", "SLOW", "HALF", "FULL", "FLANK" };
 
     public event Action<ShipEngine.TelegraphGear> GearClicked;
 
@@ -123,29 +123,28 @@ public class TelegraphDial : VisualElement
         style.width = W;
         style.height = H;
         generateVisualContent += Draw;
+        // The names run outward from the hub like spokes, as on a real telegraph face; on the
+        // astern side they are turned the other way so they never read upside down.
+        const float LabelW = 84f, LabelH = 16f;
         for (int i = 0; i < Order.Length; i++)
         {
             int index = i;
-            var l = HudLook.Words(Names[i], 12f, HudLook.TextDim, true);
+            float a = AngleOf(i);
+            var l = HudLook.Words(Names[i], 11f, HudLook.TextDim, true);
             l.style.position = Position.Absolute;
-            l.style.width = 46f;
-            l.style.unityTextAlign = TextAnchor.MiddleCenter;
-            Vector2 at = HudLook.OnCircle(Hub, Radius - 34f, AngleOf(i));
-            l.style.left = at.x - 23f;
-            l.style.top = at.y - 15f;
-            l.style.height = 30f;
+            l.style.width = LabelW;
+            l.style.height = LabelH;
+            l.style.unityTextAlign = a > 90f ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight;
+            Vector2 at = HudLook.OnCircle(Hub, (30f + Radius) / 2f + 4f, a);
+            l.style.left = at.x - LabelW / 2f;
+            l.style.top = at.y - LabelH / 2f;
+            l.style.rotate = new Rotate(a > 90f ? 180f - a : -a);
             l.pickingMode = PickingMode.Position;
             l.RegisterCallback<ClickEvent>(_ => GearClicked?.Invoke(Order[index]));
-            l.tooltip = "Click to order " + Names[i].Replace('\n', ' ').ToLowerInvariant();
+            l.tooltip = "Click to order " + Names[i].ToLowerInvariant();
             _labels[i] = l;
             Add(l);
         }
-        var title = HudLook.Words("ENGINE", 12f, HudLook.Brass, true);
-        title.style.position = Position.Absolute;
-        title.style.left = 0; title.style.right = 0; title.style.top = H - 16f;
-        title.style.unityTextAlign = TextAnchor.MiddleCenter;
-        title.pickingMode = PickingMode.Ignore;
-        Add(title);
     }
 
     public void SetGear(ShipEngine.TelegraphGear gear)
@@ -157,8 +156,8 @@ public class TelegraphDial : VisualElement
         for (int k = 0; k < _labels.Length; k++)
         {
             bool on = k == i;
-            _labels[k].style.color = on ? HudLook.Amber : (k < 2 ? new Color(0.95f, 0.6f, 0.55f) : k == 2 ? HudLook.Text : HudLook.TextDim);
-            _labels[k].style.fontSize = on ? 13.5f : 12f;
+            _labels[k].style.color = on ? Color.white : (k < 2 ? new Color(0.95f, 0.6f, 0.55f) : k == 2 ? HudLook.Text : HudLook.TextDim);
+            _labels[k].style.fontSize = on ? 12.5f : 11f;
         }
     }
 
