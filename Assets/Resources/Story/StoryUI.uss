@@ -106,17 +106,19 @@
 
 /* ------------------------------------------------------------ story screen (title menu) */
 
+/* The board: dark glass with a brass rim, like the title. */
 .story-panel {
     position: absolute;
-    left: 64px;
+    left: 56px;
     top: 0;
     bottom: 0;
-    width: 760px;
-    padding: 36px 36px;
+    width: 860px;
+    padding: 28px 36px;
     justify-content: center;
-    background-color: rgb(8, 18, 28);
-    border-right-width: 1px;
-    border-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(6, 14, 22, 0.95);
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-color: rgb(140, 110, 56);
 }
 
 .story-eyebrow {
@@ -131,160 +133,296 @@
     font-size: 34px;
     color: rgb(242, 247, 250);
     -unity-font-style: bold;
-    margin: 2px 0 16px 0;
+    margin: 2px 0 14px 0;
     white-space: normal;
 }
 
+/* Chapter tabs: brass plates; the open chapter is the chart's own paper. */
 .story-tabs {
     flex-direction: row;
-    margin-bottom: 14px;
 }
 
 .story-tab {
     flex-grow: 1;
     flex-basis: 0;
-    font-size: 17px;
-    color: rgb(242, 247, 250);
-    background-color: rgb(20, 38, 56);
-    border-width: 0;
-    border-radius: 8px;
-    padding: 10px 6px;
-    margin: 0 4px;
-    white-space: normal;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(18, 34, 48, 0.95);
+    border-width: 2px;
+    border-bottom-width: 0;
+    border-color: rgba(140, 110, 56, 0.7);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding: 8px 6px;
+    margin: 0 3px;
 }
 
 .story-tab:hover {
-    background-color: rgb(46, 84, 116);
+    background-color: rgb(30, 54, 74);
 }
 
 .story-tab.selected {
-    background-color: rgb(255, 199, 69);
-    color: rgb(20, 16, 4);
-    -unity-font-style: bold;
+    background-color: rgb(222, 204, 163);
+    border-color: rgb(140, 110, 56);
 }
 
 .story-tab:disabled {
     opacity: 0.45;
 }
 
-.story-chapter {
-    flex-direction: row;
-    align-items: center;
-    padding: 12px;
-    margin-bottom: 12px;
-    background-color: rgb(14, 28, 42);
-    border-radius: 10px;
-}
-
-.story-chapter-portrait {
-    width: 104px;
-    height: 104px;
-    flex-shrink: 0;
-    border-width: 2px;
-    border-color: rgb(255, 199, 69);
-    border-radius: 10px;
-    margin-right: 16px;
-}
-
-.story-chapter-text {
-    flex-grow: 1;
-    flex-shrink: 1;
-}
-
-.story-chapter-name {
-    font-size: 24px;
-    color: rgb(242, 247, 250);
+.story-tab__number {
+    font-size: 12px;
+    letter-spacing: 2px;
     -unity-font-style: bold;
+    color: rgb(205, 165, 90);
+    margin: 0;
+}
+
+.story-tab__name {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(242, 247, 250);
+    margin: 0;
+}
+
+.story-tab.selected .story-tab__number {
+    color: rgb(120, 82, 34);
+}
+
+.story-tab.selected .story-tab__name {
+    color: rgb(64, 43, 23);
+}
+
+/* The chapter as an old sea chart. */
+.chart-card {
+    height: 330px;
+    background-color: rgb(222, 204, 163);
+    border-width: 2px;
+    border-color: rgb(140, 110, 56);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    overflow: hidden;
+}
+
+.chart-fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.chart-rose {
+    position: absolute;
+    right: 18px;
+    top: 34px;
+}
+
+.chart-text {
+    position: absolute;
+    left: 20px;
+    top: 38px;
+    width: 64%;
+}
+
+.chart-title {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: rgb(64, 43, 23);
     margin: 0;
     white-space: normal;
 }
 
-.story-chapter-blurb {
-    font-size: 16px;
-    color: rgb(196, 209, 221);
+.chart-blurb {
+    font-size: 15px;
+    color: rgb(80, 58, 34);
     white-space: normal;
     margin: 4px 0 0 0;
 }
 
-.story-chapter-focus {
-    font-size: 15px;
-    color: rgb(120, 210, 190);
+.chart-focus {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(30, 92, 84);
     white-space: normal;
     margin: 6px 0 0 0;
 }
 
-.story-mission {
-    flex-direction: row;
-    align-items: center;
-    padding: 12px 14px;
-    margin: 5px 0;
-    background-color: rgb(20, 38, 56);
+.chart-portrait {
+    position: absolute;
+    right: 104px;
+    top: 34px;
+    width: 78px;
+    height: 78px;
     border-width: 2px;
-    border-color: rgba(0, 0, 0, 0);
-    border-radius: 10px;
+    border-color: rgb(110, 80, 40);
+    border-radius: 39px;
+    -unity-background-scale-mode: scale-and-crop;
 }
 
-.story-mission:hover {
-    background-color: rgb(30, 56, 80);
+/* A mission on the route: a round ink-rimmed marker with its number. */
+.chart-marker {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    translate: -50% -50%;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(64, 43, 23);
+    background-color: rgb(240, 228, 198);
+    border-width: 3px;
+    border-color: rgb(64, 43, 23);
+    border-radius: 27px;
+    padding: 0;
+    margin: 0;
+    transition-duration: 0.12s;
 }
 
-.story-mission.next {
-    border-color: rgb(255, 199, 69);
+.chart-marker:hover {
+    scale: 1.1 1.1;
 }
 
-.story-mission:disabled {
+.chart-marker.done {
+    background-color: rgb(46, 110, 80);
+    border-color: rgb(28, 70, 50);
+    color: rgb(240, 248, 240);
+}
+
+.chart-marker.next {
+    background-color: rgb(255, 199, 69);
+    border-color: rgb(130, 82, 18);
+}
+
+.chart-marker.locked {
     opacity: 0.45;
 }
 
-.story-mission-number {
-    font-size: 26px;
+.chart-marker.selected {
+    border-width: 5px;
+    border-color: rgb(165, 40, 28);
+}
+
+.chart-marker-caption {
+    position: absolute;
+    width: 170px;
+    translate: -50% 34px;
+    font-size: 14px;
+    -unity-font-style: bold;
+    -unity-text-align: upper-center;
+    color: rgb(64, 43, 23);
+    white-space: normal;
+    margin: 0;
+}
+
+/* The chosen mission: details and the SET SAIL plate. */
+.mission-detail {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background-color: rgba(18, 34, 48, 0.95);
+    border-width: 2px;
+    border-color: rgba(140, 110, 56, 0.8);
+    border-radius: 10px;
+}
+
+.mission-head {
+    flex-direction: row;
+    align-items: center;
+}
+
+.mission-number {
+    font-size: 28px;
     -unity-font-style: bold;
     color: rgb(255, 199, 69);
-    width: 64px;
+    width: 70px;
     -unity-text-align: middle-center;
     margin: 0;
 }
 
-.story-mission-main {
+.mission-text {
     flex-grow: 1;
     flex-shrink: 1;
     margin-left: 8px;
 }
 
-.story-mission-title {
-    font-size: 22px;
+.mission-title {
+    font-size: 24px;
     -unity-font-style: bold;
     color: rgb(242, 247, 250);
     margin: 0;
-    -unity-text-align: middle-left;
 }
 
-.story-mission-summary {
-    font-size: 15px;
+.mission-summary {
+    font-size: 16px;
     color: rgb(196, 209, 221);
     white-space: normal;
     margin: 2px 0 0 0;
-    -unity-text-align: middle-left;
 }
 
-.story-mission-tag {
-    font-size: 14px;
+.mission-tags {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 10px 0 0 78px;
+}
+
+.mission-tag {
+    font-size: 13px;
     -unity-font-style: bold;
-    color: rgb(196, 209, 221);
+    color: rgb(220, 228, 236);
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 6px;
-    padding: 4px 8px;
-    margin-left: 10px;
+    padding: 3px 8px;
+    margin: 0 6px 6px 0;
 }
 
-.story-mission-tag.done {
+.mission-tag--weather {
+    color: rgb(190, 220, 255);
+    background-color: rgba(80, 130, 200, 0.3);
+}
+
+.mission-tag--danger {
+    color: rgb(255, 200, 190);
+    background-color: rgba(200, 50, 40, 0.35);
+}
+
+.mission-tag--pay {
+    color: rgb(255, 199, 69);
+}
+
+.mission-tag--done {
     color: rgb(20, 40, 24);
     background-color: rgb(96, 200, 120);
 }
 
-.story-mission-tag.new {
-    color: rgb(20, 16, 4);
-    background-color: rgb(255, 199, 69);
+.mission-words {
+    font-size: 16px;
+    color: rgb(120, 210, 190);
+    white-space: normal;
+    margin: 2px 0 0 78px;
+}
+
+.mission-sail {
+    align-self: flex-end;
+    margin-top: 10px;
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(28, 20, 6);
+    background-color: rgb(205, 160, 72);
+    border-width: 2px;
+    border-color: rgb(255, 214, 120);
+    border-radius: 10px;
+    padding: 10px 34px;
+}
+
+.mission-sail:hover {
+    background-color: rgb(228, 184, 92);
+}
+
+.mission-sail:disabled {
+    opacity: 0.4;
 }
 
 .story-footer {
@@ -300,8 +438,19 @@
 }
 
 .story-back {
-    width: 220px;
+    width: 200px;
+    font-size: 20px;
+    color: rgb(242, 247, 250);
+    background-color: rgba(18, 34, 48, 0.95);
+    border-width: 2px;
+    border-color: rgba(140, 110, 56, 0.8);
+    border-radius: 8px;
+    padding: 10px;
     margin: 0;
+}
+
+.story-back:hover {
+    background-color: rgb(30, 54, 74);
 }
 
 /* ------------------------------------------------------------ shipyard mission card */
