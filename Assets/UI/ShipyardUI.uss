@@ -295,21 +295,23 @@
     display: none;
 }
 
-/* ------------------------------------------------------------ voyage report: a page of the ship's log */
+/* ------------------------------------------------------------ voyage report */
 
+/* On paper like the shipyard (UiTheme.Paper): a full sand page, navy ink, so it reads on a
+   projector over even the brightest sea. Few rows: what arrived, the hits, the time, the money. */
 .results-backdrop {
     position: absolute;
     left: 0;
     top: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(4, 10, 16, 0.6);
+    background-color: rgba(250, 242, 228, 0.96);
     align-items: center;
     justify-content: center;
     display: none;
     opacity: 0;
     transition-property: opacity;
-    transition-duration: 0.4s;
+    transition-duration: 0.5s;
 }
 
 .results-backdrop.shown {
@@ -317,144 +319,129 @@
 }
 
 .results-panel {
-    width: 700px;
-    padding: 24px 36px 26px 36px;
-    background-color: rgb(232, 218, 184);
-    border-width: 3px;
-    border-color: rgb(140, 110, 56);
-    border-radius: 6px;
-    border-left-width: 14px;
-    border-left-color: rgb(92, 52, 30);
+    width: 760px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
 }
 
 .log-header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 6px;
-    border-bottom-width: 2px;
-    border-color: rgb(120, 86, 46);
+    display: none;
 }
 
-.log-eyebrow {
-    font-size: 14px;
-    letter-spacing: 3px;
-    -unity-font-style: bold;
-    color: rgb(120, 82, 34);
-    margin: 0;
-}
-
-.log-voyage {
-    font-size: 14px;
-    -unity-font-style: italic;
-    color: rgb(120, 82, 34);
-    margin: 0;
-}
-
-/* A rubber stamp across the top corner: green on delivery, red when the ship was lost. */
+/* The outcome by the title: a teal word when delivered, red when lost, a line under it. */
 .log-stamp {
     position: absolute;
-    right: 28px;
-    top: 50px;
-    rotate: -10deg;
+    right: 0;
+    top: 22px;
     font-size: 20px;
+    letter-spacing: 5px;
     -unity-font-style: bold;
-    letter-spacing: 4px;
-    color: rgba(40, 120, 70, 0.85);
-    border-width: 4px;
-    border-color: rgba(40, 120, 70, 0.85);
-    border-radius: 6px;
-    padding: 4px 14px;
+    color: rgb(12, 108, 98);
+    padding-bottom: 3px;
+    border-bottom-width: 3px;
+    border-color: rgb(12, 108, 98);
 }
 
 .results-panel.failed .log-stamp {
-    color: rgba(170, 40, 30, 0.85);
-    border-color: rgba(170, 40, 30, 0.85);
+    color: rgb(170, 30, 40);
+    border-color: rgb(170, 30, 40);
 }
 
 .results-title {
-    font-size: 34px;
-    color: rgb(64, 43, 23);
+    font-size: 46px;
+    letter-spacing: 3px;
     -unity-font-style: bold;
-    margin-top: 10px;
+    color: rgb(22, 36, 64);
+    margin: 0;
 }
 
 .results-panel.failed .results-title {
-    color: rgb(150, 40, 28);
+    color: rgb(170, 30, 40);
 }
 
 .results-subtitle {
-    font-size: 18px;
-    color: rgb(92, 66, 38);
-    margin-bottom: 10px;
+    font-size: 21px;
+    color: rgb(62, 74, 100);
+    margin: 4px 0 18px 0;
     white-space: normal;
-    -unity-font-style: italic;
 }
 
-/* Ruled lines, like the log's printed rows. */
 .results-row {
     flex-direction: row;
     justify-content: space-between;
-    padding: 7px 0;
+    padding: 12px 0;
     border-bottom-width: 1px;
-    border-color: rgba(120, 86, 46, 0.35);
+    border-color: rgba(22, 36, 64, 0.25);
 }
 
 .results-row-label {
-    font-size: 19px;
-    color: rgb(92, 66, 38);
+    font-size: 22px;
+    color: rgb(62, 74, 100);
 }
 
 .results-row-value {
-    font-size: 19px;
-    color: rgb(48, 32, 16);
+    font-size: 22px;
     -unity-font-style: bold;
+    color: rgb(22, 36, 64);
 }
 
 .results-row-value.good {
-    color: rgb(30, 110, 60);
+    color: rgb(12, 108, 98);
 }
 
 .results-row-value.bad {
-    color: rgb(165, 40, 28);
+    color: rgb(170, 30, 40);
 }
 
 .results-total {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top-width: 2px;
-    border-color: rgb(120, 86, 46);
+    margin-top: 16px;
 }
 
 .results-total-label {
     font-size: 18px;
-    color: rgb(120, 82, 34);
+    letter-spacing: 5px;
     -unity-font-style: bold;
-    letter-spacing: 2px;
+    color: rgb(62, 74, 100);
 }
 
 .results-total-value {
-    font-size: 32px;
-    color: rgb(64, 43, 23);
+    font-size: 40px;
     -unity-font-style: bold;
+    color: rgb(22, 36, 64);
 }
 
-/* The tip: a note pinned to the page. */
+.results-total-value.bad {
+    color: rgb(170, 30, 40);
+}
+
 .results-tip {
-    font-size: 17px;
-    color: rgb(48, 40, 20);
+    font-size: 20px;
+    color: rgb(22, 36, 64);
     white-space: normal;
-    margin: 14px 0 16px 0;
-    padding: 10px 14px;
-    background-color: rgb(250, 238, 170);
+    margin: 20px 0 24px 0;
+    padding: 4px 0 4px 16px;
+    background-color: rgba(0, 0, 0, 0);
     border-left-width: 4px;
-    border-color: rgb(205, 160, 72);
-    border-radius: 4px;
+    border-color: rgb(160, 50, 24);
+    border-radius: 0;
 }
 
 .results-continue {
-    font-size: 22px;
+    align-self: center;
+    font-size: 24px;
+    letter-spacing: 5px;
+    -unity-font-style: bold;
+    color: rgb(160, 50, 24);
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
+}
+
+.results-continue:hover {
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
 }

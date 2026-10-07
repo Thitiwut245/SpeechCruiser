@@ -3,9 +3,9 @@ using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// The voyage report after a delivery or a sinking, as a page of the ship's log: what was
-/// delivered, what it paid, hits, time, the repair bill and one plain-English tip, under a
-/// rubber stamp (DELIVERED, COMPLETE or LOST). It waits a moment so the player sees the
+/// The voyage report after a delivery or a sinking, on paper (navy ink on a full sand page,
+/// projector-safe): what arrived (or was lost), the hits, the time, the credits, and one
+/// plain-English tip, by a stamp (DELIVERED, COMPLETE or LOST). It waits a moment so the player sees the
 /// arrival (or the wreck), then waits for Continue (button, Enter or Space) instead of a timer.
 /// Lives next to ShipyardManager and uses the same UIDocument.
 /// </summary>
@@ -48,6 +48,7 @@ public class MissionResultsPanel : MonoBehaviour
         var root = _document.rootVisualElement;
 
         _backdrop = root.Q<VisualElement>("results-backdrop");
+        UiTheme.Paper(_backdrop);
         _panel = root.Q<VisualElement>("results-panel");
         _title = root.Q<Label>("results-title");
         _subtitle = root.Q<Label>("results-subtitle");
@@ -136,8 +137,8 @@ public class MissionResultsPanel : MonoBehaviour
         var story = StoryProgress.ActiveMission;
         string job = story != null ? story.Label + ": " + story.Title
                                    : result.JobName.Substring(0, 1) + result.JobName.Substring(1).ToLowerInvariant() + " run";
-        _continue.text = story == null ? "BACK TO THE SHIPYARD  (Enter)"
-                       : result.Delivered ? "BACK TO THE STORY  (Enter)" : "TRY AGAIN  (Enter)";
+        _continue.text = story == null ? "BACK TO THE SHIPYARD"
+                       : result.Delivered ? "BACK TO THE STORY" : "TRY AGAIN";
         if (result.Delivered)
         {
             _title.text = story != null ? "MISSION COMPLETE" : "CARGO DELIVERED";
@@ -146,7 +147,6 @@ public class MissionResultsPanel : MonoBehaviour
                 : job + ". Some containers went overboard.";
             AddRow("Containers delivered", result.CargoDelivered + " / " + result.CargoLoaded,
                    result.CargoDelivered == result.CargoLoaded ? "good" : null);
-            AddRow("Pay", "+$" + result.Pay + (result.Pay < result.JobReward ? "  (of $" + result.JobReward + ")" : ""), "good");
         }
         else
         {
@@ -161,19 +161,17 @@ public class MissionResultsPanel : MonoBehaviour
         if (result.Delivered && result.ParSeconds > 0f)
         {
             bool onTime = result.OnTimeBonus > 0;
-            AddRow("Time at sea", FormatTime(result.Seconds) + "  (par " + FormatTime(result.ParSeconds) + ")", onTime ? "good" : null);
-            AddRow("On-time bonus", onTime ? "+$" + result.OnTimeBonus : "missed", onTime ? "good" : null);
+            AddRow("Time at sea", FormatTime(result.Seconds) + "  (par " + FormatTime(result.ParSeconds) + ")" +
+                                  (onTime ? "  +$" + result.OnTimeBonus : ""), onTime ? "good" : null);
         }
         else
         {
             AddRow("Time at sea", FormatTime(result.Seconds), null);
         }
-        AddRow("Hull", result.HullAfter + " / " + result.HullMax +
-                       (result.RepairCost > 0 ? "   repair costs $" + result.RepairCost : "   no repairs needed"),
-               result.RepairCost > 0 ? "bad" : "good");
 
         int change = result.CreditsAfter - result.CreditsBefore;
         _totalValue.text = "$" + result.CreditsAfter + "  (" + (change >= 0 ? "+$" + change : "-$" + (-change)) + ")";
+        _totalValue.EnableInClassList("bad", change < 0);
         _tip.text = TipFor(result);
         if (story != null && result.Delivered && result.Hits == 0 && (result.OnTimeBonus > 0 || result.ParSeconds <= 0f))
             _tip.text = "Clean run and on time. Well done, Captain!";

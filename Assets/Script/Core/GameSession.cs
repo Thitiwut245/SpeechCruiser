@@ -58,7 +58,6 @@ public class MissionResult
     public float Seconds;
     public int HullAfter;
     public int HullMax;
-    public int RepairCost;
     public int CreditsBefore;
     public int CreditsAfter;
     /// <summary>Par time for the route; delivering inside it earns OnTimeBonus.</summary>
