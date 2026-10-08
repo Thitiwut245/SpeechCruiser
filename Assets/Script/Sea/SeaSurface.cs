@@ -21,6 +21,7 @@ public class SeaSurface : MonoBehaviour
     private static readonly int WaveBId = Shader.PropertyToID("_SeaWaveB");
     private static readonly int TimeId = Shader.PropertyToID("_SeaTime");
     private static readonly int RoughId = Shader.PropertyToID("_SeaRough");
+    private static readonly int CalmId = Shader.PropertyToID("_SeaCalm");
     private readonly Vector4[] _a = new Vector4[SeaWaves.Count];
     private readonly Vector4[] _b = new Vector4[SeaWaves.Count];
     private Camera _camera;
@@ -79,6 +80,7 @@ public class SeaSurface : MonoBehaviour
         Shader.SetGlobalVectorArray(WaveBId, _b);
         Shader.SetGlobalFloat(TimeId, SeaWaves.Now);
         Shader.SetGlobalFloat(RoughId, SeaWaves.Roughness);
+        Shader.SetGlobalVectorArray(CalmId, SeaWaves.Calm);
     }
 
     private void LateUpdate()

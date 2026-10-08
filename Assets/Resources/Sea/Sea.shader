@@ -65,6 +65,21 @@ Shader "SpeechCruiser/Sea"
             float4 _SeaWake[32]; // x, z, time laid, strength 0..1
             float _SeaWakeCount;
             float _SeaRough; // SeaWaves.Roughness: storms foam more
+            float4 _SeaCalm[2]; // harbours: x, z, calm radius, open-sea radius (SeaWaves.Calm)
+
+            // Same as SeaWaves.Exposure: how much of the waves reach a point.
+            float Exposure(float2 p)
+            {
+                float f = 1;
+                for (int i = 0; i < 2; i++)
+                {
+                    float4 c = _SeaCalm[i];
+                    if (c.w <= 0) continue;
+                    float d = distance(p, c.xy);
+                    f = min(f, lerp(0.1, 1, smoothstep(0, 1, saturate((d - c.z) / max(c.w - c.z, 0.001)))));
+                }
+                return f;
+            }
 
             struct Attributes
             {
@@ -88,18 +103,19 @@ Shader "SpeechCruiser/Sea"
                 float3 tangent = float3(1, 0, 0);
                 float3 binormal = float3(0, 0, 1);
                 float amp = 0;
+                float exposure = Exposure(p);
                 for (int i = 0; i < 4; i++)
                 {
                     float2 dir = _SeaWaveA[i].xy;
                     float k = _SeaWaveA[i].z;
-                    float a = _SeaWaveA[i].w;
-                    float s = _SeaWaveB[i].y;
+                    float a = _SeaWaveA[i].w * exposure;
+                    float s = _SeaWaveB[i].y * exposure;
                     float f = k * (dot(dir, p) - _SeaWaveB[i].x * _SeaTime);
                     float sn = sin(f), cs = cos(f);
                     d += float3(dir.x * a * cs, a * sn, dir.y * a * cs);
                     tangent += float3(-dir.x * dir.x * s * sn, dir.x * s * cs, -dir.x * dir.y * s * sn);
                     binormal += float3(-dir.x * dir.y * s * sn, dir.y * s * cs, -dir.y * dir.y * s * sn);
-                    amp += a;
+                    amp += _SeaWaveA[i].w; // calm water makes no whitecaps
                 }
                 normal = normalize(cross(binormal, tangent));
                 crest = amp > 0.001 ? d.y / amp : 0;

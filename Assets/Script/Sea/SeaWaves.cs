@@ -40,6 +40,35 @@ public static class SeaWaves
 
     private static float _roughness = 1f;
 
+    /// <summary>Harbours: (x, z, calm radius, open-sea radius). Inside, the water is nearly flat.</summary>
+    public const int CalmCount = 2;
+    public static readonly Vector4[] Calm = new Vector4[CalmCount];
+
+    /// <summary>Sheltered water round a harbour: still within <paramref name="inner"/>, open sea past <paramref name="outer"/>.</summary>
+    public static void SetCalm(int slot, Vector3 centre, float inner, float outer)
+    {
+        if (slot >= 0 && slot < CalmCount) Calm[slot] = new Vector4(centre.x, centre.z, inner, outer);
+    }
+
+    public static void ClearCalm()
+    {
+        for (int i = 0; i < CalmCount; i++) Calm[i] = Vector4.zero;
+    }
+
+    /// <summary>How much of the waves reach (x, z): about 0.1 inside a harbour, 1 at sea.</summary>
+    public static float Exposure(float x, float z)
+    {
+        float f = 1f;
+        for (int i = 0; i < CalmCount; i++)
+        {
+            Vector4 c = Calm[i];
+            if (c.w <= 0f) continue;
+            float d = Mathf.Sqrt((x - c.x) * (x - c.x) + (z - c.y) * (z - c.y));
+            f = Mathf.Min(f, Mathf.Lerp(0.1f, 1f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(c.z, c.w, d))));
+        }
+        return f;
+    }
+
     /// <summary>How rough the sea is: 1 a fresh breeze, about 2 a storm.</summary>
     public static float Roughness
     {
@@ -81,11 +110,12 @@ public static class SeaWaves
     /// <summary>Where the surface point that starts at rest at (x, z) has moved to, at time t.</summary>
     public static Vector3 Displacement(float x, float z, float t)
     {
+        float exposure = Exposure(x, z);
         Vector3 d = Vector3.zero;
         for (int i = 0; i < Count; i++)
         {
             var w = Waves[i];
-            float k = K(i), a = Amplitude(i);
+            float k = K(i), a = Amplitude(i) * exposure;
             float f = k * (w.Dir.x * x + w.Dir.y * z - Speed(i) * t);
             float c = Mathf.Cos(f);
             d.x += w.Dir.x * a * c;
