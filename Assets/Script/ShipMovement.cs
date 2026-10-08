@@ -12,6 +12,9 @@ using UnityEngine.Serialization;
 /// the hull slides outward through a turn, and the hull model banks into it so the
 /// manoeuvre reads from the fixed isometric camera. Only the model banks: colliders,
 /// radar and cargo stay level on the ship's root.
+/// The model also rides the waves (SeaWaves): it rises and falls with the water along the
+/// hull, pitching bow to stern and rolling side to side, slowly, as a loaded ship does.
+/// The camera follows the root, so the view stays steady.
 /// </summary>
 [RequireComponent(typeof(ShipEngine), typeof(ShipHelm))]
 public class ShipMovement : MonoBehaviour
@@ -48,6 +51,16 @@ public class ShipMovement : MonoBehaviour
     [Tooltip("How quickly the hull rolls into and out of the bank.")]
     [SerializeField] private float BankSmoothing = 3f;
 
+    [Header("Waves")]
+    [Tooltip("Half the hull's length, where the waves are felt at bow and stern (metres).")]
+    [SerializeField] private float HalfLength = 7.5f;
+
+    [Tooltip("Half the hull's beam, where the waves are felt at each side (metres).")]
+    [SerializeField] private float HalfBeam = 2.5f;
+
+    [Tooltip("How quickly the hull follows the waves. Lower is heavier.")]
+    [SerializeField] private float WaveResponse = 2.2f;
+
     [Tooltip("Hull model to roll. Leave empty (or set to this object) and a child 'HullVisual' is made at " +
              "start, so the roll never tilts the colliders, radar or cargo grid.")]
     [SerializeField] private Transform HullVisual;
@@ -55,6 +68,8 @@ public class ShipMovement : MonoBehaviour
     private ShipEngine _engine;
     private ShipHelm _helm;
     private float _currentBank = 0f;
+    private float _heave, _pitch, _roll;
+    private Vector3 _visualRest;
     private float _turnRate = 0f;
     private Vector3 _knockbackVelocity = Vector3.zero;
 
@@ -81,6 +96,8 @@ public class ShipMovement : MonoBehaviour
         _engine = GetComponent<ShipEngine>();
         _helm = GetComponent<ShipHelm>();
         EnsureVisualChild();
+        _visualRest = Visual.localPosition;
+        if (GetComponent<ShipWake>() == null) gameObject.AddComponent<ShipWake>();
     }
 
     /// <summary>
@@ -183,7 +200,30 @@ public class ShipMovement : MonoBehaviour
 
         _currentBank = Mathf.Lerp(_currentBank, targetBank, Time.deltaTime * BankSmoothing);
 
-        Vector3 local = Visual.localEulerAngles;
-        Visual.localEulerAngles = new Vector3(local.x, local.y, _currentBank);
+        RideWaves();
+        if (Visual == transform) return; // never lift or tilt the root: it carries the colliders
+        Visual.localPosition = _visualRest + Vector3.up * _heave;
+        Visual.localEulerAngles = new Vector3(_pitch, 0f, _currentBank + _roll);
+    }
+
+    /// <summary>The water under bow, stern and both sides: how high the hull sits, and its pitch and roll.</summary>
+    private void RideWaves()
+    {
+        Vector3 fwd = transform.forward; fwd.y = 0f; fwd.Normalize();
+        Vector3 right = new Vector3(fwd.z, 0f, -fwd.x);
+        Vector3 c = transform.position;
+        float bow = SeaWaves.HeightAt(c + fwd * HalfLength);
+        float stern = SeaWaves.HeightAt(c - fwd * HalfLength);
+        float starboard = SeaWaves.HeightAt(c + right * HalfBeam);
+        float port = SeaWaves.HeightAt(c - right * HalfBeam);
+
+        float heave = (bow + stern + starboard + port) * 0.25f;
+        float pitch = Mathf.Atan2(stern - bow, HalfLength * 2f) * Mathf.Rad2Deg;
+        float roll = Mathf.Atan2(starboard - port, HalfBeam * 2f) * Mathf.Rad2Deg * 0.6f;
+
+        float k = 1f - Mathf.Exp(-WaveResponse * Time.deltaTime);
+        _heave = Mathf.Lerp(_heave, heave, k);
+        _pitch = Mathf.Lerp(_pitch, pitch, k);
+        _roll = Mathf.Lerp(_roll, roll, k);
     }
 }

@@ -149,15 +149,8 @@ public class StoryDirector : MonoBehaviour
         }
     }
 
-    /// <summary>Height of the water's top surface (the water art isn't flat at y = 0).</summary>
-    private static float WaterSurface()
-    {
-        var water = GameObject.Find("Water");
-        if (water == null) return 0f;
-        float top = float.MinValue;
-        foreach (var r in water.GetComponentsInChildren<Renderer>()) top = Mathf.Max(top, r.bounds.max.y);
-        return top == float.MinValue ? 0f : top;
-    }
+    /// <summary>Mean sea level: the waves (SeaWaves) rise and fall around it.</summary>
+    private static float WaterSurface() => 0f;
 
     /// <summary>The point <paramref name="share"/> of the way along the path, and the path's direction there.</summary>
     private static Vector3 PointAlong(List<Vector3> path, float share, out Vector3 direction)

@@ -99,8 +99,14 @@ public class RescueTarget : MonoBehaviour
         float t = Time.time + _phase;
         if (_boat != null)
         {
-            _boat.localPosition = new Vector3(0f, Mathf.Sin(t * 1.3f) * 0.12f, 0f);
-            _boat.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.1f) * 4f, 0f, Mathf.Sin(t * 0.9f) * 6f);
+            // The rowboat rides the waves under it (SeaWaves), tilting with their slope, plus a little rock.
+            Vector3 p = transform.position;
+            float h = SeaWaves.HeightAt(p.x, p.z);
+            float slopeX = SeaWaves.HeightAt(p.x + 1.2f, p.z) - SeaWaves.HeightAt(p.x - 1.2f, p.z);
+            float slopeZ = SeaWaves.HeightAt(p.x, p.z + 1.2f) - SeaWaves.HeightAt(p.x, p.z - 1.2f);
+            var tilt = Quaternion.FromToRotation(Vector3.up, new Vector3(-slopeX, 2.4f, -slopeZ).normalized);
+            _boat.localPosition = new Vector3(0f, h, 0f);
+            _boat.rotation = tilt * transform.rotation * Quaternion.Euler(Mathf.Sin(t * 1.1f) * 2f, 0f, Mathf.Sin(t * 0.9f) * 3f);
         }
         if (_arm != null && !Boarded) _arm.localRotation = Quaternion.Euler(0f, 0f, -20f + Mathf.Sin(t * 6f) * 35f);
         if (_ring != null && _ring.gameObject.activeSelf)
