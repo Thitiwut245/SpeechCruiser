@@ -66,6 +66,9 @@ public class ShipyardManager : MonoBehaviour
     private bool _loading;
     private static ShipyardManager _instance;
 
+    /// <summary>The containers aboard (the destination's crane unloads them); null outside the Game scene.</summary>
+    public static List<GameObject> Cargo => _instance != null ? _instance._spawnedContainers : null;
+
     /// <summary>Cargo is being loaded after SET SAIL: the radio check is over, the voyage is starting.</summary>
     public static bool IsLoadingCargo => _instance != null && _instance._loading;
     private bool _skipLoading;
@@ -275,7 +278,11 @@ public class ShipyardManager : MonoBehaviour
 
         var kb = Keyboard.current;
         if (kb == null) return;
-        if (_loading && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame)) _skipLoading = true;
+        if (_loading && (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame))
+        {
+            _skipLoading = true;
+            if (Quay.Home != null && Quay.Home.Crane != null) Quay.Home.Crane.Hurry = true;
+        }
     }
 
     /// <summary>Builds the route for the selected job and moors the ship at the dock, camera snapped to it.</summary>
@@ -504,16 +511,6 @@ public class ShipyardManager : MonoBehaviour
 
         Transform shipTransform = nav.transform;
 
-        // Fallback spot high and to the right in the shipyard for the containers to fly from
-        Vector3 shipyardSpawnPoint = shipTransform.position + shipTransform.right * 15f + Vector3.up * 10f;
-
-        // Find the actual StartPort model in the level
-        GameObject startPort = GameObject.Find("StartPort");
-        if (startPort != null)
-        {
-            shipyardSpawnPoint = startPort.transform.position + Vector3.up * 5f;
-        }
-
         ClearContainers();
         _loadingCaption.style.display = DisplayStyle.Flex;
 
@@ -537,49 +534,52 @@ public class ShipyardManager : MonoBehaviour
             }
         }
 
+        // Each container's place on deck, in loading order (bottom layer first).
+        var slots = new Vector3[count];
         for (int i = 0; i < count; i++)
         {
-            _loadingCaption.text = $"LOADING CARGO {i + 1} / {count}  ·  SPACE TO SKIP";
-
-            // Calculate grid position (Layer -> Row -> Col)
             int containersPerLayer = Columns * Rows;
             int layer = i / containersPerLayer;
             int remainder = i % containersPerLayer;
             int zIndex = remainder / Columns; // how deep (rows)
             int xIndex = remainder % Columns; // left to right (cols)
-
-            // Center the grid around the offset
             float xOffset = (xIndex - (Columns - 1) / 2.0f) * dynamicSpacing.x;
             float zOffset = (zIndex - (Rows - 1) / 2.0f) * dynamicSpacing.z;
-            float yOffset = layer * dynamicSpacing.y;
-
-            Vector3 targetLocalPos = CargoStartOffset + new Vector3(xOffset, yOffset, -zOffset);
-            GameObject container = SpawnContainer(shipyardSpawnPoint, shipTransform.rotation);
-            // On the banking model so it rolls with the deck; no colliders, or they would join the
-            // ship's physics and make it hit things with its cargo.
-            container.transform.SetParent(nav.Movement != null ? nav.Movement.Visual : shipTransform);
-            foreach (var col in container.GetComponentsInChildren<Collider>()) col.enabled = false;
-            _spawnedContainers.Add(container);
-
-            Vector3 targetWorldPos = container.transform.parent.TransformPoint(targetLocalPos);
-
-            // Animate
-            float duration = 0.3f;
-            float elapsed = 0f;
-            while (elapsed < duration && !_skipLoading)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-
-                // Arc
-                Vector3 currentPos = Vector3.Lerp(shipyardSpawnPoint, targetWorldPos, t);
-                currentPos.y += Mathf.Sin(t * Mathf.PI) * 8f; // arc height
-
-                container.transform.position = currentPos;
-                yield return null;
-            }
-            container.transform.position = targetWorldPos;
+            slots[i] = CargoStartOffset + new Vector3(xOffset, layer * dynamicSpacing.y, -zOffset);
         }
+
+        // On the banking model so it rolls with the deck; no colliders, or they would join the
+        // ship's physics and make it hit things with its cargo.
+        Transform deck = nav.Movement != null ? nav.Movement.Visual : shipTransform;
+        QuayCrane crane = Quay.Home != null ? Quay.Home.Crane : null;
+
+        // The cargo waits stacked on the quay; the crane lifts it aboard, top of the stack first.
+        var boxes = new GameObject[count];
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 waiting = crane != null ? crane.StackSpot(Quay.Home.Berth, i) : shipTransform.position + shipTransform.right * 12f + Vector3.up * (2f + i * 1.3f);
+            boxes[i] = SpawnContainer(waiting, shipTransform.rotation);
+            foreach (var col in boxes[i].GetComponentsInChildren<Collider>()) col.enabled = false;
+            _spawnedContainers.Add(boxes[i]);
+        }
+        // Quick enough that a full ship is loaded in about 15 seconds.
+        float pace = Mathf.Clamp(15f / (count * 2.6f), 0.35f, 1f);
+
+        for (int k = 0; k < count; k++)
+        {
+            _loadingCaption.text = $"LOADING CARGO {k + 1} / {count}  ·  SPACE TO SKIP";
+            Transform box = boxes[count - 1 - k].transform;
+            Vector3 local = slots[k];
+            if (crane != null)
+            {
+                crane.Hurry = _skipLoading;
+                yield return crane.Move(box, () => deck.TransformPoint(local), pace);
+            }
+            box.SetParent(deck, true);
+            box.localPosition = local;
+            box.localRotation = Quaternion.identity;
+        }
+        if (crane != null) crane.Hurry = false;
 
         _loadingCaption.text = "ALL ABOARD";
         if (!_skipLoading) yield return new WaitForSeconds(0.5f);

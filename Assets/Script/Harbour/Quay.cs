@@ -22,6 +22,15 @@ public class Quay : MonoBehaviour
     public float FaceX { get; private set; }
     /// <summary>Height of the quay's deck.</summary>
     public float DeckY { get; private set; }
+    /// <summary>The harbour model's deck (its biggest low, flat part), in the world.</summary>
+    public Bounds DeckBounds { get; private set; }
+    /// <summary>The home quay (where the ship loads) and the destination's (where it unloads).</summary>
+    public static Quay Home { get; private set; }
+    public static Quay Destination { get; private set; }
+
+    /// <summary>The ship-to-shore crane working this berth.</summary>
+    public QuayCrane Crane { get; private set; }
+
     /// <summary>The bollards the lines go to, bow first.</summary>
     public readonly List<Vector3> Bollards = new List<Vector3>();
 
@@ -52,6 +61,7 @@ public class Quay : MonoBehaviour
         Bounds deckPart = Deck(harbour);
         harbour.transform.position += new Vector3(faceX - deckPart.min.x, 0f, berth.z - deckPart.center.z);
         quay.DeckY = deckPart.max.y;
+        quay.DeckBounds = Deck(harbour);
         quay.BerthHalfLength = Mathf.Clamp(deckPart.extents.z - 2f, 4f, MaxBerthHalfLength);
         float BerthHalfLength = quay.BerthHalfLength;
 
@@ -89,6 +99,9 @@ public class Quay : MonoBehaviour
             Piece(quay._outline, PrimitiveType.Cube, _yellow, new Vector3(berth.x, y, z0 - shipHalf), new Vector3(halfW * 2f, 0.05f, 0.35f));
             Piece(quay._outline, PrimitiveType.Cube, _yellow, new Vector3(berth.x, y, z0 + shipHalf), new Vector3(halfW * 2f, 0.05f, 0.35f));
         }
+
+        quay.Crane = QuayCrane.Build(go.transform, berth, faceX, deck);
+        if (destination) Destination = quay; else Home = quay;
 
         // The quay itself, for bumps: just inside the face, the harbour's whole length.
         Bounds b = MeasureRenderers(harbour);

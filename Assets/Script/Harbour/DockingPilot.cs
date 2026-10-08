@@ -236,7 +236,42 @@ public class DockingPilot : MonoBehaviour
         if (Time.time - _linesStart < LinesSeconds) return;
 
         Current = Stage.Moored;
-        if (GameManager.Instance != null) GameManager.Instance.MissionSuccess();
+        if (GameManager.Instance != null) GameManager.Instance.MissionSuccess(); // the voyage's time stops here
+        StartCoroutine(Unload());
+    }
+
+    /// <summary>
+    /// The crane lifts the cargo off onto the quay, top layer first, and a yard truck hauls
+    /// each box away inland. The voyage report waits for it (Space hurries it along).
+    /// </summary>
+    private System.Collections.IEnumerator Unload()
+    {
+        var cargo = ShipyardManager.Cargo;
+        QuayCrane crane = Quay.Crane;
+        if (cargo == null || crane == null) yield break;
+        var boxes = cargo.FindAll(b => b != null);
+        if (boxes.Count == 0) yield break;
+
+        MissionResultsPanel.Waiting++;
+        float pace = Mathf.Clamp(10f / (boxes.Count * 2.6f), 0.35f, 1f);
+        Vector3 land = Quay.Berth + Vector3.forward * 45f; // the port ground behind the berth
+        try
+        {
+            for (int i = boxes.Count - 1; i >= 0; i--)
+            {
+                var box = boxes[i];
+                if (box == null) continue;
+                crane.Hurry |= UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.spaceKey.isPressed;
+                Vector3 spot = crane.StackSpot(Quay.Berth, i % 6);
+                yield return crane.Move(box.transform, () => spot, pace);
+                YardTruck.Fetch(transform, box.transform, land, crane.DeckY);
+            }
+        }
+        finally
+        {
+            crane.Hurry = false;
+            MissionResultsPanel.Waiting--;
+        }
     }
 
     /// <summary>The lines: thrown out from the ship, sagging a little, following the ship as it moves on the water.</summary>

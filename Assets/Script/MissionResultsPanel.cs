@@ -42,10 +42,14 @@ public class MissionResultsPanel : MonoBehaviour
     /// <summary>While this says true the report waits (a story mission's closing dialogue).</summary>
     public static System.Func<bool> Hold;
 
+    /// <summary>While above zero the report waits too (the crane unloading the cargo).</summary>
+    public static int Waiting;
+
     private void Start()
     {
         if (_document == null) _document = GetComponent<UIDocument>();
         var root = _document.rootVisualElement;
+        Waiting = 0; // a new scene: nothing is unloading
 
         _backdrop = root.Q<VisualElement>("results-backdrop");
         UiTheme.Paper(_backdrop);
@@ -106,7 +110,7 @@ public class MissionResultsPanel : MonoBehaviour
             if (_tip != null && _tipText != null) _tip.text = _tipText;
         }
 
-        if (!_shown && _showAt > 0f && Time.unscaledTime >= _showAt && !(Hold != null && Hold()))
+        if (!_shown && _showAt > 0f && Time.unscaledTime >= _showAt && !(Hold != null && Hold()) && Waiting <= 0)
         {
             _showAt = -1f;
             Show(GameSession.Instance != null ? GameSession.Instance.LastResult : null);
