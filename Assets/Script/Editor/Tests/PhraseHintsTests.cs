@@ -11,8 +11,8 @@ public class PhraseHintsTests
         s.Threat = true;
         s.AvoidSide = "left";
         var hints = PhraseHints.For(s);
-        Assert.AreEqual("turn left", hints[0]);
-        CollectionAssert.Contains(hints, "slow down");
+        Assert.AreEqual("port twenty", hints[0]);
+        CollectionAssert.Contains(hints, "reduce speed");
     }
 
     [Test]
@@ -26,7 +26,7 @@ public class PhraseHintsTests
 
         s.SpeedKn = 7; // too fast for the pilot: slow down first
         var hints = PhraseHints.For(s);
-        Assert.AreEqual("slow down", hints[0]);
+        Assert.AreEqual("reduce speed", hints[0]);
         CollectionAssert.Contains(hints, "request docking");
     }
 
@@ -55,7 +55,7 @@ public class PhraseHintsTests
         var s = Cruising();
         s.RescueNear = true;
         s.Threat = true; // the rescue matters more than a rock further off
-        Assert.AreEqual("stop", PhraseHints.For(s)[0]);
+        Assert.AreEqual("stop engine", PhraseHints.For(s)[0]);
     }
 
     [Test]
@@ -73,7 +73,7 @@ public class PhraseHintsTests
         s.Threat = true;
         s.Polite = true;
         var hints = PhraseHints.For(s);
-        Assert.AreEqual("please turn right", hints[0]);
+        Assert.AreEqual("please starboard twenty", hints[0]);
         // Questions stay as they are.
         s.Threat = false;
         s.Fog = true;
@@ -93,10 +93,31 @@ public class PhraseHintsTests
         Assert.GreaterOrEqual(PhraseHints.For(Cruising()).Count, 2);
     }
 
+    private static readonly string[] SuggestedOrders =
+    {
+        "port twenty", "starboard twenty", "hard a port", "hard a starboard", "reduce speed", "slow ahead",
+        "half ahead", "full ahead", "stop engine", "request docking", "make fast",
+    };
+
     [Test]
     public void EverySuggestedOrderIsUnderstood()
     {
-        foreach (var phrase in new[] { "turn left", "turn right", "hard left", "hard right", "slow down", "slow ahead", "half ahead", "full ahead", "stop", "please turn left", "please slow down" })
+        foreach (var phrase in SuggestedOrders)
+        {
             Assert.IsTrue(CommandParser.Parse(phrase).HasConfidentCommand, phrase);
+            Assert.IsTrue(CommandParser.Parse("please " + phrase).HasConfidentCommand, "please " + phrase);
+        }
+    }
+
+    /// <summary>A hint must never be something the crew would then correct.</summary>
+    [Test]
+    public void EverySuggestedOrderIsStandardRadioEnglish()
+    {
+        foreach (var phrase in SuggestedOrders)
+        {
+            var parsed = CommandParser.Parse(phrase);
+            foreach (var m in parsed.Matches)
+                Assert.IsTrue(StandardPhrases.IsStandard(m.Action, m.Phrase), phrase + " -> " + m.Action + " via \"" + m.Phrase + "\"");
+        }
     }
 }

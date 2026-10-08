@@ -5,8 +5,10 @@ using System.Collections.Generic;
 /// shown as chips beside the radio. A rock ahead suggests the turn away from it and slowing
 /// down; a stopped ship suggests getting going; fog suggests asking the lookout; the dock in
 /// sight suggests slowing down; near the berth, "request docking", and alongside, "make
-/// fast". In chapter 3 the orders come with "please", as that chapter teaches. Pure logic
-/// over a snapshot, so it can be tested.
+/// fast". Orders are suggested in standard radio English ("port twenty", "reduce speed"),
+/// the same phrases the crew model when an order is said another way (StandardPhrases).
+/// In chapter 3 the orders come with "please", as that chapter teaches. Pure logic over a
+/// snapshot, so it can be tested.
 /// </summary>
 public static class PhraseHints
 {
@@ -43,20 +45,20 @@ public static class PhraseHints
         }
         else if (s.DockReady)
         {
-            if (s.SpeedKn > 3) Add(list, s, "slow down", true);
+            if (s.SpeedKn > 3) Add(list, s, "reduce speed", true);
             Add(list, s, "request docking", true);
         }
         else if (s.RescueNear)
         {
-            Add(list, s, "stop", true);
+            Add(list, s, "stop engine", true);
             Add(list, s, "slow ahead", true);
         }
         else if (s.Threat)
         {
-            string side = s.AvoidSide == "left" ? "left" : "right";
-            Add(list, s, "turn " + side, true);
-            if (s.Gear >= 3) Add(list, s, "slow down", true);
-            Add(list, s, "hard " + side, true);
+            string side = s.AvoidSide == "left" ? "port" : "starboard";
+            Add(list, s, side + " twenty", true);
+            if (s.Gear >= 3) Add(list, s, "reduce speed", true);
+            Add(list, s, "hard a " + side, true);
         }
         else if (s.Gear <= 0 && s.SpeedKn <= 1)
         {
@@ -65,9 +67,9 @@ public static class PhraseHints
         }
         else if (s.DockClose)
         {
-            if (s.Gear >= 2) Add(list, s, "slow down", true);
+            if (s.Gear >= 2) Add(list, s, "reduce speed", true);
             Add(list, s, "where is the dock?", false);
-            Add(list, s, "stop", true);
+            Add(list, s, "stop engine", true);
         }
 
         if (s.Fog)

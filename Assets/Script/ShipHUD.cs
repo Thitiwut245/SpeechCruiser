@@ -905,17 +905,17 @@ public class ShipHUD : MonoBehaviour
         var engine = CardColumn(columns, "CHIEF HARRIS · ENGINE", Hud.Harris);
         CardLine(engine, "\"slow ahead\"", "go forward slowly");
         CardLine(engine, "\"half ahead\" / \"full ahead\"", "go faster");
-        CardLine(engine, "\"faster\" / \"slower\"", "one step up or down");
-        CardLine(engine, "\"stop\"", "stop the engine (the ship drifts on)");
-        CardLine(engine, "\"go back\" (slow astern)", "reverse slowly");
+        CardLine(engine, "\"increase speed\" / \"reduce speed\"", "one step up or down");
+        CardLine(engine, "\"stop engine\"", "stop the engine (the ship drifts on)");
+        CardLine(engine, "\"slow astern\" (go back)", "reverse slowly");
         CardLine(engine, "\"full astern\"", "brake hard, then reverse");
 
         var helm = CardColumn(columns, "FINN · STEERING", Hud.Finn);
-        CardLine(helm, "\"turn left\" (port)", "turn left 30°");
-        CardLine(helm, "\"turn right\" (starboard)", "turn right 30°");
-        CardLine(helm, "\"hard left\" / \"hard right\"", "turn 60°, full rudder");
-        CardLine(helm, "\"port 20\" / \"starboard 20\"", "turn by 20 degrees");
-        CardLine(helm, "\"straight\" (midships)", "stop turning");
+        CardLine(helm, "\"port twenty\" (turn left)", "turn left 20°");
+        CardLine(helm, "\"starboard twenty\" (turn right)", "turn right 20°");
+        CardLine(helm, "\"hard a port\" / \"hard a starboard\"", "turn 60°, full rudder");
+        CardLine(helm, "\"port\" / \"starboard\"", "turn left / right 30°");
+        CardLine(helm, "\"midships\" (straight)", "stop turning");
 
         var bottom = new VisualElement();
         bottom.style.flexDirection = FlexDirection.Row;
