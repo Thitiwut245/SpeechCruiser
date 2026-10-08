@@ -430,6 +430,8 @@ public class LevelGenerator : MonoBehaviour
                 // berth, reaching east over the harbour model beside it.
                 if (Mathf.Abs(x - startX) <= 1 && y <= clearRows) continue;
                 if (x >= endX - 1 && x <= endX + 2 && y >= endY - 1) continue;
+                // Port ground behind each harbour is land: the route keeps off it (no hazard built).
+                if (HarbourLand(x, y, width, length)) { grid[x, y].IsObstacle = true; continue; }
 
                 // Choke points tighten towards the finish.
                 float depthFactor = (float)y / length;
@@ -703,7 +705,7 @@ public class LevelGenerator : MonoBehaviour
         {
             for (int y = 0; y < length; y++)
             {
-                if (!grid[x, y].IsObstacle) continue;
+                if (!grid[x, y].IsObstacle || HarbourLand(x, y, width, length)) continue;
 
                 Vector3 cell = new Vector3(originX + (x * CellSize), 0f, y * CellSize);
                 GameObject minePrefab = _job.Mines ? FindMinePrefab() : null;
@@ -754,6 +756,18 @@ public class LevelGenerator : MonoBehaviour
 
         Debug.Log($"🪨 [LEVEL GEN]: {reefs} reefs, {rocks} small rocks, {banks} sandbanks, {mines} mines, each within " +
                   $"{maxReach:F1}u of its cell centre — guaranteed channel {MinChannelWidth:F1}u for a ~6u hull.");
+    }
+
+    /// <summary>
+    /// Map squares under the port ground behind each harbour (east of the berth, at either
+    /// end of the route): land, so blocked for the route but with no hazard built on them.
+    /// </summary>
+    private static bool HarbourLand(int x, int y, int width, int length)
+    {
+        int startX = width / 2, endX = width / 2;
+        if (y <= 1 && x >= startX + 1 && x <= startX + 2) return true;
+        if (y >= length - 2 && x >= endX + 1 && x <= endX + 2) return true;
+        return false;
     }
 
     /// <summary>A random spot in the cell where something <paramref name="size"/> across stays within maxReach.</summary>
@@ -1012,15 +1026,40 @@ public class LevelGenerator : MonoBehaviour
         if (start != null) south = Mathf.Min(south, MeasureBounds(start.gameObject).min.z - gap);
         var dock = _levelRoot.Find("EndDock");
         if (dock != null) north = Mathf.Max(north, MeasureBounds(dock.gameObject).max.z + 2f);
+        // The land round each harbour is flat port ground, and an apron of it reaches out
+        // behind each harbour so it stands against the land, not alone in the water.
+        var harbours = new List<Vector2>();
+        var aprons = new List<Rect>();
+        foreach (var port in new[] { start, dock })
+            if (port != null) { Vector3 c = MeasureBounds(port.gameObject).center; harbours.Add(new Vector2(c.x, c.z)); }
+        foreach (var quay in _levelRoot.GetComponentsInChildren<Quay>())
+        {
+            Bounds deck = quay.DeckBounds;
+            if (deck.size.x < 1f) continue;
+            // Back to the nearest coast: south behind the home port, north behind the destination.
+            bool home = quay.Berth.z < lengthZ * 0.5f;
+            var r = home ? Rect.MinMaxRect(deck.max.x - 2f, south - 4f, deck.max.x + 40f, deck.max.z + 12f)
+                         : Rect.MinMaxRect(deck.max.x - 2f, deck.min.z - 12f, deck.max.x + 40f, north + 4f);
+            aprons.Add(r);
+            // Solid to the ship: running into it bumps her off, like the quay.
+            var edge = new GameObject("QuayEdge");
+            edge.transform.SetParent(_levelRoot, false);
+            edge.transform.position = new Vector3(r.center.x + 2f, 0f, r.center.y);
+            var box = edge.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.size = new Vector3(r.width - 2f, 12f, r.height);
+        }
 
         CoastBuilder.Build(_levelRoot, new CoastBuilder.Settings
         {
             Water = Rect.MinMaxRect(west, south, east, north),
             Depth = CoastDepth,
-            Cell = Mathf.Max(2f, CoastCell),
+            Cell = Mathf.Clamp(CoastCell, 2f, 6f), // fine enough for cliffs and coves
             Ragged = CoastRagged,
             TreeDensity = CoastTrees,
             Seed = Random.Range(0, int.MaxValue),
+            Harbours = harbours.ToArray(),
+            Aprons = aprons.ToArray(),
         });
     }
 
