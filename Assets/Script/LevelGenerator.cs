@@ -86,12 +86,27 @@ public class LevelGenerator : MonoBehaviour
     [Range(0.1f, 1f)]
     [SerializeField] private float HazardCellFill = 0.7f;
 
-    [Tooltip("Random size variation between hazards.")]
-    [SerializeField] private Vector2 HazardScaleJitter = new Vector2(0.8f, 1.2f);
+    [Header("Hazard Variety")]
+    [Tooltip("Share of blocked cells that are one big reef (with a few rocks around it); the rest are " +
+             "medium reefs or scatters of small rocks.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float BigReefShare = 0.35f;
 
-    [Tooltip("Random offset from the cell centre, as a fraction of CellSize, so hazards do not sit on a visible lattice.")]
-    [Range(0f, 0.5f)]
-    [SerializeField] private float HazardPositionJitter = 0.3f;
+    [Tooltip("Share of blocked cells that are a scatter of small rocks.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float RockScatterShare = 0.25f;
+
+    [Tooltip("Share of blocked cells that are a sandbank (run aground, no damage) instead of rock.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float SandbankShare = 0.18f;
+
+    [Tooltip("On mine jobs, the share of blocked cells that are a small minefield (2-3 mines).")]
+    [Range(0f, 1f)]
+    [SerializeField] private float MineFieldShare = 0.28f;
+
+    [Tooltip("Diameter of a naval mine, in metres. Real moored mines are about a metre; this is a little " +
+             "bigger so it reads from the camera.")]
+    [SerializeField] private float MineSize = 3f;
 
     [Tooltip("Fraction of a hazard's height below the waterline. 0.5 = half submerged.")]
     [Range(0f, 1f)]
@@ -286,8 +301,6 @@ public class LevelGenerator : MonoBehaviour
         CellsPerDifficulty = Mathf.Max(0, CellsPerDifficulty);
         CellSize = Mathf.Max(1f, CellSize);
         MinChannelWidth = Mathf.Clamp(MinChannelWidth, 1f, CellSize * 0.9f);
-        HazardScaleJitter.x = Mathf.Max(0.05f, HazardScaleJitter.x);
-        HazardScaleJitter.y = Mathf.Max(HazardScaleJitter.x, HazardScaleJitter.y);
         MaxRetries = Mathf.Max(1, MaxRetries);
     }
 
@@ -624,17 +637,11 @@ public class LevelGenerator : MonoBehaviour
         SeaSurface.Create(_levelRoot, mission != null && mission.Weather == Weather.Storm ? 1.9f : 1f);
     }
 
-    /// <summary>Random hazard art; reefs only when the job has no mines. Reefs come in many colourful variants.</summary>
-    private GameObject PickHazardPrefab()
+    /// <summary>The mine among the hazard prefabs, or null.</summary>
+    private GameObject FindMinePrefab()
     {
-        for (int tries = 0; tries < 8; tries++)
-        {
-            GameObject prefab = HazardPrefabs[Random.Range(0, HazardPrefabs.Length)];
-            if (prefab == null) continue;
-            if (!_job.Mines && IsMinePrefab(prefab)) continue;
-            return IsMinePrefab(prefab) ? prefab : ReefArt(ReefFactory.Coral, prefab);
-        }
-        return ReefArt(ReefFactory.Coral, FindReefPrefab());
+        foreach (var p in HazardPrefabs) if (p != null && IsMinePrefab(p)) return p;
+        return null;
     }
 
     /// <summary>A random generated reef variant, or the given prefab when variants are off or unavailable.</summary>
@@ -675,28 +682,32 @@ public class LevelGenerator : MonoBehaviour
         // The wall uses the rockier variants, so the shoreline isn't a rainbow.
         for (float z = south; z <= north + 0.01f; z += spacing)
         {
-            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(left, 0f, z), footprint);
-            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(right, 0f, z), footprint);
+            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(left, 0f, z), footprint, MinHazardHeight);
+            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(right, 0f, z), footprint, MinHazardHeight);
             pieces += 2;
         }
 
         for (float x = left + spacing; x < right - 0.01f; x += spacing)
         {
-            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(x, 0f, south), footprint);
+            BuildHazard(ReefArt(ReefFactory.Shore, reef), new Vector3(x, 0f, south), footprint, MinHazardHeight);
             pieces++;
         }
 
         Debug.Log($"🧱 [LEVEL GEN]: {pieces} wall pieces close the channel (x {left:F0}..{right:F0}).");
     }
 
+    /// <summary>
+    /// Fills each blocked cell with one kind of danger, so the sea varies: a big reef with a
+    /// few rocks round it, a medium reef, a scatter of small rocks, a sandbank, or (on mine
+    /// jobs) a small field of chained mines.
+    /// Everything stays within maxReach of its cell centre, which is what protects
+    /// MinChannelWidth: a free cell between two blocked ones still has that much clear water.
+    /// </summary>
     private void BuildHazards(Node[,] grid, int width, int length, float originX)
     {
-        // Everything below protects MinChannelWidth. A hazard may never reach
-        // further than this from its cell centre, so a free cell flanked by two
-        // occupied ones still leaves exactly MinChannelWidth of clear water.
         float maxReach = (CellSize - MinChannelWidth) * 0.5f;
-        float nominal = Mathf.Min(CellSize * HazardCellFill, maxReach * 2f);
-        int spawned = 0;
+        float big = Mathf.Min(CellSize * HazardCellFill, maxReach * 2f);
+        int reefs = 0, rocks = 0, mines = 0, banks = 0;
 
         for (int x = 0; x < width; x++)
         {
@@ -704,31 +715,113 @@ public class LevelGenerator : MonoBehaviour
             {
                 if (!grid[x, y].IsObstacle) continue;
 
-                GameObject prefab = PickHazardPrefab();
+                Vector3 cell = new Vector3(originX + (x * CellSize), 0f, y * CellSize);
+                GameObject minePrefab = _job.Mines ? FindMinePrefab() : null;
+                if (minePrefab != null && Random.value < MineFieldShare)
+                {
+                    mines += BuildMineField(minePrefab, cell, maxReach);
+                    continue;
+                }
+                GameObject prefab = FindReefPrefab();
                 if (prefab == null) continue;
+                // Sandbanks are a lesson in reading the water; not on the very first voyage.
+                if (!_gentle && Random.value < SandbankShare)
+                {
+                    Shoal.Build(_levelRoot, cell, maxReach, SeaFloorDepth);
+                    banks++;
+                    continue;
+                }
 
-                float footprint = Mathf.Min(nominal * Random.Range(HazardScaleJitter.x, HazardScaleJitter.y),
-                                            maxReach * 2f);
+                float roll = Random.value;
+                int smallRocks;
+                if (roll < BigReefShare)
+                {
+                    float size = big * Random.Range(0.8f, 1f);
+                    BuildHazard(ReefArt(ReefFactory.Coral, prefab), Spot(cell, maxReach, size), size, MinHazardHeight);
+                    reefs++;
+                    smallRocks = Random.Range(0, 3);
+                }
+                else if (roll < BigReefShare + RockScatterShare)
+                {
+                    smallRocks = Random.Range(2, 5);
+                }
+                else
+                {
+                    float size = big * Random.Range(0.45f, 0.7f);
+                    BuildHazard(ReefArt(ReefFactory.Coral, prefab), Spot(cell, maxReach, size), size, MinHazardHeight * 0.75f);
+                    reefs++;
+                    smallRocks = Random.Range(0, 2);
+                }
 
-                // Scatter only as far as the remaining slack allows.
-                float slack = Mathf.Max(0f, maxReach - (footprint * 0.5f));
-                float jitter = Mathf.Min(CellSize * HazardPositionJitter, slack);
-
-                Vector3 cell = new Vector3(
-                    originX + (x * CellSize) + Random.Range(-jitter, jitter),
-                    0f,
-                    (y * CellSize) + Random.Range(-jitter, jitter));
-
-                BuildHazard(prefab, cell, footprint);
-                spawned++;
+                for (int i = 0; i < smallRocks; i++)
+                {
+                    float size = Random.Range(2.5f, 5f);
+                    BuildHazard(ReefArt(ReefFactory.Shore, prefab), Spot(cell, maxReach, size), size, Mathf.Max(2.5f, size * 0.8f));
+                    rocks++;
+                }
             }
         }
 
-        Debug.Log($"🪨 [LEVEL GEN]: {spawned} hazards, each within {maxReach:F1}u of its cell centre " +
-                  $"— guaranteed channel {MinChannelWidth:F1}u for a ~6u hull.");
+        Debug.Log($"🪨 [LEVEL GEN]: {reefs} reefs, {rocks} small rocks, {banks} sandbanks, {mines} mines, each within " +
+                  $"{maxReach:F1}u of its cell centre — guaranteed channel {MinChannelWidth:F1}u for a ~6u hull.");
     }
 
-    private void BuildHazard(GameObject prefab, Vector3 cell, float footprint)
+    /// <summary>A random spot in the cell where something <paramref name="size"/> across stays within maxReach.</summary>
+    private static Vector3 Spot(Vector3 cell, float maxReach, float size)
+    {
+        Vector2 offset = Random.insideUnitCircle * Mathf.Max(0f, maxReach - size * 0.5f);
+        return cell + new Vector3(offset.x, 0f, offset.y);
+    }
+
+    /// <summary>
+    /// Two or three moored mines a few metres apart, each floating at the surface on a chain
+    /// down to the seabed. Returns how many were laid.
+    /// </summary>
+    private int BuildMineField(GameObject prefab, Vector3 cell, float maxReach)
+    {
+        int want = Random.Range(2, 4), laid = 0;
+        var placed = new List<Vector3>();
+        for (int tries = 0; tries < 20 && laid < want; tries++)
+        {
+            Vector3 at = Spot(cell, maxReach, MineSize);
+            bool clear = true;
+            foreach (var p in placed) if ((p - at).sqrMagnitude < 5.5f * 5.5f) clear = false;
+            if (!clear) continue;
+            placed.Add(at);
+            GameObject mine = BuildHazard(prefab, at, MineSize, 0f);
+            AddMooring(mine.transform);
+            laid++;
+        }
+        return laid;
+    }
+
+    /// <summary>The mine's chain, a dark line from under it down to the seabed.</summary>
+    private void AddMooring(Transform mine)
+    {
+        var chain = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        chain.name = "Chain";
+        Destroy(chain.GetComponent<Collider>());
+        float top = mine.position.y - MineSize * 0.4f, bottom = -SeaFloorDepth;
+        chain.transform.position = new Vector3(mine.position.x, (top + bottom) * 0.5f, mine.position.z);
+        chain.transform.localScale = new Vector3(0.12f, (top - bottom) * 0.5f, 0.12f);
+        chain.transform.SetParent(mine, true);
+        var r = chain.GetComponent<Renderer>();
+        if (_chainMaterial == null)
+        {
+            _chainMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Chain" };
+            _chainMaterial.SetColor("_BaseColor", new Color(0.12f, 0.12f, 0.13f));
+        }
+        r.sharedMaterial = _chainMaterial;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+    }
+
+    private static Material _chainMaterial;
+
+    /// <summary>
+    /// One hazard, fitted to <paramref name="footprint"/> across and stretched to at least
+    /// <paramref name="minHeight"/> tall (0 leaves its proportions alone, for mines).
+    /// </summary>
+    private GameObject BuildHazard(GameObject prefab, Vector3 cell, float footprint, float minHeight)
     {
         GameObject hazard = Instantiate(prefab, Vector3.zero, prefab.transform.rotation, _levelRoot);
         hazard.SetActive(true); // generated reef templates are stored switched off
@@ -751,7 +844,7 @@ public class LevelGenerator : MonoBehaviour
         // rather than let elongated art fit down to something invisible.
         // We must stretch the local axis that corresponds most closely to World UP,
         // otherwise a prefab rotated 90 degrees would stretch horizontally instead.
-        if (bounds.size.y > 0.0001f && bounds.size.y < MinHazardHeight)
+        if (bounds.size.y > 0.0001f && bounds.size.y < minHeight)
         {
             Vector3 stretched = hazard.transform.localScale;
             
@@ -759,9 +852,9 @@ public class LevelGenerator : MonoBehaviour
             float dotX = Mathf.Abs(hazard.transform.right.y);
             float dotZ = Mathf.Abs(hazard.transform.forward.y);
             
-            if (dotY >= dotX && dotY >= dotZ) stretched.y *= MinHazardHeight / bounds.size.y;
-            else if (dotX >= dotY && dotX >= dotZ) stretched.x *= MinHazardHeight / bounds.size.y;
-            else stretched.z *= MinHazardHeight / bounds.size.y;
+            if (dotY >= dotX && dotY >= dotZ) stretched.y *= minHeight / bounds.size.y;
+            else if (dotX >= dotY && dotX >= dotZ) stretched.x *= minHeight / bounds.size.y;
+            else stretched.z *= minHeight / bounds.size.y;
 
             hazard.transform.localScale = stretched;
             bounds = MeasureBounds(hazard);
@@ -769,10 +862,16 @@ public class LevelGenerator : MonoBehaviour
 
         // Use the prefab's authored Y position directly, giving the artist full control
         hazard.transform.position = new Vector3(cell.x, prefab.transform.position.y, cell.z);
-        // Mines float: they ride the waves (rocks stay put, and the waves break on them).
-        if (IsMinePrefab(prefab)) hazard.AddComponent<SeaFloat>().Radius = Mathf.Max(1f, bounds.size.x * 0.4f);
+        if (IsMinePrefab(prefab))
+        {
+            // Mines float, a little more than half out of the water, and ride the waves.
+            Bounds placed = MeasureBounds(hazard);
+            hazard.transform.position += Vector3.up * (0.25f * placed.size.y - placed.center.y);
+            hazard.AddComponent<SeaFloat>().Radius = Mathf.Max(1f, placed.size.x * 0.5f);
+        }
 
         MakeHazardDeadly(hazard);
+        return hazard;
     }
 
     /// <summary>
@@ -998,10 +1097,18 @@ public class LevelGenerator : MonoBehaviour
     public event System.Action OnHazardCleared;
 
     /// <summary>A hazard at this world position is gone: its cell becomes open water on the chart.</summary>
+    /// <summary>
+    /// Marks the cell at <paramref name="worldPosition"/> as open water on the chart, unless
+    /// something dangerous is still in it (the rest of a minefield).
+    /// </summary>
     public void ClearHazardAt(Vector3 worldPosition)
     {
         Vector2Int cell = CellFromWorld(worldPosition);
         if (!IsObstacle(cell.x, cell.y)) return;
+        Vector3 centre = WorldFromCell(cell.x, cell.y);
+        var half = new Vector3(CellSize * 0.5f, 20f, CellSize * 0.5f);
+        foreach (var c in Physics.OverlapBox(centre, half, Quaternion.identity, ~0, QueryTriggerInteraction.Collide))
+            if (c.CompareTag(HazardTag)) return;
         _obstacleMap[cell.x, cell.y] = false;
         OnHazardCleared?.Invoke();
     }

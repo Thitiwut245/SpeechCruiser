@@ -15,12 +15,12 @@ public class SeaFloat : MonoBehaviour
     [SerializeField] public float Tilt = 0.8f;
 
     private float _restY;
-    private float _yaw;
+    private Quaternion _rest;
 
     private void Start()
     {
         _restY = transform.position.y;
-        _yaw = transform.eulerAngles.y;
+        _rest = transform.rotation; // kept under the tilt, so a model's own orientation survives
     }
 
     private void Update()
@@ -32,6 +32,6 @@ public class SeaFloat : MonoBehaviour
         transform.position = new Vector3(p.x, _restY + h, p.z);
 
         var normal = new Vector3(-hx * Tilt, 2f * Radius, -hz * Tilt).normalized;
-        transform.rotation = Quaternion.FromToRotation(Vector3.up, normal) * Quaternion.Euler(0f, _yaw, 0f);
+        transform.rotation = Quaternion.FromToRotation(Vector3.up, normal) * _rest;
     }
 }
