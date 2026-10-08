@@ -54,7 +54,9 @@ public static class ResearchLog
     public const string VoyagesHeader =
         "session,participant,voyage,mission,time_utc,delivered,seconds,par_seconds,hits,mine_hits,cargo_loaded,cargo_delivered," +
         "calls,understood,understood_pct,orders,standard_orders,say_again,words_asked,avg_reaction_s,practise," +
-        "avg_stt_ms,avg_total_ms,avg_ship_ms";
+        "avg_stt_ms,avg_total_ms,avg_ship_ms,emergencies,emergencies_saved";
+    public const string EmergenciesHeader =
+        "session,participant,voyage,mission,time_utc,hazard,distance_m,window_s,outcome,reaction_ms,tries,standard,said";
 
     public static readonly string SessionId = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
     public static string Folder => Path.Combine(Application.persistentDataPath, "Sessions");
@@ -192,8 +194,23 @@ public static class ResearchLog
             I(s.Calls), I(s.Understood), I(s.UnderstoodPercent), I(s.Orders), I(s.StandardOrders), I(s.Unclear), I(s.WordsAsked),
             s.AverageReaction >= 0f ? F(s.AverageReaction) : "", string.Join("; ", s.Practise ?? new List<string>()),
             AvgText(_voyageTurns, t => t.SttMs), AvgText(_voyageTurns, t => t.TotalMs), AvgText(_voyageTurns, t => t.ShipMs),
+            I(s.Emergencies), I(s.EmergenciesSaved),
         };
         Append("voyages.csv", VoyagesHeader, row);
+    }
+
+    /// <summary>
+    /// A story emergency call ended (EmergencyCall): what was ahead, how much time there was,
+    /// what happened (saved, hit, cleared), how fast the right order came, and what was said.
+    /// </summary>
+    public static void Emergency(string hazard, float distance, float window, string outcome, int reactionMs, int tries, string standard)
+    {
+        string said = _open != null ? _open.Heard : Last != null ? Last.Heard : "";
+        var row = new List<string>(Common())
+        {
+            hazard ?? "", F(distance), F(window), outcome, reactionMs >= 0 ? I(reactionMs) : "", I(tries), standard ?? "", outcome == "saved" ? said : "",
+        };
+        Append("emergencies.csv", EmergenciesHeader, row);
     }
 
     // ------------------------------------------------------------------ averages for the panel

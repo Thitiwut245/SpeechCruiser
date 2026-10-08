@@ -53,6 +53,13 @@ public class ShipHull : MonoBehaviour
     public int MaxHealthAmount => MaxHealth;
     public bool IsInvulnerable => Time.time < _invulnerableUntil;
 
+    // After a story emergency call was answered in time (EmergencyCall): a touch only scrapes.
+    private float _sparedUntil = -1f;
+
+    /// <summary>For <paramref name="seconds"/>, hitting a hazard only scrapes past it: pushed clear, no damage.</summary>
+    public void Spare(float seconds) { _sparedUntil = Time.time + seconds; _spareSaid = false; }
+    private bool _spareSaid;
+
     // Awake, so anything reading the hull in its own Start sees the carried-over value.
     private void Awake()
     {
@@ -84,6 +91,15 @@ public class ShipHull : MonoBehaviour
         if (IsInvulnerable || !other.CompareTag("Hazard")) return;
 
         _invulnerableUntil = Time.time + InvulnerableSeconds;
+        if (Time.time < _sparedUntil)
+        {
+            PushClear(other);
+            if (CrewVoice.Instance != null && !_spareSaid)
+                CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout, new[] { "We scraped past it, Captain! No damage! Over." },
+                    ShipTelemetry.Capture(), "hull:spared");
+            _spareSaid = true;
+            return;
+        }
         bool mine = RadarSystem.KindOf(other) == "Mine";
 
         // The practice drill promises the ship can't be damaged while it runs: bounce, slow down,

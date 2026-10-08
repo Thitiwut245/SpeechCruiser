@@ -20,7 +20,12 @@ public class TimeController : Singleton<TimeController>
     [FormerlySerializedAs("transitionSpeed")]
     [SerializeField] private float TransitionSpeed = 8f;
 
+    [Tooltip("Time scale during a story emergency call (EmergencyCall): slow enough to speak the order.")]
+    [Range(0.05f, 1f)]
+    [SerializeField] private float EmergencyTimeScale = 0.25f;
+
     private const float MinFixedDeltaTime = 0.0001f;
+    private bool _emergency;
 
     private readonly HashSet<Object> _pauseOwners = new HashSet<Object>();
     private float _targetTimeScale = 1f;
@@ -91,7 +96,9 @@ public class TimeController : Singleton<TimeController>
             return;
         }
 
-        _targetTimeScale = (WantsSlowMo ? SlowMoTimeScale : 1f) * SpeedRunScale;
+        float slow = WantsSlowMo ? SlowMoTimeScale : 1f;
+        if (_emergency) slow = Mathf.Min(slow, EmergencyTimeScale);
+        _targetTimeScale = slow * SpeedRunScale;
         Time.timeScale = Mathf.MoveTowards(Time.timeScale, _targetTimeScale, TransitionSpeed * SpeedRunScale * Time.unscaledDeltaTime);
         // Faster than normal, physics keeps its normal step (more steps per frame) so a fast
         // ship can't skip through a hazard or the finish trigger between two steps.
@@ -115,6 +122,15 @@ public class TimeController : Singleton<TimeController>
         Debug.Log($"⏱️ [TIME]: PTT {(active ? "ON — Entering Command Time" : "OFF")}. Target timeScale: {(WantsSlowMo ? SlowMoTimeScale : 1f)}");
     }
 
+    /// <summary>A story emergency call is on (EmergencyCall): time slows while the Captain gives the order.</summary>
+    public void SetEmergency(bool active)
+    {
+        _emergency = active;
+    }
+
+    /// <summary>The radio is busy: recording, decoding, typing, or the crew's AI is thinking.</summary>
+    public bool RadioBusy => WantsSlowMo;
+
     /// <summary>The typed-order box is open: slow time like a voice order, since typing takes longer.</summary>
     public void SetTypingActive(bool active)
     {
@@ -130,6 +146,7 @@ public class TimeController : Singleton<TimeController>
     public void ForceNormalTime()
     {
         _pttActive = false;
+        _emergency = false;
         _aiRequests = 0;
         _typing = false;
         SpeedRunScale = 1f;

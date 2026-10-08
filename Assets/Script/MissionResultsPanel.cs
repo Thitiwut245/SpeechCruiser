@@ -236,6 +236,8 @@ public class MissionResultsPanel : MonoBehaviour
         if (s.Unclear > 0) AddRow("\"Say again\"", s.Unclear.ToString(), null, true);
         if (s.AverageReaction >= 0f)
             AddRow("Order after a warning", s.AverageReaction.ToString("0.0") + " s average", s.AverageReaction <= 4f ? "good" : null, true);
+        if (s.Emergencies > 0)
+            AddRow("Emergency calls", s.EmergenciesSaved + " / " + s.Emergencies + " in time", s.EmergenciesSaved == s.Emergencies ? "good" : null, true);
         if (s.WordsAsked > 0) AddRow("Words asked about", s.WordsAsked.ToString(), "good", true);
         if (s.Practise != null && s.Practise.Count > 0)
             AddRow("Practise saying", "\"" + string.Join("\", \"", s.Practise) + "\"", null, true);

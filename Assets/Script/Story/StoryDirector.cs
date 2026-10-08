@@ -79,6 +79,7 @@ public class StoryDirector : MonoBehaviour
         _cues = Mission.Radio != null ? (RadioCue[])Mission.Radio.Clone() : new RadioCue[0];
         System.Array.Sort(_cues, (a, b) => a.At.CompareTo(b.At));
         if (Mission.Weather != Weather.Clear) _weather = StoryWeather.Create(Mission.Weather);
+        EmergencyCall.Create(transform); // near misses become a call to give the right order
     }
 
     private void OnDisable()

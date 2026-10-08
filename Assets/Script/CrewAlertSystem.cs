@@ -185,6 +185,8 @@ public class CrewAlertSystem : MonoBehaviour
 
         int stage = tti <= braceSeconds ? 3 : tti <= closingSeconds ? 2 : tti <= warnSeconds ? 1 : 0;
         if (stage <= _threatStage) return false;
+        // A story emergency call is doing the talking (and just after a save, no "brace!"): one clear order.
+        if (EmergencyCall.Running || Time.unscaledTime < EmergencyCall.QuietUntil) { _threatStage = stage; return false; }
 
         // Brace always gets through; the earlier calls wait for the player to finish talking.
         if (stage < 3 && yieldToPlayer && PlayerIsTalking()) return false;

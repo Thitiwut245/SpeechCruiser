@@ -513,6 +513,7 @@ public class CommandRouter : MonoBehaviour
         // own teaching, and not the same phrase again and again.
         if (CrewBarkLibrary.CurrentTension(ShipTelemetry.Capture()) == CrewTension.Emergency) yield break;
         if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive) yield break;
+        if (Time.unscaledTime < EmergencyCall.QuietUntil) yield break; // the emergency call already said it
         if (_recastAt.TryGetValue(phrase, out float last) && Time.unscaledTime - last < RecastCooldown) yield break;
         _recastAt[phrase] = Time.unscaledTime;
         Say(crew, StandardPhrases.Recast(crew, phrase), "recast");

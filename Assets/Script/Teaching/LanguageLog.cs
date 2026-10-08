@@ -21,11 +21,16 @@ public static class LanguageLog
         public int WordsAsked;     // "what does starboard mean?", "how do I say ...?"
         public float AverageReaction; // seconds from a danger warning to the next order; <0 if none
         public List<string> Practise; // standard phrases for orders said another way, most frequent first
+        public int Emergencies;      // story emergency calls (EmergencyCall)
+        public int EmergenciesSaved; // ... answered in time
 
         public int UnderstoodPercent => Calls > 0 ? Mathf.RoundToInt(100f * Mathf.Min(Understood, Calls) / Calls) : 0;
     }
 
-    private static int _calls, _understood, _orders, _standard, _unclear, _words;
+    private static int _calls, _understood, _orders, _standard, _unclear, _words, _emergencies, _saved;
+
+    /// <summary>An order was carried out: which, and whether it was said in standard radio English.</summary>
+    public static event System.Action<ShipAction, bool> OnOrder;
     private static readonly List<float> _reactions = new List<float>();
     private static readonly Dictionary<string, int> _practise = new Dictionary<string, int>();
     private static float _warnedAt = -1f;
@@ -34,7 +39,7 @@ public static class LanguageLog
     /// <summary>A voyage starts: forget the last one.</summary>
     public static void Begin()
     {
-        _calls = _understood = _orders = _standard = _unclear = _words = 0;
+        _calls = _understood = _orders = _standard = _unclear = _words = _emergencies = _saved = 0;
         _reactions.Clear();
         _practise.Clear();
         _warnedAt = -1f;
@@ -80,6 +85,14 @@ public static class LanguageLog
             _reactions.Add(Mathf.Max(0f, time - _warnedAt));
             _warnedAt = -1f;
         }
+        OnOrder?.Invoke(action, standard);
+    }
+
+    /// <summary>A story emergency call ended: answered in time (<paramref name="saved"/>) or not.</summary>
+    public static void Emergency(bool saved)
+    {
+        _emergencies++;
+        if (saved) _saved++;
     }
 
     public static Summary Read()
@@ -94,6 +107,8 @@ public static class LanguageLog
             WordsAsked = _words,
             AverageReaction = _reactions.Count > 0 ? _reactions.Average() : -1f,
             Practise = _practise.OrderByDescending(p => p.Value).Select(p => p.Key).Take(3).ToList(),
+            Emergencies = _emergencies,
+            EmergenciesSaved = _saved,
         };
     }
 }
