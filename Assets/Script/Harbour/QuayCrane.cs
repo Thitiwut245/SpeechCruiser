@@ -195,8 +195,43 @@ public class YardTruck : MonoBehaviour
     private const float Speed = 11f;
     private static Material _cab, _trailer;
 
+    /// <summary>A truck driving up and down between two points for ever, pausing at each end (terminal life).</summary>
+    public static YardTruck Patrol(Transform parent, Vector3 a, Vector3 b, float delay)
+    {
+        var truck = Make(parent);
+        truck.transform.SetPositionAndRotation(a, Quaternion.LookRotation(b - a));
+        truck.StartCoroutine(truck.Loop(a, b, delay));
+        return truck;
+    }
+
+    private IEnumerator Loop(Vector3 a, Vector3 b, float delay)
+    {
+        yield return new WaitForSeconds(delay * 6f);
+        while (true)
+        {
+            foreach (var to in new[] { b, a })
+            {
+                Quaternion from = transform.rotation, toward = Quaternion.LookRotation(to - transform.position);
+                for (float t = 0f; t < 0.8f; t += Time.deltaTime)
+                {
+                    transform.rotation = Quaternion.Slerp(from, toward, t / 0.8f);
+                    yield return null;
+                }
+                yield return Drive(to);
+                yield return new WaitForSeconds(2f);
+            }
+        }
+    }
+
     /// <summary>Sends a truck from <paramref name="landward"/> to fetch <paramref name="box"/> and carry it back that way.</summary>
     public static YardTruck Fetch(Transform parent, Transform box, Vector3 landward, float deckY)
+    {
+        var truck = Make(parent);
+        truck.StartCoroutine(truck.Run(box, landward, deckY));
+        return truck;
+    }
+
+    private static YardTruck Make(Transform parent)
     {
         if (_cab == null)
         {
@@ -214,7 +249,6 @@ public class YardTruck : MonoBehaviour
         foreach (float x in new[] { -0.75f, 0.75f })
             foreach (float z in new[] { -1.6f, 0.2f, 1.6f })
                 Part(go.transform, _trailer, new Vector3(x, 0.3f, z), new Vector3(0.3f, 0.6f, 0.6f));
-        truck.StartCoroutine(truck.Run(box, landward, deckY));
         return truck;
     }
 

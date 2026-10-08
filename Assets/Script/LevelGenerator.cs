@@ -27,10 +27,6 @@ public class LevelGenerator : MonoBehaviour
     }
 
     [Header("Prefabs — drop them in, the generator measures and fits them")]
-    [Tooltip("Harbour model, used at both ends: the ship departs from its quay and docks at the same model " +
-             "at the destination. Placed to the ship's starboard side, with a berth (Quay) fitted to its edge.")]
-    [SerializeField] private GameObject StartPortPrefab;
-
     [Tooltip("Obstacle art. Any size, any pivot, collider and Hazard tag optional — all added if missing.")]
     [SerializeField] private GameObject[] HazardPrefabs;
 
@@ -149,11 +145,6 @@ public class LevelGenerator : MonoBehaviour
     [SerializeField] private float ShipHalfBeam = 3f;
     [Tooltip("Water between the hull and the quay when alongside.")]
     [SerializeField] private float QuayGap = 1.2f;
-    [Tooltip("Slides the quay along the ship (+ = towards the bow).")]
-    [SerializeField] private float QuayOffsetZ = 0f;
-
-    [Tooltip("Turn applied to the harbour model so its long side runs along the ship as the quay.")]
-    [SerializeField] private float HarbourYaw = 90f;
 
     [Header("Difficulty")]
     [Range(0.1f, 0.4f)]
@@ -340,7 +331,7 @@ public class LevelGenerator : MonoBehaviour
         {
             float thin = attempt <= MaxRetries ? 1f : Mathf.Pow(0.9f, attempt - MaxRetries);
             Node[,] grid = CreateAndScatterGrid(GridWidth, gridLength, thin);
-            List<Node> path = FindPathAStar(grid, grid[GridWidth / 2, 0], grid[GridWidth / 2, gridLength - 1]);
+            List<Node> path = FindPathAStar(grid, grid[GridWidth / 2, 0], grid[EndColumn(GridWidth), gridLength - 1]);
             if (path == null) { blockedAttempts++; continue; } // blocked: never usable
 
             // Keep the most winding connected layout in case none reaches the target.
@@ -397,12 +388,6 @@ public class LevelGenerator : MonoBehaviour
             return false;
         }
 
-        if (StartPortPrefab == null)
-        {
-            Debug.LogError("❌ [LEVEL GEN]: no StartPortPrefab (harbour model) assigned — there would be no berth to dock at.");
-            return false;
-        }
-
         return true;
     }
 
@@ -416,7 +401,7 @@ public class LevelGenerator : MonoBehaviour
         Node[,] grid = CreateEmptyGrid(width, length);
 
         int startX = width / 2;
-        int endX = width / 2;
+        int endX = EndColumn(width);
         int endY = length - 1;
 
         int clearRows = _gentle ? FirstVoyageClearRows : StartClearRows;
@@ -429,7 +414,7 @@ public class LevelGenerator : MonoBehaviour
                 // A clear lane out of the dock, and clear harbour water round the destination
                 // berth, reaching east over the harbour model beside it.
                 if (Mathf.Abs(x - startX) <= 1 && y <= clearRows) continue;
-                if (x >= endX - 1 && x <= endX + 2 && y >= endY - 1) continue;
+                if (x >= endX - 2 && x <= endX && y >= endY - 1) continue;
                 // Port ground behind each harbour is land: the route keeps off it (no hazard built).
                 if (HarbourLand(x, y, width, length)) { grid[x, y].IsObstacle = true; continue; }
 
@@ -591,7 +576,7 @@ public class LevelGenerator : MonoBehaviour
         float lengthZ = (length - 1) * CellSize;
 
         StartPosition = new Vector3(0f, ShipSpawnHeight, 0f);
-        EndPosition = new Vector3(centerX, 0f, lengthZ);
+        EndPosition = new Vector3(originX + EndColumn(width) * CellSize, 0f, lengthZ);
 
         Vector3 envCenter = new Vector3(centerX, 0f, lengthZ * 0.5f);
         float envX = (maxX - minX) + CellSize + (EnvironmentMargin * 2f);
@@ -764,11 +749,17 @@ public class LevelGenerator : MonoBehaviour
     /// </summary>
     private static bool HarbourLand(int x, int y, int width, int length)
     {
-        int startX = width / 2, endX = width / 2;
+        int startX = width / 2, endX = EndColumn(width);
         if (y <= 1 && x >= startX + 1 && x <= startX + 2) return true;
         if (y >= length - 2 && x >= endX + 1 && x <= endX + 2) return true;
         return false;
     }
+
+    /// <summary>
+    /// The destination berth's column: one west of the middle, so the terminal beside it (to
+    /// the east) stands on the map squares next to it rather than over the route's end.
+    /// </summary>
+    private static int EndColumn(int width) => width / 2 - 1;
 
     /// <summary>A random spot in the cell where something <paramref name="size"/> across stays within maxReach.</summary>
     private static Vector3 Spot(Vector3 cell, float maxReach, float size)
@@ -967,46 +958,29 @@ public class LevelGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// The home harbour: the model alongside the ship's starboard side with its quay fitted,
-    /// so the ship starts moored at the berth. Its water is sheltered (calm).
+    /// The home terminal: a container terminal to the ship's starboard side, joined to the
+    /// land behind (south), with the ship moored at its berth. Its water is sheltered (calm).
     /// </summary>
     private void BuildStartPort()
     {
         Vector3 berth = new Vector3(0f, ShipSpawnHeight, 0f);
-        GameObject port = PlaceHarbour("StartPort", berth);
-        Quay.Build(_levelRoot, port, berth, berth.x + ShipHalfBeam + QuayGap, destination: false);
+        TerminalBuilder.Build(_levelRoot, "StartPort", berth, berth.x + ShipHalfBeam + QuayGap, 50f, 30f,
+                              destination: false, Random.Range(0, int.MaxValue), out _);
         SeaWaves.SetCalm(0, berth, 30f, 75f);
     }
 
     /// <summary>
-    /// The destination: the same harbour model at the end of the route, its berth marked out
-    /// on the water, and the DockingPilot that brings the ship in when the player asks.
-    /// The voyage ends only here, tied up at the berth.
+    /// The destination terminal, joined to the land beyond (north): its berth marked out on
+    /// the water, and the DockingPilot that brings the ship in when the player asks. The
+    /// voyage ends only here, tied up at the berth.
     /// </summary>
     private void BuildEndPort()
     {
         Vector3 berth = new Vector3(EndPosition.x, ShipSpawnHeight, EndPosition.z);
-        GameObject port = PlaceHarbour("EndDock", berth);
-        // Art only: the ship never collides with scenery, and the berth decides arrival.
-        foreach (var old in port.GetComponentsInChildren<EndPort>()) Destroy(old);
-        foreach (var col in port.GetComponentsInChildren<Collider>()) Destroy(col);
-        Quay quay = Quay.Build(_levelRoot, port, berth, berth.x + ShipHalfBeam + QuayGap, destination: true);
+        TerminalBuilder.Build(_levelRoot, "EndDock", berth, berth.x + ShipHalfBeam + QuayGap, 30f, 50f,
+                              destination: true, Random.Range(0, int.MaxValue), out Quay quay);
         DockingPilot.Create(_levelRoot, quay);
         SeaWaves.SetCalm(1, berth, 30f, 75f);
-    }
-
-    /// <summary>
-    /// The harbour model to the starboard side of a ship lying at <paramref name="berth"/>, its
-    /// near edge QuayGap off the hull. Turned so its long side is the quay, as real ships lie.
-    /// </summary>
-    private GameObject PlaceHarbour(string name, Vector3 berth)
-    {
-        GameObject port = Instantiate(StartPortPrefab, Vector3.zero, Quaternion.Euler(0f, HarbourYaw, 0f), _levelRoot);
-        port.name = name;
-        Bounds bounds = MeasureBounds(port);
-        Vector3 target = new Vector3(berth.x + (bounds.size.x * 0.5f) + ShipHalfBeam + QuayGap, bounds.size.y * 0.5f, berth.z + QuayOffsetZ);
-        PlaceByBounds(port, target, bounds);
-        return port;
     }
 
     /// <summary>
@@ -1036,10 +1010,11 @@ public class LevelGenerator : MonoBehaviour
         {
             Bounds deck = quay.DeckBounds;
             if (deck.size.x < 1f) continue;
-            // Back to the nearest coast: south behind the home port, north behind the destination.
+            // The terminal's ground, and on back to the nearest coast: south behind the home
+            // port, north behind the destination.
             bool home = quay.Berth.z < lengthZ * 0.5f;
-            var r = home ? Rect.MinMaxRect(deck.max.x - 2f, south - 4f, deck.max.x + 40f, deck.max.z + 12f)
-                         : Rect.MinMaxRect(deck.max.x - 2f, deck.min.z - 12f, deck.max.x + 40f, north + 4f);
+            var r = home ? Rect.MinMaxRect(deck.min.x + 1f, south - 4f, deck.max.x + 30f, deck.max.z)
+                         : Rect.MinMaxRect(deck.min.x + 1f, deck.min.z, deck.max.x + 30f, north + 4f);
             aprons.Add(r);
             // Solid to the ship: running into it bumps her off, like the quay.
             var edge = new GameObject("QuayEdge");
@@ -1050,9 +1025,10 @@ public class LevelGenerator : MonoBehaviour
             box.size = new Vector3(r.width - 2f, 12f, r.height);
         }
 
+        var water = Rect.MinMaxRect(west, south, east, north);
         CoastBuilder.Build(_levelRoot, new CoastBuilder.Settings
         {
-            Water = Rect.MinMaxRect(west, south, east, north),
+            Water = water,
             Depth = CoastDepth,
             Cell = Mathf.Clamp(CoastCell, 2f, 6f), // fine enough for cliffs and coves
             Ragged = CoastRagged,

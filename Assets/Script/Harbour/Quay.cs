@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// A harbour's quay, fitted along the near edge of the harbour model: one berth the length of
+/// A terminal's berth, along its quay face (TerminalBuilder): one berth the length of
 /// the ship, marked as real ports mark them (a yellow edge line and end bars on the quay,
 /// black fenders hanging on its face, bollards for the mooring lines), and at the destination
 /// a yellow outline on the water showing exactly where the ship should lie.
@@ -22,7 +22,7 @@ public class Quay : MonoBehaviour
     public float FaceX { get; private set; }
     /// <summary>Height of the quay's deck.</summary>
     public float DeckY { get; private set; }
-    /// <summary>The harbour model's deck (its biggest low, flat part), in the world.</summary>
+    /// <summary>The terminal's paved yard, in the world.</summary>
     public Bounds DeckBounds { get; private set; }
     /// <summary>The home quay (where the ship loads) and the destination's (where it unloads).</summary>
     public static Quay Home { get; private set; }
@@ -44,10 +44,11 @@ public class Quay : MonoBehaviour
     }
 
     /// <summary>
-    /// Fits a quay to <paramref name="harbour"/> (already placed with its near edge at
-    /// <paramref name="faceX"/>) for a ship lying at <paramref name="berth"/>.
+    /// Fits the berth to a terminal whose quay wall runs along <paramref name="faceX"/>, its
+    /// deck at <paramref name="deckY"/>, covering <paramref name="footprint"/> (x/z), for a
+    /// ship lying at <paramref name="berth"/>.
     /// </summary>
-    public static Quay Build(Transform parent, GameObject harbour, Vector3 berth, float faceX, bool destination)
+    public static Quay Build(Transform parent, Rect footprint, Vector3 berth, float faceX, float deckY, bool destination)
     {
         Materials();
         var go = new GameObject(destination ? "DestinationQuay" : "HomeQuay");
@@ -55,14 +56,10 @@ public class Quay : MonoBehaviour
         var quay = go.AddComponent<Quay>();
         quay.Berth = berth;
         quay.FaceX = faceX;
-        // Line the model's deck (its biggest low, flat part: lamps and cranes may stick out
-        // further) up with the quay face, centred on the berth, so the fenders and markings
-        // sit on the real edge and not out in the water.
-        Bounds deckPart = Deck(harbour);
-        harbour.transform.position += new Vector3(faceX - deckPart.min.x, 0f, berth.z - deckPart.center.z);
-        quay.DeckY = deckPart.max.y;
-        quay.DeckBounds = Deck(harbour);
-        quay.BerthHalfLength = Mathf.Clamp(deckPart.extents.z - 2f, 4f, MaxBerthHalfLength);
+        quay.DeckY = deckY;
+        quay.DeckBounds = new Bounds(new Vector3(footprint.center.x, deckY * 0.5f, footprint.center.y),
+                                     new Vector3(footprint.width, deckY, footprint.height));
+        quay.BerthHalfLength = MaxBerthHalfLength;
         float BerthHalfLength = quay.BerthHalfLength;
 
         float deck = quay.DeckY;
@@ -103,44 +100,14 @@ public class Quay : MonoBehaviour
         quay.Crane = QuayCrane.Build(go.transform, berth, faceX, deck);
         if (destination) Destination = quay; else Home = quay;
 
-        // The quay itself, for bumps: just inside the face, the harbour's whole length.
-        Bounds b = MeasureRenderers(harbour);
+        // The terminal, for bumps: running into it bumps the ship off.
         var bump = new GameObject("QuayEdge");
         bump.transform.SetParent(go.transform, false);
-        bump.transform.position = new Vector3(faceX + 3f, 0f, b.center.z);
+        bump.transform.position = new Vector3(footprint.center.x, 0f, footprint.center.y);
         var box = bump.AddComponent<BoxCollider>();
         box.isTrigger = true;
-        box.size = new Vector3(6f, 12f, Mathf.Max(b.size.z, BerthHalfLength * 2f));
+        box.size = new Vector3(footprint.width, 12f, footprint.height);
         return quay;
-    }
-
-    /// <summary>
-    /// The harbour's deck: the drawn part with the biggest footprint that stays low (not a
-    /// crane or a stack of boxes). Falls back to the whole model, 2 m high.
-    /// </summary>
-    private static Bounds Deck(GameObject harbour)
-    {
-        Bounds best = default;
-        float area = 0f;
-        foreach (var r in harbour.GetComponentsInChildren<Renderer>())
-        {
-            Bounds b = r.bounds;
-            if (b.max.y > 6f || b.max.y < 0.3f) continue;
-            float a = b.size.x * b.size.z;
-            if (a > area) { area = a; best = b; }
-        }
-        if (area > 0f) return best;
-        Bounds all = MeasureRenderers(harbour);
-        return new Bounds(new Vector3(all.center.x, 1f, all.center.z), new Vector3(all.size.x, 2f, all.size.z));
-    }
-
-    private static Bounds MeasureRenderers(GameObject go)
-    {
-        var rs = go.GetComponentsInChildren<Renderer>();
-        if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.one * 20f);
-        Bounds b = rs[0].bounds;
-        foreach (var r in rs) b.Encapsulate(r.bounds);
-        return b;
     }
 
     private static void Piece(GameObject parent, PrimitiveType type, Material mat, Vector3 position, Vector3 scale)
