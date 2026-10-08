@@ -586,7 +586,9 @@ public class LevelGenerator : MonoBehaviour
         SeaWaves.ClearCalm(); // the harbours below set their sheltered water
         BuildWater();
         BuildHazards(grid, width, length, originX);
-        BuildBoundaryWalls(minX, maxX, lengthZ);
+        // With a coast, the shore itself is the border (its shallows and rocks, CoastBuilder);
+        // without one, a reef wall closes the channel.
+        if (!BuildCoast) BuildBoundaryWalls(minX, maxX, lengthZ);
         BuildStartPort();
         BuildEndPort();
         if (BuildCoast) BuildCoastline(minX, maxX, lengthZ);
@@ -984,7 +986,7 @@ public class LevelGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// Land just outside the reef wall on three sides, and behind the destination dock, so the
+    /// Land just outside the channel on three sides, and behind the destination dock, so the
     /// sea reads as a channel between coasts and both harbours sit against land.
     /// </summary>
     private void BuildCoastline(float minX, float maxX, float lengthZ)
@@ -1036,7 +1038,9 @@ public class LevelGenerator : MonoBehaviour
             Seed = Random.Range(0, int.MaxValue),
             Harbours = harbours.ToArray(),
             Aprons = aprons.ToArray(),
-        }, out _);
+        }, out CoastBuilder.CoastShape shape);
+        // The shore is the border: shallows to run aground on, rocks under the cliffs.
+        if (shape != null) CoastBuilder.BuildBorder(_levelRoot, shape, water, aprons.ToArray());
     }
 
     // ==============================

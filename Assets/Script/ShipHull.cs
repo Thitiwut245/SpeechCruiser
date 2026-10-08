@@ -118,7 +118,7 @@ public class ShipHull : MonoBehaviour
         if (nav == null || nav.Engine == null || nav.Engine.AgroundDirection == 0) return;
         nav.Engine.Refloat();
         if (CrewVoice.Instance != null)
-            CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout, new[] { "We're off the sandbank, Captain. Deep water again." },
+            CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout, new[] { "We're afloat again, Captain. Deep water." },
                 ShipTelemetry.Capture(), "hull:refloat");
     }
 
@@ -151,8 +151,8 @@ public class ShipHull : MonoBehaviour
         if (CrewVoice.Instance != null)
         {
             string line = direction > 0
-                ? "We've run aground on a sandbank! No damage. Order slow astern to back off."
-                : "We've backed onto a sandbank! No damage. Order slow ahead to get off.";
+                ? "We've run aground in the shallows! No damage. Order slow astern to back off."
+                : "We've backed into the shallows! No damage. Order slow ahead to get off.";
             CrewVoice.Instance.SpeakFrom(RadioChannel.ChiefEngineer, new[] { line }, ShipTelemetry.Capture(), "hull:aground");
         }
     }

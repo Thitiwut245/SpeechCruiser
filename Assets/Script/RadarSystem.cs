@@ -182,6 +182,7 @@ public class RadarSystem : MonoBehaviour
             string n = t.name;
             if (n.IndexOf("mine", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Mine";
             if (n.IndexOf("sandbank", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Sandbank";
+            if (n.IndexOf("shallows", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Shallows";
             if (n.IndexOf("reef", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("rock", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Reef";
         }

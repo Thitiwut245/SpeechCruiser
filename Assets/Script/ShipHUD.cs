@@ -565,6 +565,7 @@ public class ShipHUD : MonoBehaviour
         foreach (var c in FindObjectsByType<Collider>(FindObjectsSortMode.None))
         {
             if (!c.enabled || !c.CompareTag("Hazard")) continue;
+            if (c.name.StartsWith("Shore")) continue; // the coast is drawn by the land itself, not a row of dots
             _blips.Add(new ChartScope.Blip { Position = c.bounds.center, Mine = RadarSystem.KindOf(c) == "Mine" });
         }
         _trail.Clear();

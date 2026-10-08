@@ -156,6 +156,69 @@ public static class CoastBuilder
         return go;
     }
 
+    /// <summary>
+    /// The border: where the channel meets the land, the shore itself stops the ship. Along
+    /// each side of <paramref name="water"/>, a trigger strip just off the shoreline: over
+    /// beaches it is shallows the ship runs aground on (a Shoal: no damage, back off astern),
+    /// under cliffs it is rocks that hole the hull (tagged Hazard, called "Reef"). Port ground
+    /// (<paramref name="aprons"/>) has its own quay bump and is skipped.
+    /// </summary>
+    public static void BuildBorder(Transform parent, CoastShape land, Rect water, Rect[] aprons)
+    {
+        var root = new GameObject("ShoreBorder").transform;
+        root.SetParent(parent, false);
+        const float step = 10f, depth = 40f;
+        int shallows = 0, rocks = 0;
+
+        // Each side: walk along it; at each stop, come in from the sea until the bottom is
+        // shallow enough to ground on (1.4 m), and put the strip there, reaching inland.
+        var sides = new[]
+        {
+            (from: new Vector2(water.xMin, water.yMin), to: new Vector2(water.xMin, water.yMax), inland: Vector2.left),
+            (from: new Vector2(water.xMax, water.yMin), to: new Vector2(water.xMax, water.yMax), inland: Vector2.right),
+            (from: new Vector2(water.xMin, water.yMin), to: new Vector2(water.xMax, water.yMin), inland: Vector2.down),
+            (from: new Vector2(water.xMin, water.yMax), to: new Vector2(water.xMax, water.yMax), inland: Vector2.up),
+        };
+        foreach (var side in sides)
+        {
+            float length = Vector2.Distance(side.from, side.to);
+            Vector2 along = (side.to - side.from).normalized;
+            for (float t = step * 0.5f; t < length; t += step)
+            {
+                Vector2 edge = side.from + along * t;
+                Vector2? hit = null;
+                for (float d = -35f; d <= 45f; d += 1f)
+                {
+                    Vector2 p = edge + side.inland * d;
+                    if (land.Height(p.x, p.y) > -1.4f) { hit = p; break; }
+                }
+                if (!hit.HasValue) continue;
+                Vector2 h = hit.Value;
+                bool port = false;
+                if (aprons != null)
+                    foreach (var a in aprons)
+                    {
+                        var grown = Rect.MinMaxRect(a.xMin - 6f, a.yMin - 6f, a.xMax + 6f, a.yMax + 6f);
+                        if (grown.Contains(h)) port = true;
+                    }
+                if (port) continue;
+
+                bool cliff = land.Cliffness(h.x, h.y) > 0.5f;
+                Vector2 c = h + side.inland * (depth * 0.5f - 2f);
+                var strip = new GameObject(cliff ? "Shore Rocks Reef" : "Shore Shallows");
+                strip.transform.SetParent(root, false);
+                strip.transform.position = new Vector3(c.x, 0f, c.y);
+                var box = strip.AddComponent<BoxCollider>();
+                box.isTrigger = true;
+                box.size = side.inland.x != 0f ? new Vector3(depth, 12f, step + 1f) : new Vector3(step + 1f, 12f, depth);
+                try { strip.tag = "Hazard"; } catch (UnityException) { }
+                if (!cliff) strip.AddComponent<Shoal>();
+                if (cliff) rocks++; else shallows++;
+            }
+        }
+        Debug.Log($"🏖️ [COAST]: border of {shallows} shallows and {rocks} rocky stretches.");
+    }
+
     private static Material Tint(Material like, string name, Color c)
     {
         var m = new Material(like) { name = name };
