@@ -204,6 +204,26 @@
     margin-top: 5px;
 }
 
+.settings-heading-gap {
+    margin-top: 10px;
+}
+
+/* A text box drawn like the dropdowns: no box, a hairline underneath. */
+.settings-text {
+    margin: 0;
+    font-size: 16px;
+}
+
+.settings-text .unity-base-text-field__input {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 1.5px;
+    border-color: rgba(255, 255, 255, 0.6);
+    border-radius: 0;
+    padding: 6px 4px;
+    color: rgb(255, 255, 255);
+}
+
 /* A thin slider: a hairline track and a small white knob. */
 .settings-slider .unity-base-slider__tracker {
     height: 2px;
@@ -318,6 +338,16 @@
 
 .theme-paper .settings-dropdown .unity-base-popup-field__input {
     border-color: rgba(22, 36, 64, 0.6);
+}
+
+.theme-paper .settings-text .unity-base-text-field__input {
+    color: rgb(22, 36, 64);
+    font-size: 18px;
+    border-color: rgba(22, 36, 64, 0.6);
+}
+
+.theme-paper .settings-text:focus .unity-base-text-field__input {
+    border-color: rgb(160, 50, 24);
 }
 
 .theme-paper .settings-dropdown .unity-base-popup-field__arrow {

@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// For the researcher, not the player: F9 shows the radio timings on screen (the last call:
+/// For the researcher, not the player: F8 shows the radio timings on screen (the last call:
 /// speech-to-text, the crew's reply, until the ship answered; and the averages this run),
 /// the session id and where the CSV files are saved. It also closes calls that never got a
 /// reply and writes the open call when the game quits. Made once, lives across scenes.
@@ -30,7 +30,7 @@ public class ResearchOverlay : MonoBehaviour
         ResearchLog.Tick(ReplyTimeout);
 
         var kb = Keyboard.current;
-        if (kb != null && kb.f9Key.wasPressedThisFrame) Toggle();
+        if (kb != null && !TypedOrders.BlocksHotkeys && kb.f8Key.wasPressedThisFrame) Toggle();
         if (_shown && Time.unscaledTime >= _nextRefresh)
         {
             _nextRefresh = Time.unscaledTime + 0.25f;
@@ -81,7 +81,7 @@ public class ResearchOverlay : MonoBehaviour
     private static string Describe()
     {
         var sb = new System.Text.StringBuilder();
-        sb.Append("RADIO TIMING  (F9 to hide)\n");
+        sb.Append("RADIO TIMING  (F8 to hide)\n");
         var t = ResearchLog.Last;
         if (t == null) sb.Append("No call yet this run.\n");
         else

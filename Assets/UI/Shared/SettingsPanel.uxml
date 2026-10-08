@@ -38,6 +38,13 @@
                     <ui:Label text="Crew Radio" class="settings-label" />
                     <ui:Slider name="RadioSlider" low-value="0" high-value="1" class="settings-slider" />
                 </ui:VisualElement>
+
+                <ui:Label text="STUDY" class="settings-heading settings-heading-gap" />
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Participant code" class="settings-label" />
+                    <ui:TextField name="ParticipantField" class="settings-text" />
+                </ui:VisualElement>
+                <ui:Label text="Saved with the session records. Leave empty if you are not in the study." class="settings-note" />
             </ui:VisualElement>
 
             <ui:VisualElement class="settings-column">

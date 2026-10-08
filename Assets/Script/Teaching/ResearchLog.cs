@@ -15,10 +15,10 @@ using UnityEngine;
 ///                speech-to-text, understanding and reply, and until the ship responded.
 ///   voyages.csv: one row per voyage — the result and the language report.
 ///
-/// Files live in Application.persistentDataPath/Sessions (shown on the F9 timing panel) and
+/// Files live in Application.persistentDataPath/Sessions (shown on the F8 timing panel) and
 /// are appended, with a session id per run of the game and an optional participant code
-/// (command line "-participant P07", or PlayerPrefs "research.participant"). Writing never
-/// interrupts play: a failure is logged once and the game goes on.
+/// (Settings > Study, or the command line "-participant P07"). Writing never interrupts
+/// play: a failure is logged once and the game goes on.
 /// </summary>
 public static class ResearchLog
 {
@@ -59,7 +59,7 @@ public static class ResearchLog
     public static readonly string SessionId = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
     public static string Folder => Path.Combine(Application.persistentDataPath, "Sessions");
 
-    /// <summary>The last finished call, for the F9 panel.</summary>
+    /// <summary>The last finished call, for the F8 panel.</summary>
     public static Turn Last { get; private set; }
 
     private static Turn _open;
@@ -72,6 +72,10 @@ public static class ResearchLog
 
     private static double Now => Time.realtimeSinceStartupAsDouble;
 
+    private const string ParticipantPref = "research.participant";
+    public const int ParticipantMaxLength = 24;
+
+    /// <summary>The participant's code: the command line wins, then what Settings saved.</summary>
     public static string Participant
     {
         get
@@ -79,8 +83,17 @@ public static class ResearchLog
             var args = Environment.GetCommandLineArgs();
             for (int i = 0; i + 1 < args.Length; i++)
                 if (args[i] == "-participant") return args[i + 1];
-            return PlayerPrefs.GetString("research.participant", "");
+            return PlayerPrefs.GetString(ParticipantPref, "");
         }
+    }
+
+    /// <summary>The code typed in Settings (trimmed, at most 24 characters); empty clears it.</summary>
+    public static void SetParticipant(string code)
+    {
+        code = (code ?? "").Trim();
+        if (code.Length > ParticipantMaxLength) code = code.Substring(0, ParticipantMaxLength);
+        PlayerPrefs.SetString(ParticipantPref, code);
+        PlayerPrefs.Save();
     }
 
     // ------------------------------------------------------------------ the call's steps

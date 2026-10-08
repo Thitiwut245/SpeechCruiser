@@ -17,11 +17,13 @@ public class TypedOrders : MonoBehaviour
 
     /// <summary>
     /// True while the box is open, on the frame it closes (so the Enter or Esc that closed it
-    /// doesn't also open the pause menu or key the radio), and while Settings is waiting for a
-    /// new key. Every game hotkey checks this.
+    /// doesn't also open the pause menu or key the radio), while Settings is waiting for a
+    /// new key, and while a Settings text box (the participant code) has the keyboard. Every
+    /// game hotkey checks this.
     /// </summary>
     public static bool BlocksHotkeys => IsTyping || Time.frameCount - _closedFrame <= 1 ||
-                                        SettingsPanelController.IsRebinding || SettingsPanelController.RebindEndedThisFrame;
+                                        SettingsPanelController.IsRebinding || SettingsPanelController.RebindEndedThisFrame ||
+                                        SettingsPanelController.IsEditingText;
 
     private VisualElement _box;
     private TextField _field;

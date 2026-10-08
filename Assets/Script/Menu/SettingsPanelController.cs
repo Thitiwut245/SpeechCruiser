@@ -15,6 +15,9 @@ public class SettingsPanelController : IDisposable
 
     /// <summary>A key box is waiting for a key; other hotkeys (radio, Esc) stand down.</summary>
     public static bool IsRebinding { get; private set; }
+
+    /// <summary>The participant code box has the keyboard: typing a T must not key the radio.</summary>
+    public static bool IsEditingText { get; private set; }
     private static int _rebindEndFrame = -10;
     public static bool RebindEndedThisFrame => Time.frameCount - _rebindEndFrame <= 1;
 
@@ -25,6 +28,7 @@ public class SettingsPanelController : IDisposable
         { "<Keyboard>/tab", "the channel" }, { "<Keyboard>/m", "the chart" }, { "<Keyboard>/f1", "the radio card" },
         { "<Keyboard>/1", "channel 1" }, { "<Keyboard>/2", "channel 2" }, { "<Keyboard>/numpad1", "channel 1" },
         { "<Keyboard>/numpad2", "channel 2" }, { "<Keyboard>/f9", "the test autopilot" }, { "<Keyboard>/p", "the test speed run" },
+        { "<Keyboard>/f8", "the radio timing panel" },
         // On Thai Windows the ` key switches between Thai and English typing.
         { "<Keyboard>/backquote", "the Thai/English keyboard switch" },
     };
@@ -40,6 +44,7 @@ public class SettingsPanelController : IDisposable
     private readonly Label _bindHint;
     private readonly Toggle _toggleToTalk;
     private readonly DropdownField _subtitleDropdown;
+    private readonly TextField _participantField;
     private readonly Button _resetKeysButton;
     private readonly Button _backButton;
     private readonly Action _onBack;
@@ -63,6 +68,8 @@ public class SettingsPanelController : IDisposable
         _bindHint = Require<Label>(root, "BindHint");
         _toggleToTalk = Require<Toggle>(root, "ToggleToTalk");
         _subtitleDropdown = Require<DropdownField>(root, "SubtitleDropdown");
+        _participantField = Require<TextField>(root, "ParticipantField");
+        _participantField.maxLength = ResearchLog.ParticipantMaxLength;
         _resetKeysButton = Require<Button>(root, "ResetKeysButton");
         _backButton = Require<Button>(root, "BackButton");
         _onBack = onBack;
@@ -80,6 +87,9 @@ public class SettingsPanelController : IDisposable
         _radioSlider.RegisterValueChangedCallback(OnRadioChanged);
         _toggleToTalk.RegisterValueChangedCallback(OnToggleToTalkChanged);
         _subtitleDropdown.RegisterValueChangedCallback(OnSubtitleChanged);
+        _participantField.RegisterValueChangedCallback(OnParticipantChanged);
+        _participantField.RegisterCallback<FocusInEvent>(OnParticipantFocus);
+        _participantField.RegisterCallback<FocusOutEvent>(OnParticipantBlur);
     }
 
     public void Show()
@@ -91,6 +101,7 @@ public class SettingsPanelController : IDisposable
     public void Hide()
     {
         CancelRebind();
+        IsEditingText = false;
         _panel.style.display = DisplayStyle.None;
     }
 
@@ -108,6 +119,10 @@ public class SettingsPanelController : IDisposable
         _radioSlider.UnregisterValueChangedCallback(OnRadioChanged);
         _toggleToTalk.UnregisterValueChangedCallback(OnToggleToTalkChanged);
         _subtitleDropdown.UnregisterValueChangedCallback(OnSubtitleChanged);
+        _participantField.UnregisterValueChangedCallback(OnParticipantChanged);
+        _participantField.UnregisterCallback<FocusInEvent>(OnParticipantFocus);
+        _participantField.UnregisterCallback<FocusOutEvent>(OnParticipantBlur);
+        IsEditingText = false;
     }
 
     private void RefreshValues()
@@ -128,9 +143,15 @@ public class SettingsPanelController : IDisposable
 
         int scaleIndex = Array.IndexOf(SettingsService.SubtitleScales, settings.SubtitleScale);
         _subtitleDropdown.SetValueWithoutNotify(SettingsService.SubtitleScaleNames[Mathf.Max(0, scaleIndex)]);
+        _participantField.SetValueWithoutNotify(ResearchLog.Participant);
 
         RefreshKeyNames();
     }
+
+    // The study's participant code goes with every row of the session records (ResearchLog).
+    private void OnParticipantChanged(ChangeEvent<string> evt) => ResearchLog.SetParticipant(evt.newValue);
+    private void OnParticipantFocus(FocusInEvent evt) => IsEditingText = true;
+    private void OnParticipantBlur(FocusOutEvent evt) => IsEditingText = false;
 
     private void RefreshKeyNames()
     {
