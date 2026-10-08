@@ -155,10 +155,24 @@ public class CommandRouter : MonoBehaviour
             EndInstantTurn();
             return;
         }
+        LanguageLog.Call();
 
         if (RadioCheckPattern.IsMatch(transcript))
         {
             Say(ActiveChannel, CrewBarkLibrary.RadioCheck(ActiveChannel), "radiocheck");
+            LanguageLog.Answered();
+            OnActionExecuted?.Invoke(ShipAction.None);
+            EndInstantTurn();
+            return;
+        }
+
+        // "What does starboard mean?", "how do I say slow down?": the crew teach the word or
+        // the standard order, before anything tries to read it as an order.
+        if (Glossary.TryAnswer(ActiveChannel, transcript, out string[] explained))
+        {
+            Say(ActiveChannel, explained, "glossary");
+            LanguageLog.WordAsked();
+            _misses = 0;
             OnActionExecuted?.Invoke(ShipAction.None);
             EndInstantTurn();
             return;
@@ -238,6 +252,7 @@ public class CommandRouter : MonoBehaviour
             if (SmallTalk.Answer(target, transcript, isConversation))
             {
                 _misses = 0;
+                LanguageLog.Answered();
                 OnActionExecuted?.Invoke(ShipAction.None);
                 EndInstantTurn();
                 return;
@@ -289,7 +304,8 @@ public class CommandRouter : MonoBehaviour
         // says what can be asked, not "say again".
         if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && !ChatReady)
         {
-            if (!SmallTalk.Answer(target, transcript, false)) Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
+            if (SmallTalk.Answer(target, transcript, false)) LanguageLog.Answered();
+            else Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
             EndInstantTurn();
             return;
         }
@@ -362,6 +378,7 @@ public class CommandRouter : MonoBehaviour
     /// <summary>"Say again" — but after repeated misses, suggest a simple order and the radio card.</summary>
     private void SayAgainOrHint(RadioChannel target)
     {
+        LanguageLog.Unclear();
         _misses++;
         if (_misses >= MissesBeforeHint)
         {
@@ -386,6 +403,7 @@ public class CommandRouter : MonoBehaviour
         if (gear != ShipEngine.TelegraphGear.Stop)
         {
             Say(RadioChannel.ChiefEngineer, gear > ShipEngine.TelegraphGear.Stop ? CrewBarkLibrary.KeepGoing() : CrewBarkLibrary.KeepGoingAstern(), "keepgoing");
+            LanguageLog.Answered();
             OnActionExecuted?.Invoke(ShipAction.None);
             return;
         }
@@ -418,7 +436,10 @@ public class CommandRouter : MonoBehaviour
     {
         if (parsed.Matches.Count > 0 && parsed.Matches[0].Action == ShipAction.Belay)
         {
+            bool standard = StandardPhrases.IsStandard(ShipAction.Belay, parsed.Matches[0].Phrase);
+            LanguageLog.Order(standard, StandardPhrases.For(ShipAction.Belay), Time.time);
             Belay();
+            if (!standard) StartCoroutine(RecastLater(ActiveChannel, StandardPhrases.For(ShipAction.Belay), FollowUpDelaySeconds));
             return;
         }
 
@@ -426,6 +447,8 @@ public class CommandRouter : MonoBehaviour
         bool engineChanged = false, helmChanged = false;
         var readBacks = new System.Collections.Generic.List<ShipAction>(3);
         ShipAction query = ShipAction.None;
+        string recast = null;
+        RadioChannel recastBy = target;
 
         for (int i = 0; i < parsed.Matches.Count; i++)
         {
@@ -438,6 +461,17 @@ public class CommandRouter : MonoBehaviour
                 if (resolved.IsHelm()) helmChanged = true;
                 else engineChanged = true;
                 readBacks.Add(resolved);
+
+                // Said another way ("turn left", "go more fast"): it's done, and the crew
+                // then model the standard order.
+                bool standard = StandardPhrases.IsStandard(resolved, m.Phrase);
+                string taught = StandardPhrases.For(resolved, parsed.Degrees);
+                LanguageLog.Order(standard, taught, Time.time);
+                if (!standard && taught != null && recast == null)
+                {
+                    recast = taught;
+                    recastBy = OwnerOf(resolved, target);
+                }
             }
             else if (resolved.IsQuery() && query == ShipAction.None)
             {
@@ -447,6 +481,7 @@ public class CommandRouter : MonoBehaviour
 
         RememberUndo(gearBefore, engineChanged, helmChanged);
         _misses = 0;
+        if (query != ShipAction.None) LanguageLog.Answered();
         foreach (var done in readBacks) OnActionExecuted?.Invoke(done);
         if (query != ShipAction.None) OnActionExecuted?.Invoke(query);
 
@@ -462,6 +497,24 @@ public class CommandRouter : MonoBehaviour
 
         Acknowledge(target, readBacks[0]);
         if (readBacks.Count > 1) StartCoroutine(FollowUpReadBacks(target, readBacks));
+        if (recast != null) StartCoroutine(RecastLater(recastBy, recast, FollowUpDelaySeconds * readBacks.Count));
+    }
+
+    // When each standard phrase was last modelled, so the crew don't lecture.
+    private readonly System.Collections.Generic.Dictionary<string, float> _recastAt = new System.Collections.Generic.Dictionary<string, float>();
+    private const float RecastCooldown = 40f;
+
+    /// <summary>After the read-back, the crew model the standard order the Captain could have used.</summary>
+    private System.Collections.IEnumerator RecastLater(RadioChannel crew, string phrase, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        // Not in an emergency (no lessons while the rocks come at us), not over the tutorial's
+        // own teaching, and not the same phrase again and again.
+        if (CrewBarkLibrary.CurrentTension(ShipTelemetry.Capture()) == CrewTension.Emergency) yield break;
+        if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive) yield break;
+        if (_recastAt.TryGetValue(phrase, out float last) && Time.unscaledTime - last < RecastCooldown) yield break;
+        _recastAt[phrase] = Time.unscaledTime;
+        Say(crew, StandardPhrases.Recast(crew, phrase), "recast");
     }
 
     private System.Collections.IEnumerator FollowUpReadBacks(RadioChannel target, System.Collections.Generic.List<ShipAction> readBacks)
@@ -495,8 +548,15 @@ public class CommandRouter : MonoBehaviour
         }
 
         _misses = 0;
+        // Words the parser didn't know (only the classifier understood them) are never the
+        // standard phrase: model it. A "continue" (no words) is fine as it is.
+        string taught = StandardPhrases.For(resolved, degrees);
+        bool standard = string.IsNullOrEmpty(rawSpeech) || resolved.IsQuery();
+        if (executed) LanguageLog.Order(standard, taught, Time.time);
+        else LanguageLog.Answered();
         OnActionExecuted?.Invoke(resolved);
         Acknowledge(target, resolved);
+        if (executed && !standard && taught != null) StartCoroutine(RecastLater(OwnerOf(resolved, target), taught, FollowUpDelaySeconds));
     }
 
     private static ShipEngine.TelegraphGear CurrentGear()
@@ -606,7 +666,11 @@ public class CommandRouter : MonoBehaviour
         if (chat == null || !chat.Ready)
         {
             // No model: the crew still answer small talk themselves.
-            if (SmallTalk.Answer(target, transcript, conversational)) _misses = 0;
+            if (SmallTalk.Answer(target, transcript, conversational))
+            {
+                _misses = 0;
+                LanguageLog.Answered();
+            }
             else SayAgainOrHint(target);
             EndInstantTurn();
             return;

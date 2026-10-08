@@ -31,8 +31,8 @@ public class SmallTalkTests
     public void UnknownQuestionsAreOffTopicAndRemarksOnlyChatOnTheTalkKey()
     {
         Assert.AreEqual(SmallTalk.Topic.OffTopic, SmallTalk.Decide("what is the capital of France", true, false));
-        Assert.AreEqual(SmallTalk.Topic.Chat, SmallTalk.Decide("I like turtles", false, true));
-        Assert.AreEqual(SmallTalk.Topic.None, SmallTalk.Decide("I like turtles", false, false));
+        Assert.AreEqual(SmallTalk.Topic.Chat, SmallTalk.Decide("the sea is big today", false, true));
+        Assert.AreEqual(SmallTalk.Topic.None, SmallTalk.Decide("the sea is big today", false, false));
     }
 
     [TestCase("What's the weather?", true)]

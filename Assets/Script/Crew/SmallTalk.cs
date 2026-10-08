@@ -15,7 +15,7 @@ public static class SmallTalk
     public enum Topic
     {
         None, HowAreYou, Greeting, WhoAreYou, Weather, Cargo, Thanks, Sorry, Joke, Song, Home,
-        Food, Tired, Scared, Robot, Insult, Bye, Time, Likes, OffTopic, Chat,
+        Food, Tired, Scared, Robot, Insult, Bye, Time, Likes, Reply, OffTopic, Chat,
     }
 
     private const RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
@@ -23,6 +23,8 @@ public static class SmallTalk
     // In order: the first that matches wins, so "hi, how are you" is a how-are-you.
     private static readonly (Topic topic, Regex pattern)[] Topics =
     {
+        // The Captain answering the crew's question back: "I'm fine", "I'm from Khon Kaen", "I like football".
+        (Topic.Reply, new Regex(@"^(i am|im|i m) (fine|good|ok|okay|great|well|alright|all right|not bad|happy|very good|very well)\b|\b(i am|im|i m|i come) from\b|\bmy (home|hometown|home town|country|town|city) is\b|\bmy favou?rite \w+ is\b|^i (like|love|enjoy)\b", Opt)),
         (Topic.Robot, new Regex(@"\b(are|r) (you|u) (a |an )?(robot|ai|bot|machine|computer|real|human|person)\b", Opt)),
         (Topic.HowAreYou, new Regex(@"\b(how (are|r) (you|u|ya|things)|how you doing|how are you doing|hows it going|how is it going|how do you feel|how you feeling|are you (ok|okay|alright|all right|well)|you (ok|okay|alright|all right)|whats up|sup)\b", Opt)),
         (Topic.WhoAreYou, new Regex(@"\b(who (are|r) (you|u)|your name|whats your name|what do you do|whats your job|introduce yourself|tell me about yourself|about you)\b", Opt)),
@@ -131,7 +133,7 @@ public static class SmallTalk
                     : new[]
                     {
                         "Can't complain, Captain. Well, I could, but who'd listen? Over.",
-                        "Grand, Captain. Old engine's purring, so I'm purring. Over.",
+                        "Grand, Captain. Old engine's purring, so I'm purring. And how are you? Over.",
                         "Hot and noisy down here, same as ever. Happy enough. Over.",
                     };
             case Topic.WhoAreYou:
@@ -168,7 +170,7 @@ public static class SmallTalk
             case Topic.Home:
                 return new[]
                 {
-                    "Wife's Maggie, back home in a little fishing town up north. Two daughters, both grown. Over.",
+                    "Wife's Maggie, back home in a little fishing town up north. Two daughters, both grown. Where's home for you, Captain? Over.",
                     "Home's where the tea is strong, Captain. Maggie keeps the kettle on for me. Over.",
                 };
             case Topic.Food:
@@ -189,6 +191,8 @@ public static class SmallTalk
                 return new[] { "No clock down here but the engine, Captain. Over.", "Couldn't tell you the time, Captain. Time to get there, I'd say. Over." };
             case Topic.Likes:
                 return new[] { "I like a clean engine and a quiet sea, Captain. Over.", "Went to sea at sixteen. Never found a reason to leave. Over." };
+            case Topic.Reply:
+                return new[] { "Good to know, Captain. Over.", "Is that so? Grand. Over.", "Thanks for telling me, Captain. Over." };
             case Topic.Chat:
                 return new[] { "Ha. Noted, Captain. Over.", "Fair enough, Captain. Over.", "Can't argue with that, Captain. Over." };
             default: // OffTopic
@@ -212,7 +216,7 @@ public static class SmallTalk
                     ? new[] { "A bit nervous, Sir. There's a {11} {9}. Over." }
                     : new[]
                     {
-                        "Great, Sir! Best seat on the ship up here. Over.",
+                        "Great, Sir! Best seat on the ship up here. How are you today? Over.",
                         "Bit hungry, but good, Sir! Over.",
                         "Never better, Captain! Over.",
                     };
@@ -252,11 +256,11 @@ public static class SmallTalk
             case Topic.Home:
                 return new[]
                 {
-                    "I'm from a little harbour town, Sir. My gran taught me every knot there is. Over.",
+                    "I'm from a little harbour town, Sir. My gran taught me every knot there is. Where are you from? Over.",
                     "Miss my gran's cooking, Captain. Not much else. Over.",
                 };
             case Topic.Food:
-                return new[] { "Starving, Sir! Is it lunch yet? Over.", "Cook promised fish pie. I'm counting on it, Captain. Over." };
+                return new[] { "Starving, Sir! Is it lunch yet? Over.", "Cook promised fish pie. What's your favourite food, Captain? Over." };
             case Topic.Tired:
                 return new[] { "Wide awake, Sir! Lookouts don't nap. Over.", "A bit, Sir. Still watching, though. Over." };
             case Topic.Scared:
@@ -272,7 +276,9 @@ public static class SmallTalk
             case Topic.Time:
                 return new[] { "Didn't bring a watch, Sir! Sorry. Over.", "No idea, Captain. Harris has a clock somewhere. Over." };
             case Topic.Likes:
-                return new[] { "I love watching the gulls, Sir. And the sea at sunrise. Over.", "Always wanted to sail, Captain. Dream job. Over." };
+                return new[] { "I love watching the gulls, Sir. And the sea at sunrise. What do you like? Over.", "Always wanted to sail, Captain. Dream job. Over." };
+            case Topic.Reply:
+                return new[] { "Nice, Sir! Over.", "Oh, really? Cool, Sir! Over.", "Thanks for telling me, Captain! Over." };
             case Topic.Chat:
                 return new[] { "Ha! Noted, Sir. Over.", "Fair enough, Captain! Eyes on the water. Over.", "If you say so, Sir! Over." };
             default: // OffTopic

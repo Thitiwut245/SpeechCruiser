@@ -551,6 +551,8 @@ public class RadioMic : MonoBehaviour
 
         if (CommandRouter.LooksLikeNoise(text))
         {
+            LanguageLog.Call();
+            LanguageLog.Unclear();
             Reject(RadioStatus.NotUnderstood, "Didn't catch that. Try again, short and clear.", "(nothing intelligible: \"" + text + "\")");
             return;
         }

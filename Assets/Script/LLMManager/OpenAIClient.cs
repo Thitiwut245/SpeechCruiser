@@ -143,7 +143,12 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
     /// <summary>No model reply: the crew still answers small talk on their own, or asks again.</summary>
     private static void Fallback(RadioChannel crew, string speech, bool conversational)
     {
-        if (SmallTalk.Answer(crew, speech, conversational)) return;
+        if (SmallTalk.Answer(crew, speech, conversational))
+        {
+            LanguageLog.Answered();
+            return;
+        }
+        LanguageLog.Unclear();
         if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(crew);
     }
     
@@ -246,6 +251,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
                 else
                 {
                     OnSubtitleUpdated?.Invoke(reply, crewName);
+                    LanguageLog.Answered();
 
                     RecordExchange(crew, speech, reply);
                     if (crew == RadioChannel.Lookout) lastFinnReport = reply;

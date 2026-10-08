@@ -387,6 +387,24 @@
     color: rgb(22, 36, 64);
 }
 
+/* The radio English part of the report: a small heading, then tighter rows. */
+.results-heading {
+    font-size: 17px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(12, 108, 98);
+    margin: 18px 0 2px 0;
+}
+
+.results-row.compact {
+    padding: 7px 0;
+}
+
+.results-row.compact .results-row-label,
+.results-row.compact .results-row-value {
+    font-size: 20px;
+}
+
 .results-row-value.good {
     color: rgb(12, 108, 98);
 }

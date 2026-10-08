@@ -91,6 +91,7 @@ public class MissionResultsPanel : MonoBehaviour
 
     private void HandleStateChanged(GameState state)
     {
+        if (state == GameState.Playing) LanguageLog.Begin(); // a voyage starts: a fresh language report
         if (state == GameState.Victory || state == GameState.GameOver)
         {
             _showAt = Time.unscaledTime + (state == GameState.GameOver ? ShowDelayAfterSinking : ShowDelay);
@@ -173,6 +174,8 @@ public class MissionResultsPanel : MonoBehaviour
             AddRow("Time at sea", FormatTime(result.Seconds), null);
         }
 
+        AddLanguageRows(LanguageLog.Read());
+
         int change = result.CreditsAfter - result.CreditsBefore;
         _totalValue.text = "$" + result.CreditsAfter + "  (" + (change >= 0 ? "+$" + change : "-$" + (-change)) + ")";
         _totalValue.EnableInClassList("bad", change < 0);
@@ -195,10 +198,11 @@ public class MissionResultsPanel : MonoBehaviour
         _backdrop.style.display = DisplayStyle.None;
     }
 
-    private void AddRow(string label, string value, string tone)
+    private void AddRow(string label, string value, string tone, bool compact = false)
     {
         var row = new VisualElement();
         row.AddToClassList("results-row");
+        if (compact) row.AddToClassList("compact");
 
         var l = new Label(label);
         l.AddToClassList("results-row-label");
@@ -209,6 +213,34 @@ public class MissionResultsPanel : MonoBehaviour
         row.Add(l);
         row.Add(v);
         _rows.Add(row);
+    }
+
+    /// <summary>
+    /// Radio English on this voyage (the in-game evaluation): calls understood, orders in
+    /// standard phrases, "say again"s, how fast the Captain answered a danger warning, and
+    /// the standard phrases to practise.
+    /// </summary>
+    private void AddLanguageRows(LanguageLog.Summary s)
+    {
+        if (s.Calls == 0) return;
+        AddHeading("RADIO ENGLISH");
+        AddRow("Calls understood", s.Understood + " / " + s.Calls + "  (" + s.UnderstoodPercent + "%)",
+               s.UnderstoodPercent >= 80 ? "good" : s.UnderstoodPercent < 50 ? "bad" : null, true);
+        if (s.Orders > 0)
+            AddRow("Standard orders", s.StandardOrders + " / " + s.Orders, s.StandardOrders == s.Orders ? "good" : null, true);
+        if (s.Unclear > 0) AddRow("\"Say again\"", s.Unclear.ToString(), null, true);
+        if (s.AverageReaction >= 0f)
+            AddRow("Order after a warning", s.AverageReaction.ToString("0.0") + " s average", s.AverageReaction <= 4f ? "good" : null, true);
+        if (s.WordsAsked > 0) AddRow("Words asked about", s.WordsAsked.ToString(), "good", true);
+        if (s.Practise != null && s.Practise.Count > 0)
+            AddRow("Practise saying", "\"" + string.Join("\", \"", s.Practise) + "\"", null, true);
+    }
+
+    private void AddHeading(string text)
+    {
+        var h = new Label(text);
+        h.AddToClassList("results-heading");
+        _rows.Add(h);
     }
 
     private static string FormatTime(float seconds)
