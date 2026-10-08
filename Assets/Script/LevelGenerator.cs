@@ -27,12 +27,6 @@ public class LevelGenerator : MonoBehaviour
     }
 
     [Header("Prefabs — drop them in, the generator measures and fits them")]
-    [Tooltip("Water surface. Stretched to cover the whole level. Leave empty to keep whatever water is already in the scene.")]
-    [SerializeField] private GameObject WaterPrefab;
-
-    [Tooltip("Sea floor. Spawned once and stretched under the level; its top surface is placed at SeaFloorDepth.")]
-    [SerializeField] private GameObject SeaFloorPrefab;
-
     [Tooltip("Dock the ship departs from. Placed behind the spawn point so it never overlaps the hull.")]
     [SerializeField] private GameObject StartPortPrefab;
 
@@ -109,11 +103,10 @@ public class LevelGenerator : MonoBehaviour
     [SerializeField] private float MinHazardHeight = 6f;
 
     [Header("Environment")]
-    [Tooltip("Depth of the sea floor's top surface below the water. This is NOT cosmetic: the stylized water is " +
-             "opaque and takes its colour from the depth of whatever sits behind it, fading ShallowColor to " +
-             "DeepColor over _DepthFadeDistance (10 on M_StylizedOceanWater). Deeper than that and the ocean " +
-             "renders at DeepColor, which is pure black. Shallower than _IntersectionFoamDepth (2.43) and the " +
-             "whole surface turns to foam. Keep it between those two.")]
+    [Tooltip("Depth of the sea floor's top surface below the water. Not only cosmetic: the sea shader " +
+             "(Resources/Sea/Sea.shader) takes its colour from the depth of whatever is behind it, turquoise " +
+             "in the shallows to deep blue-green by _DepthRange (7 m), and draws contact foam within " +
+             "_ShoreFoam (1.4 m). Keep the floor deeper than the waves reach (about 3 m in a storm).")]
     [SerializeField] private float SeaFloorDepth = 6f;
 
     [Tooltip("Extra world units of water and sea floor beyond the grid edge, so the horizon never shows a seam.")]
@@ -409,17 +402,6 @@ public class LevelGenerator : MonoBehaviour
             return false;
         }
 
-        if (SeaFloorPrefab == null)
-        {
-            // The stylized water is opaque, so this is not about seeing the
-            // bottom — it is what the water measures its depth against. With
-            // nothing behind it every pixel reads as maximum depth and the
-            // ocean renders at DeepColor, which is black.
-            Debug.LogWarning("⚠️ [LEVEL GEN]: no SeaFloorPrefab — the water has nothing to depth-fade against " +
-                             "and will render at DeepColor (black) everywhere except around hazards.");
-        }
-        if (WaterPrefab == null) Debug.LogWarning("⚠️ [LEVEL GEN]: no WaterPrefab — relying on whatever water is already in the scene, which may not cover the level.");
-
         return true;
     }
 
@@ -612,7 +594,7 @@ public class LevelGenerator : MonoBehaviour
         float envZ = lengthZ + CellSize + (EnvironmentMargin * 2f);
 
         BuildSeaFloor(envCenter, envX, envZ);
-        BuildWater(envCenter, envX, envZ);
+        BuildWater();
         BuildHazards(grid, width, length, originX);
         BuildBoundaryWalls(minX, maxX, lengthZ);
         BuildStartPort();
@@ -629,30 +611,17 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>The sandy bottom (Seabed), SeaFloorDepth down: what the sea shader measures its depth against.</summary>
     private void BuildSeaFloor(Vector3 envCenter, float envX, float envZ)
     {
-        if (SeaFloorPrefab == null) return;
-
-        GameObject floor = SpawnStretched(SeaFloorPrefab, "SeaFloor", envCenter, envX, envZ,
-                                          Anchor.Top, -SeaFloorDepth);
-
-        // Decorative. A collider down here would only fight the transform-driven ship.
-        foreach (Collider col in floor.GetComponentsInChildren<Collider>())
-        {
-            Destroy(col);
-        }
+        Seabed.Build(_levelRoot, envCenter, envX, envZ, SeaFloorDepth);
     }
 
-    private void BuildWater(Vector3 envCenter, float envX, float envZ)
+    /// <summary>The sea, with waves to suit the weather: a storm mission's are about twice as big.</summary>
+    private void BuildWater()
     {
-        if (WaterPrefab == null) return;
-
-        GameObject water = SpawnStretched(WaterPrefab, "Water", envCenter, envX, envZ, Anchor.Center, 0f);
-
-        foreach (Collider col in water.GetComponentsInChildren<Collider>())
-        {
-            Destroy(col);
-        }
+        var mission = GameManager.Instance != null ? StoryProgress.ActiveMission : null;
+        SeaSurface.Create(_levelRoot, mission != null && mission.Weather == Weather.Storm ? 1.9f : 1f);
     }
 
     /// <summary>Random hazard art; reefs only when the job has no mines. Reefs come in many colourful variants.</summary>
@@ -800,6 +769,8 @@ public class LevelGenerator : MonoBehaviour
 
         // Use the prefab's authored Y position directly, giving the artist full control
         hazard.transform.position = new Vector3(cell.x, prefab.transform.position.y, cell.z);
+        // Mines float: they ride the waves (rocks stay put, and the waves break on them).
+        if (IsMinePrefab(prefab)) hazard.AddComponent<SeaFloat>().Radius = Mathf.Max(1f, bounds.size.x * 0.4f);
 
         MakeHazardDeadly(hazard);
     }
