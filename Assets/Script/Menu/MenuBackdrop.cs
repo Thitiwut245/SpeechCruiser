@@ -23,9 +23,6 @@ public class MenuBackdrop : MonoBehaviour
     [Tooltip("Moves the view left so the harbour sits to the right of the title panel (world units).")]
     [SerializeField] private float ScreenShift = 14f;
 
-    [Header("Ship")]
-    [SerializeField] private float BobHeight = 0.12f;
-    [SerializeField] private float BobPeriodSeconds = 4f;
 
     private Transform _ship;
     private Vector3 _shipRest;
@@ -46,6 +43,12 @@ public class MenuBackdrop : MonoBehaviour
             // The model imports with its own root scale; the Game scene's ship overrides it
             // to 1, so match that here or the menu ship comes out tiny.
             _ship.localScale = Vector3.one;
+            // Drawn as the procedural cargo ship, like the Game scene's.
+            var oldRenderer = _ship.GetComponent<MeshRenderer>();
+            if (oldRenderer != null) oldRenderer.enabled = false;
+            var hull = new GameObject("HullVisual");
+            hull.transform.SetParent(_ship, false);
+            CargoShipModel.Dress(hull);
         }
 
         // Look between the ship and the quay, a little closer to the ship.
@@ -71,9 +74,11 @@ public class MenuBackdrop : MonoBehaviour
 
         if (_ship != null)
         {
-            float phase = 2f * Mathf.PI * t / BobPeriodSeconds;
-            _ship.position = _shipRest + Vector3.up * (Mathf.Sin(phase) * BobHeight);
-            _ship.rotation = Generator.StartRotation * Quaternion.Euler(Mathf.Sin(phase * 0.5f) * 0.6f, 0f, Mathf.Cos(phase) * 1.2f);
+            // Moored, riding the same waves as the sea (SeaWaves).
+            Vector3 forward = Generator.StartRotation * Vector3.forward;
+            SeaWaves.HullPose(_shipRest, forward, 7.5f, 2.5f, out float heave, out float pitch, out float roll);
+            _ship.position = _shipRest + Vector3.up * heave;
+            _ship.rotation = Generator.StartRotation * Quaternion.Euler(pitch, 0f, roll);
         }
     }
 

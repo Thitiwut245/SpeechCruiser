@@ -111,17 +111,10 @@ public class ShipMovement : MonoBehaviour
         var visual = new GameObject("HullVisual").transform;
         visual.SetParent(transform, false);
 
-        var filter = GetComponent<MeshFilter>();
+        // The drawn ship is the procedural cargo ship (CargoShipModel), same footprint as the old model.
         var meshRenderer = GetComponent<MeshRenderer>();
-        if (filter != null && meshRenderer != null)
-        {
-            visual.gameObject.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
-            var copy = visual.gameObject.AddComponent<MeshRenderer>();
-            copy.sharedMaterials = meshRenderer.sharedMaterials;
-            copy.shadowCastingMode = meshRenderer.shadowCastingMode;
-            copy.receiveShadows = meshRenderer.receiveShadows;
-            meshRenderer.enabled = false;
-        }
+        CargoShipModel.Dress(visual.gameObject);
+        if (meshRenderer != null) meshRenderer.enabled = false;
 
         // Drawn children (not colliders) roll with the hull too.
         var children = new System.Collections.Generic.List<Transform>();
@@ -209,18 +202,7 @@ public class ShipMovement : MonoBehaviour
     /// <summary>The water under bow, stern and both sides: how high the hull sits, and its pitch and roll.</summary>
     private void RideWaves()
     {
-        Vector3 fwd = transform.forward; fwd.y = 0f; fwd.Normalize();
-        Vector3 right = new Vector3(fwd.z, 0f, -fwd.x);
-        Vector3 c = transform.position;
-        float bow = SeaWaves.HeightAt(c + fwd * HalfLength);
-        float stern = SeaWaves.HeightAt(c - fwd * HalfLength);
-        float starboard = SeaWaves.HeightAt(c + right * HalfBeam);
-        float port = SeaWaves.HeightAt(c - right * HalfBeam);
-
-        float heave = (bow + stern + starboard + port) * 0.25f;
-        float pitch = Mathf.Atan2(stern - bow, HalfLength * 2f) * Mathf.Rad2Deg;
-        float roll = Mathf.Atan2(starboard - port, HalfBeam * 2f) * Mathf.Rad2Deg * 0.6f;
-
+        SeaWaves.HullPose(transform.position, transform.forward, HalfLength, HalfBeam, out float heave, out float pitch, out float roll);
         float k = 1f - Mathf.Exp(-WaveResponse * Time.deltaTime);
         _heave = Mathf.Lerp(_heave, heave, k);
         _pitch = Mathf.Lerp(_pitch, pitch, k);

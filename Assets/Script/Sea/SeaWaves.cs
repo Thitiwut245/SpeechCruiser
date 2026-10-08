@@ -114,4 +114,24 @@ public static class SeaWaves
     }
 
     public static float HeightAt(Vector3 world) => HeightAt(world.x, world.z, Now);
+
+    /// <summary>
+    /// How a hull at <paramref name="centre"/>, heading <paramref name="forward"/>, sits on the
+    /// water now: its rise (the mean of bow, stern and both sides), its pitch in degrees (bow
+    /// down positive) and its roll in degrees (starboard up positive), roll damped by the beam.
+    /// </summary>
+    public static void HullPose(Vector3 centre, Vector3 forward, float halfLength, float halfBeam,
+                                out float heave, out float pitch, out float roll)
+    {
+        forward.y = 0f;
+        forward.Normalize();
+        Vector3 right = new Vector3(forward.z, 0f, -forward.x);
+        float bow = HeightAt(centre + forward * halfLength);
+        float stern = HeightAt(centre - forward * halfLength);
+        float starboard = HeightAt(centre + right * halfBeam);
+        float port = HeightAt(centre - right * halfBeam);
+        heave = (bow + stern + starboard + port) * 0.25f;
+        pitch = Mathf.Atan2(stern - bow, halfLength * 2f) * Mathf.Rad2Deg;
+        roll = Mathf.Atan2(starboard - port, halfBeam * 2f) * Mathf.Rad2Deg * 0.6f;
+    }
 }
