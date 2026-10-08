@@ -1036,7 +1036,7 @@ public class LevelGenerator : MonoBehaviour
             Seed = Random.Range(0, int.MaxValue),
             Harbours = harbours.ToArray(),
             Aprons = aprons.ToArray(),
-        });
+        }, out _);
     }
 
     // ==============================

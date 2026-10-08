@@ -42,8 +42,10 @@ public static class CoastBuilder
 
     private static Material[] _extra;
 
-    public static GameObject Build(Transform parent, Settings s)
+    /// <summary>Builds the land (and the towns on it). <paramref name="shape"/> answers height questions afterwards.</summary>
+    public static GameObject Build(Transform parent, Settings s, out CoastShape shape)
     {
+        shape = null;
         var mats = new Material[9];
         for (int i = 0; i < MaterialNames.Length; i++)
         {
@@ -74,7 +76,16 @@ public static class CoastBuilder
         for (int i = 0; i < tris.Length; i++) tris[i] = new List<int>(20000);
 
         var rng = new System.Random(s.Seed);
-        var land = new Land(s, (float)rng.NextDouble() * 1000f, (float)rng.NextDouble() * 1000f);
+        var land = new CoastShape(s, (float)rng.NextDouble() * 1000f, (float)rng.NextDouble() * 1000f);
+        shape = land;
+
+        // The towns first, so the trees keep out of the streets.
+        var buildings = TownBuilder.Build(parent, land, s.Harbours, s.Aprons, s.Seed);
+        var built = new HashSet<Vector2Int>();
+        foreach (var b in buildings)
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++)
+                    built.Add(new Vector2Int(Mathf.FloorToInt(b.Position.x / 8f) + dx, Mathf.FloorToInt(b.Position.y / 8f) + dz));
 
         Rect outer = new Rect(s.Water.xMin - s.Depth, s.Water.yMin - s.Depth, s.Water.width + 2f * s.Depth, s.Water.height + 2f * s.Depth);
         int nx = Mathf.CeilToInt(outer.width / s.Cell), nz = Mathf.CeilToInt(outer.height / s.Cell);
@@ -106,7 +117,8 @@ public static class CoastBuilder
 
                 // Trees: thick in forest patches, scattered elsewhere; none on port ground or sand.
                 float density = s.TreeDensity * (land.Forest(cx, cz) > 0.55f ? 4f : 0.6f);
-                if (mean > 2.6f && mean < 22f && slope < 0.5f && land.PortFlat(cx, cz) < 0.2f &&
+                bool town = built.Contains(new Vector2Int(Mathf.FloorToInt(cx / 8f), Mathf.FloorToInt(cz / 8f)));
+                if (!town && mean > 2.6f && mean < 22f && slope < 0.5f && land.PortFlat(cx, cz) < 0.2f &&
                     rng.NextDouble() < density * s.Cell * s.Cell / 1000f)
                 {
                     float tx = x0 + (float)rng.NextDouble() * s.Cell, tz = z0 + (float)rng.NextDouble() * s.Cell;
@@ -152,12 +164,12 @@ public static class CoastBuilder
     }
 
     /// <summary>The shape of the land: heights, and what kind of ground is where.</summary>
-    private class Land
+    public class CoastShape
     {
         private readonly Settings _s;
         private readonly float _ox, _oz;
 
-        public Land(Settings s, float ox, float oz) { _s = s; _ox = ox; _oz = oz; }
+        public CoastShape(Settings s, float ox, float oz) { _s = s; _ox = ox; _oz = oz; }
 
         private float N(float x, float z, float scale, float offset = 0f) =>
             Mathf.PerlinNoise(_ox + offset + x * scale, _oz + offset + z * scale);
@@ -251,7 +263,7 @@ public static class CoastBuilder
         }
     }
 
-    private static void Tri(List<Vector3> verts, List<int>[] tris, Land land, Vector3 a, Vector3 b, Vector3 c)
+    private static void Tri(List<Vector3> verts, List<int>[] tris, CoastShape land, Vector3 a, Vector3 b, Vector3 c)
     {
         Vector3 centre = (a + b + c) / 3f;
         float steep = 1f - Mathf.Abs(Vector3.Cross(b - a, c - a).normalized.y);
