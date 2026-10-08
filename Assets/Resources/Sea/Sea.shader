@@ -64,6 +64,8 @@ Shader "SpeechCruiser/Sea"
             float _SeaTime;
             float4 _SeaWake[32]; // x, z, time laid, strength 0..1
             float _SeaWakeCount;
+            float4 _SeaSplash[24]; // x, z, radius now, strength now (SeaSplash: creatures breaking the surface)
+            float _SeaSplashCount;
             float _SeaRough; // SeaWaves.Roughness: storms foam more
             float4 _SeaCalm[2]; // harbours: x, z, calm radius, open-sea radius (SeaWaves.Calm)
 
@@ -202,6 +204,24 @@ Shader "SpeechCruiser/Sea"
                 return foam;
             }
 
+            // ---- splashes: a foam patch that opens into a ring as it spreads
+
+            float Splashes(float2 p)
+            {
+                float foam = 0;
+                int n = (int)_SeaSplashCount;
+                for (int i = 0; i < 24; i++)
+                {
+                    if (i >= n) break;
+                    float4 s = _SeaSplash[i];
+                    float d = length(p - s.xy);
+                    float patch = smoothstep(s.z, s.z * 0.35, d) * (1 - smoothstep(0.0, s.z, d) * 0.6);
+                    float ring = smoothstep(s.z * 0.18 + 0.4, 0.0, abs(d - s.z));
+                    foam = max(foam, max(patch, ring) * s.w);
+                }
+                return foam;
+            }
+
             half4 Frag(Varyings i) : SV_Target
             {
                 float3 viewDir = GetWorldSpaceNormalizeViewDir(i.positionWS);
@@ -259,7 +279,7 @@ Shader "SpeechCruiser/Sea"
                 // Whitecaps: thin, broken streaks on the highest crests; more of them in a storm.
                 float caps = ValueNoise(p * 0.9 + float2(_SeaTime * 0.4, 0)) * ValueNoise(p * 2.6 - _SeaTime * 0.2);
                 float crest = saturate((i.crest - lerp(0.62, 0.42, saturate(_SeaRough - 1))) * 3) * _CrestFoam * saturate(caps * 3 - 0.4) * (0.6 + 0.6 * saturate(_SeaRough - 1));
-                float wake = Wake(p);
+                float wake = max(Wake(p), Splashes(p));
                 float foam = saturate(max(edge, max(saturate(crest * 2 - bubbles * 0.5), saturate(wake * 1.7 - bubbles * 0.8))));
                 col = lerp(col, _FoamColor.rgb * (0.75 + 0.25 * shadow), foam);
 

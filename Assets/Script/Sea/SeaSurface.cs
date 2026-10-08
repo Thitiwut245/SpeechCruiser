@@ -44,6 +44,7 @@ public class SeaSurface : MonoBehaviour
         r.sharedMaterial = new Material(shader) { name = "Sea" };
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         ShipWake.Clear();
+        SeaSplash.Clear();
         sea.PushWaves();
         return sea;
     }
@@ -87,6 +88,7 @@ public class SeaSurface : MonoBehaviour
     {
         PushWaves();
         ShipWake.Push();
+        SeaSplash.Push();
         FollowCamera();
     }
 

@@ -15,7 +15,7 @@ public static class SmallTalk
     public enum Topic
     {
         None, HowAreYou, Greeting, WhoAreYou, Weather, Cargo, Thanks, Sorry, Joke, Song, Home,
-        Food, Tired, Scared, Robot, Insult, Bye, Time, Likes, Reply, OffTopic, Chat,
+        Food, Tired, Scared, Robot, Insult, Bye, Time, Likes, Reply, Wildlife, OffTopic, Chat,
     }
 
     private const RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
@@ -29,6 +29,7 @@ public static class SmallTalk
         (Topic.HowAreYou, new Regex(@"\b(how (are|r) (you|u|ya|things)|how you doing|how are you doing|hows it going|how is it going|how do you feel|how you feeling|are you (ok|okay|alright|all right|well)|you (ok|okay|alright|all right)|whats up|sup)\b", Opt)),
         (Topic.WhoAreYou, new Regex(@"\b(who (are|r) (you|u)|your name|whats your name|what do you do|whats your job|introduce yourself|tell me about yourself|about you)\b", Opt)),
         (Topic.Weather, new Regex(@"\b(weather|wind|windy|rain|raining|storm|stormy|fog|foggy|sunny|sun|sky|forecast|temperature|cold|hot|warm|waves|swell|sea state|hows the sea|how is the sea|the water like)\b", Opt)),
+        (Topic.Wildlife, new Regex(@"\b(dolphins?|whales?|gulls?|seagulls?|sea gulls?|birds?|fish|fishes|animals?|sea life|wildlife|pod)\b", Opt)),
         (Topic.Cargo, new Regex(@"\b(cargo|containers?|carrying|freight|load|loaded)\b", Opt)),
         (Topic.Joke, new Regex(@"\b(joke|jokes|make me laugh|something funny|funny)\b", Opt)),
         (Topic.Song, new Regex(@"\b(sing|song|shanty|music)\b", Opt)),
@@ -191,6 +192,12 @@ public static class SmallTalk
                 return new[] { "No clock down here but the engine, Captain. Over.", "Couldn't tell you the time, Captain. Time to get there, I'd say. Over." };
             case Topic.Likes:
                 return new[] { "I like a clean engine and a quiet sea, Captain. Over.", "Went to sea at sixteen. Never found a reason to leave. Over." };
+            case Topic.Wildlife:
+                return SeaLife.Recently("dolphins")
+                    ? new[] { "Dolphins? Lucky sign, Captain. Sailors say they bring good weather. Over.", "Saw them from the hatch, Captain. They love a bow wave. Over." }
+                    : SeaLife.Recently("a whale")
+                        ? new[] { "A whale, eh? Keep well clear, Captain. They're bigger than us. Over." }
+                        : new[] { "Gulls follow ships for the scraps, Captain. Smart birds. Over.", "Keep an eye out, Captain. Dolphins like this water. Over." };
             case Topic.Reply:
                 return new[] { "Good to know, Captain. Over.", "Is that so? Grand. Over.", "Thanks for telling me, Captain. Over." };
             case Topic.Chat:
@@ -277,6 +284,12 @@ public static class SmallTalk
                 return new[] { "Didn't bring a watch, Sir! Sorry. Over.", "No idea, Captain. Harris has a clock somewhere. Over." };
             case Topic.Likes:
                 return new[] { "I love watching the gulls, Sir. And the sea at sunrise. What do you like? Over.", "Always wanted to sail, Captain. Dream job. Over." };
+            case Topic.Wildlife:
+                return SeaLife.Recently("dolphins")
+                    ? new[] { "Did you see them jump, Sir? A whole pod! Do you like dolphins? Over.", "They swim right under the bow, Sir! So fast! Over." }
+                    : SeaLife.Recently("a whale")
+                        ? new[] { "That spout was huge, Sir! I love whales. Over.", "A humpback, I think! Look for the fluke when it dives, Sir. Over." }
+                        : new[] { "Just gulls right now, Sir. I'll shout if I see dolphins! Over.", "I'm watching for dolphins, Captain. They like ships. Over." };
             case Topic.Reply:
                 return new[] { "Nice, Sir! Over.", "Oh, really? Cool, Sir! Over.", "Thanks for telling me, Captain! Over." };
             case Topic.Chat:

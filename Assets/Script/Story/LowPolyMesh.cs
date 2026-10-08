@@ -109,6 +109,74 @@ public sealed class LowPolyMesh
         }
     }
 
+    /// <summary>
+    /// A body lofted along a spine (a whale, a dolphin, a gull): an elliptical ring of
+    /// <paramref name="sides"/> corners at each centre, <paramref name="radii"/> wide (x) and
+    /// tall (y), closed at both ends. Rings face along the spine with world up as up. Faces on
+    /// the underside get <paramref name="belly"/> (countershading, as real sea animals have).
+    /// </summary>
+    public void Loft(IList<Vector3> centres, IList<Vector2> radii, int sides, Color top, Color belly, float bellyLine = -0.35f)
+    {
+        int n = centres.Count;
+        var rings = new Vector3[n, sides];
+        for (int i = 0; i < n; i++)
+        {
+            Vector3 fwd = (centres[Mathf.Min(i + 1, n - 1)] - centres[Mathf.Max(i - 1, 0)]).normalized;
+            Vector3 up = Vector3.ProjectOnPlane(Vector3.up, fwd).normalized;
+            Vector3 right = Vector3.Cross(up, fwd);
+            for (int k = 0; k < sides; k++)
+            {
+                float a = k * Mathf.PI * 2f / sides;
+                rings[i, k] = centres[i] + right * (Mathf.Cos(a) * radii[i].x) + up * (Mathf.Sin(a) * radii[i].y);
+            }
+        }
+        for (int i = 0; i < n - 1; i++)
+            for (int k = 0; k < sides; k++)
+            {
+                int k1 = (k + 1) % sides;
+                float mid = (k + 0.5f) * Mathf.PI * 2f / sides;
+                _centre = (centres[i] + centres[i + 1]) * 0.5f;
+                Quad(rings[i, k], rings[i + 1, k], rings[i + 1, k1], rings[i, k1], Mathf.Sin(mid) < bellyLine ? belly : top);
+            }
+        // Close the ends with a fan to a point just beyond them.
+        for (int end = 0; end < 2; end++)
+        {
+            int i = end == 0 ? 0 : n - 1;
+            Vector3 along = end == 0 ? centres[0] - centres[1] : centres[n - 1] - centres[n - 2];
+            Vector3 tip = centres[i] + along.normalized * Mathf.Min(radii[i].x, radii[i].y) * 0.6f;
+            _centre = centres[i] - along.normalized * 0.01f;
+            for (int k = 0; k < sides; k++)
+            {
+                float mid = (k + 0.5f) * Mathf.PI * 2f / sides;
+                Tri(rings[i, k], rings[i, (k + 1) % sides], tip, Mathf.Sin(mid) < bellyLine ? belly : top);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A thin fin (a flipper, a fluke half, a dorsal fin): a flat outline given as points in its
+    /// own plane (x along, y across), given a little thickness, placed by <paramref name="at"/>.
+    /// </summary>
+    public void Fin(IList<Vector2> outline, float thickness, Color colour, Matrix4x4 at)
+    {
+        int n = outline.Count;
+        Vector2 mid = Vector2.zero;
+        foreach (var p in outline) mid += p;
+        mid /= n;
+        Vector3 c = at.MultiplyPoint3x4(new Vector3(mid.x, mid.y, 0f));
+        Vector3 Top(int i) => at.MultiplyPoint3x4(new Vector3(outline[i].x, outline[i].y, thickness * 0.5f));
+        Vector3 Bot(int i) => at.MultiplyPoint3x4(new Vector3(outline[i].x, outline[i].y, -thickness * 0.5f));
+        Vector3 ct = at.MultiplyPoint3x4(new Vector3(mid.x, mid.y, thickness * 0.5f));
+        Vector3 cb = at.MultiplyPoint3x4(new Vector3(mid.x, mid.y, -thickness * 0.5f));
+        for (int i = 0; i < n; i++)
+        {
+            int j = (i + 1) % n;
+            _centre = c - (ct - c) * 4f; Tri(ct, Top(i), Top(j), colour);
+            _centre = c + (ct - c) * 4f; Tri(cb, Bot(j), Bot(i), colour);
+            _centre = c; Quad(Top(i), Bot(i), Bot(j), Top(j), colour);
+        }
+    }
+
     /// <summary>Triangles added next face away from this point (for shapes built by hand).</summary>
     public void Around(Vector3 centre) => _centre = centre;
 

@@ -592,6 +592,9 @@ public class LevelGenerator : MonoBehaviour
         BuildStartPort();
         BuildEndPort();
         if (BuildCoast) BuildCoastline(minX, maxX, lengthZ);
+        // Gulls over the harbours, dolphins now and then, a whale far off (scenery only).
+        SeaLife.Create(_levelRoot, new[] { StartPosition, EndPosition },
+                       Rect.MinMaxRect(minX - CellSize * 0.5f, -CellSize * 0.5f, maxX + CellSize * 0.5f, lengthZ + CellSize * 0.5f));
 
         CaptureMapData(grid, width, length, originX);
         OnLevelGenerated?.Invoke();
