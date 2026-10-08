@@ -49,13 +49,13 @@ public static class LanguageLog
     public static void Call() => _calls++;
 
     /// <summary>A question or a remark was answered.</summary>
-    public static void Answered() => _understood++;
+    public static void Answered() { _understood++; ResearchLog.Answered(); }
 
     /// <summary>The crew had to ask again.</summary>
-    public static void Unclear() => _unclear++;
+    public static void Unclear() { _unclear++; ResearchLog.Unclear(); }
 
     /// <summary>The Captain asked about a word or how to say something.</summary>
-    public static void WordAsked() { _words++; _understood++; }
+    public static void WordAsked() { _words++; _understood++; ResearchLog.WordAsked(); }
 
     /// <summary>A danger warning sounded at <paramref name="time"/> (game seconds).</summary>
     public static void Warned(float time)
@@ -67,8 +67,9 @@ public static class LanguageLog
     /// An order was carried out at <paramref name="time"/>. <paramref name="standardPhrase"/> is
     /// what it should be called when the Captain said it another way, else null.
     /// </summary>
-    public static void Order(bool standard, string standardPhrase, float time)
+    public static void Order(bool standard, string standardPhrase, float time, ShipAction action = ShipAction.None)
     {
+        ResearchLog.Order(action, standard, standardPhrase);
         _orders++;
         _understood++;
         if (standard) _standard++;

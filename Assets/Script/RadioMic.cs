@@ -458,6 +458,7 @@ public class RadioMic : MonoBehaviour
 
         int sampleCount = Microphone.GetPosition(_activeDevice);
         Microphone.End(_activeDevice);
+        if (!testing) ResearchLog.BeginVoice(modeUsed == RadioMode.Conversation); // the clock starts as the key is let go
 
         if (_recordingClip == null || sampleCount <= 0)
         {
@@ -467,6 +468,7 @@ public class RadioMic : MonoBehaviour
 
         int channels = Mathf.Max(1, _recordingClip.channels);
         float seconds = (float)sampleCount / SAMPLING_RATE;
+        ResearchLog.SpeechLength(seconds);
 
         if (seconds < MinSpeechSeconds)
         {
@@ -543,6 +545,7 @@ public class RadioMic : MonoBehaviour
             return;
         }
 
+        if (text != null) ResearchLog.Heard(text);
         if (text == null)
         {
             Reject(RadioStatus.ModelNotReady, "Speech system is not ready. Try again in a moment.", "(no result from Whisper)");
@@ -610,6 +613,7 @@ public class RadioMic : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(text)) return;
         text = text.Trim();
+        ResearchLog.BeginTyped(text);
         Emit(RadioStatus.Heard, text);
         var router = CommandRouter.Instance != null ? CommandRouter.Instance : FindAnyObjectByType<CommandRouter>();
         if (router != null) router.RouteCommand(text, false);
@@ -632,6 +636,7 @@ public class RadioMic : MonoBehaviour
     private void Reject(RadioStatus status, string hint, string logReason)
     {
         if (LogAudioStats) Debug.Log("[RADIO]: discarded " + logReason);
+        ResearchLog.Rejected(status.ToString());
 
         Emit(status, hint);
         if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);

@@ -333,6 +333,7 @@ public class CommandRouter : MonoBehaviour
                     return;
                 }
                 _classifierPending = false;
+                ResearchLog.Route("classifier");
                 if (TimeController.Instance != null) TimeController.Instance.SetAIProcessing(false);
                 if (ok && action != ShipAction.None)
                 {
@@ -437,7 +438,7 @@ public class CommandRouter : MonoBehaviour
         if (parsed.Matches.Count > 0 && parsed.Matches[0].Action == ShipAction.Belay)
         {
             bool standard = StandardPhrases.IsStandard(ShipAction.Belay, parsed.Matches[0].Phrase);
-            LanguageLog.Order(standard, StandardPhrases.For(ShipAction.Belay), Time.time);
+            LanguageLog.Order(standard, StandardPhrases.For(ShipAction.Belay), Time.time, ShipAction.Belay);
             Belay();
             if (!standard) StartCoroutine(RecastLater(ActiveChannel, StandardPhrases.For(ShipAction.Belay), FollowUpDelaySeconds));
             return;
@@ -466,7 +467,7 @@ public class CommandRouter : MonoBehaviour
                 // then model the standard order.
                 bool standard = StandardPhrases.IsStandard(resolved, m.Phrase);
                 string taught = StandardPhrases.For(resolved, parsed.Degrees);
-                LanguageLog.Order(standard, taught, Time.time);
+                LanguageLog.Order(standard, taught, Time.time, resolved);
                 if (!standard && taught != null && recast == null)
                 {
                     recast = taught;
@@ -552,7 +553,7 @@ public class CommandRouter : MonoBehaviour
         // standard phrase: model it. A "continue" (no words) is fine as it is.
         string taught = StandardPhrases.For(resolved, degrees);
         bool standard = string.IsNullOrEmpty(rawSpeech) || resolved.IsQuery();
-        if (executed) LanguageLog.Order(standard, taught, Time.time);
+        if (executed) LanguageLog.Order(standard, taught, Time.time, resolved);
         else LanguageLog.Answered();
         OnActionExecuted?.Invoke(resolved);
         Acknowledge(target, resolved);
@@ -676,6 +677,7 @@ public class CommandRouter : MonoBehaviour
             return;
         }
 
+        ResearchLog.Route("chat");
         chat.Converse(target, transcript, conversational);
     }
 

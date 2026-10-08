@@ -65,6 +65,7 @@ public class CrewVoice : MonoBehaviour
         string line = CrewBarkLibrary.Fill(lines[index], telemetry);
 
         OnSubtitleUpdated?.Invoke(line, DisplayName(crew));
+        ResearchLog.Replied(DisplayName(crew), line);
 
         if (UseVoiceClips) TryPlayClip(crew, action, index);
 

@@ -91,7 +91,11 @@ public class MissionResultsPanel : MonoBehaviour
 
     private void HandleStateChanged(GameState state)
     {
-        if (state == GameState.Playing) LanguageLog.Begin(); // a voyage starts: a fresh language report
+        if (state == GameState.Playing)
+        {
+            LanguageLog.Begin(); // a voyage starts: a fresh language report
+            ResearchLog.BeginVoyage();
+        }
         if (state == GameState.Victory || state == GameState.GameOver)
         {
             _showAt = Time.unscaledTime + (state == GameState.GameOver ? ShowDelayAfterSinking : ShowDelay);
@@ -175,6 +179,7 @@ public class MissionResultsPanel : MonoBehaviour
         }
 
         AddLanguageRows(LanguageLog.Read());
+        ResearchLog.EndVoyage(result);
 
         int change = result.CreditsAfter - result.CreditsBefore;
         _totalValue.text = "$" + result.CreditsAfter + "  (" + (change >= 0 ? "+$" + change : "-$" + (-change)) + ")";

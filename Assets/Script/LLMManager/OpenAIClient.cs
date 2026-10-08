@@ -252,6 +252,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
                 {
                     OnSubtitleUpdated?.Invoke(reply, crewName);
                     LanguageLog.Answered();
+                    ResearchLog.Replied(crewName, reply);
 
                     RecordExchange(crew, speech, reply);
                     if (crew == RadioChannel.Lookout) lastFinnReport = reply;
