@@ -174,13 +174,14 @@ public class RadarSystem : MonoBehaviour
         return v;
     }
 
-    /// <summary>"Mine" or "Reef", from the hazard's object name (the generator spawns prefab copies).</summary>
+    /// <summary>"Mine", "Sandbank" or "Reef", from the hazard's object name (the generator spawns prefab copies).</summary>
     public static string KindOf(Collider c)
     {
         for (Transform t = c.transform; t != null; t = t.parent)
         {
             string n = t.name;
             if (n.IndexOf("mine", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Mine";
+            if (n.IndexOf("sandbank", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Sandbank";
             if (n.IndexOf("reef", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("rock", System.StringComparison.OrdinalIgnoreCase) >= 0) return "Reef";
         }

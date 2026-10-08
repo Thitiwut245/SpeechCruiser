@@ -8,12 +8,12 @@ Shader "SpeechCruiser/Sea"
 {
     Properties
     {
-        _ShallowColor ("Shallow", Color) = (0.16, 0.66, 0.68, 1)
+        _ShallowColor ("Shallow", Color) = (0.20, 0.62, 0.58, 1)
         _DeepColor ("Deep", Color) = (0.04, 0.29, 0.42, 1)
         _SkyColor ("Sky reflection", Color) = (0.72, 0.86, 0.92, 1)
         _FoamColor ("Foam", Color) = (0.96, 0.98, 0.98, 1)
         _DepthRange ("Depth to full colour (m)", Float) = 7
-        _Clarity ("Depth seen through (m)", Float) = 2.5
+        _Clarity ("Depth seen through (m)", Float) = 4
         _ShoreFoam ("Contact foam width (m)", Float) = 1.4
         _CrestFoam ("Crest foam", Range(0, 1)) = 0.35
         _Glint ("Sun glint", Range(0, 2)) = 0.8
@@ -248,7 +248,7 @@ Shader "SpeechCruiser/Sea"
                 col = lerp(col, _FoamColor.rgb * (0.75 + 0.25 * shadow), foam);
 
                 // See-through in the shallows, so the bottom shows.
-                half alpha = lerp(0.55, 1.0, saturate(depth / _Clarity));
+                half alpha = lerp(0.3, 1.0, saturate(depth / _Clarity));
                 alpha = max(alpha, foam);
 
                 col = MixFog(col, i.fogFactor);

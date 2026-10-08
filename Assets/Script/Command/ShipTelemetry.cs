@@ -26,7 +26,7 @@ public struct ShipTelemetry
 
     /// <summary>True when a hazard is on the ship's course (not just nearby).</summary>
     public bool HazardOnCourse;
-    /// <summary>"Mine", "Reef" or "Hazard".</summary>
+    /// <summary>"Mine", "Reef", "Sandbank" or "Hazard".</summary>
     public string HazardKind;
     /// <summary>Plain words for where it is: "dead ahead", "ahead on the left", "behind"...</summary>
     public string HazardWhere;

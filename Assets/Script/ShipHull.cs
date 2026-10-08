@@ -65,9 +65,15 @@ public class ShipHull : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (_isDestroyed || IsInvulnerable) return;
+        if (_isDestroyed) return;
         if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing) return;
-        if (!other.CompareTag("Hazard")) return;
+        // A sandbank doesn't hole the hull: the ship runs aground and must back off.
+        if (other.GetComponentInParent<Shoal>() != null)
+        {
+            RunAground();
+            return;
+        }
+        if (IsInvulnerable || !other.CompareTag("Hazard")) return;
 
         _invulnerableUntil = Time.time + InvulnerableSeconds;
         bool mine = RadarSystem.KindOf(other) == "Mine";
@@ -95,6 +101,38 @@ public class ShipHull : MonoBehaviour
         if (mine) Detonate(other);
 
         TakeDamage(1);
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.GetComponentInParent<Shoal>() == null) return;
+        var nav = ShipNavigator.Instance;
+        if (nav == null || nav.Engine == null || nav.Engine.AgroundDirection == 0) return;
+        nav.Engine.Refloat();
+        if (CrewVoice.Instance != null)
+            CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout, new[] { "We're off the sandbank, Captain. Deep water again." },
+                ShipTelemetry.Capture(), "hull:refloat");
+    }
+
+    /// <summary>
+    /// Onto a sandbank: the ship stops dead, no damage, and the engineer says how to get off
+    /// (back the other way). Only the first touch counts until the ship is afloat again.
+    /// </summary>
+    private void RunAground()
+    {
+        var nav = ShipNavigator.Instance;
+        if (nav == null || nav.Engine == null || nav.Engine.AgroundDirection != 0) return;
+        float speed = nav.Engine.Speed;
+        int direction = Mathf.Abs(speed) > 0.05f ? (speed > 0f ? 1 : -1) : (nav.Engine.OrderedSpeed >= 0f ? 1 : -1);
+        nav.Engine.RunAground(direction);
+        if (nav.Movement != null) nav.Movement.KillTurn();
+        if (CrewVoice.Instance != null)
+        {
+            string line = direction > 0
+                ? "We've run aground on a sandbank! No damage. Order slow astern to back off."
+                : "We've backed onto a sandbank! No damage. Order slow ahead to get off.";
+            CrewVoice.Instance.SpeakFrom(RadioChannel.ChiefEngineer, new[] { line }, ShipTelemetry.Capture(), "hull:aground");
+        }
     }
 
     /// <summary>
@@ -139,12 +177,13 @@ public class ShipHull : MonoBehaviour
     /// <summary>A mine goes off once: the hazard is removed so it can't be hit again.</summary>
     private static void Detonate(Collider mine)
     {
-        // The chart stops showing it: that water is open now.
-        if (LevelGenerator.Instance != null) LevelGenerator.Instance.ClearHazardAt(mine.bounds.center);
-
+        Vector3 at = mine.bounds.center;
         Transform t = mine.transform;
         while (t.parent != null && !t.parent.name.StartsWith("GeneratedLevel")) t = t.parent;
         t.gameObject.SetActive(false);
+
+        // The chart stops showing it once the whole field there is gone.
+        if (LevelGenerator.Instance != null) LevelGenerator.Instance.ClearHazardAt(at);
     }
 
     private void TakeDamage(int damage)

@@ -62,6 +62,22 @@ public class ShipEngine : MonoBehaviour
 
     public float Speed => CurrentSpeed;
 
+    /// <summary>
+    /// Aground on a sandbank: +1 if the ship ran on going ahead, -1 going astern, 0 afloat.
+    /// The ship can't move that way until it backs off the other way (ShipHull refloats it).
+    /// </summary>
+    public int AgroundDirection { get; private set; }
+
+    /// <summary>The hull has run onto a sandbank: the ship stops dead and can't go on that way.</summary>
+    public void RunAground(int direction)
+    {
+        AgroundDirection = direction >= 0 ? 1 : -1;
+        CurrentSpeed = 0f;
+    }
+
+    /// <summary>Off the sandbank, afloat again.</summary>
+    public void Refloat() => AgroundDirection = 0;
+
     /// <summary>The speed the current telegraph order is heading for, in knots (includes upgrades).</summary>
     public float OrderedSpeed => GetSpeedForGear(CurrentGear);
     public TelegraphGear Gear => CurrentGear;
@@ -135,6 +151,8 @@ public class ShipEngine : MonoBehaviour
                    : Mathf.Abs(_targetSpeed) > Mathf.Abs(CurrentSpeed) ? AccelerationRate * accelMultiplier
                    : DecelerationRate * engine;
         CurrentSpeed = Mathf.MoveTowards(CurrentSpeed, _targetSpeed, rate * Time.deltaTime);
+        // Aground, the engine can only back the ship off the way it came.
+        if (AgroundDirection != 0 && CurrentSpeed * AgroundDirection > 0f) CurrentSpeed = 0f;
 
         IsEngineRunning = Mathf.Abs(CurrentSpeed) > 0.05f;
     }
