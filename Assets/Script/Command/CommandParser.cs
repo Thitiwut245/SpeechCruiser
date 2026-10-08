@@ -1131,6 +1131,10 @@ public static class CommandParser
             case ShipAction.HardStarboard:    nav.ChangeHeading(HardTurnDegrees);  return true;
             case ShipAction.RudderMidships:   nav.RudderMidships(); return true;
 
+            // The harbour pilot answers these himself (DockingPilot).
+            case ShipAction.RequestDocking: return DockingPilot.Instance != null && DockingPilot.Instance.RequestDocking();
+            case ShipAction.MakeFast:       return DockingPilot.Instance != null && DockingPilot.Instance.MakeFast();
+
             // Belay needs the previous order, which only the router remembers.
             default: return false;
         }

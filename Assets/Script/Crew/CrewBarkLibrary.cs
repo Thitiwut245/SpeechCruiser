@@ -422,8 +422,8 @@ public static class CrewBarkLibrary
     {
         return new[]
         {
-            "Dock in sight, Captain! {6} metres {13}. Steer for the gold line. Over.",
-            "I see the dock, Sir! {6} metres {13}. Take her through the gold line. Over.",
+            "Harbour in sight, Captain! {6} metres {13}. Slow down near the yellow berth and say \"request docking\". Over.",
+            "I see the harbour, Sir! {6} metres {13}. Come in slowly, then call harbour control: \"request docking\". Over.",
         };
     }
 

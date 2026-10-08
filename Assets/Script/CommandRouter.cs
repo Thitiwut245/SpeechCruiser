@@ -558,6 +558,7 @@ public class CommandRouter : MonoBehaviour
     private void Acknowledge(RadioChannel target, ShipAction action)
     {
         if (CrewVoice.Instance == null) return;
+        if (action.IsHarbour()) return; // harbour control has already answered (DockingPilot)
 
         RadioChannel speaker = OwnerOf(action, target);
 

@@ -27,11 +27,9 @@ public class LevelGenerator : MonoBehaviour
     }
 
     [Header("Prefabs — drop them in, the generator measures and fits them")]
-    [Tooltip("Dock the ship departs from. Placed behind the spawn point so it never overlaps the hull.")]
+    [Tooltip("Harbour model, used at both ends: the ship departs from its quay and docks at the same model " +
+             "at the destination. Placed to the ship's starboard side, with a berth (Quay) fitted to its edge.")]
     [SerializeField] private GameObject StartPortPrefab;
-
-    [Tooltip("Destination. Stretched into a gate across the full map width and forced to a trigger.")]
-    [SerializeField] private GameObject EndPortPrefab;
 
     [Tooltip("Obstacle art. Any size, any pivot, collider and Hazard tag optional — all added if missing.")]
     [SerializeField] private GameObject[] HazardPrefabs;
@@ -143,29 +141,19 @@ public class LevelGenerator : MonoBehaviour
     [Tooltip("Trees per 1000 square units of grass.")]
     [SerializeField] private float CoastTrees = 1.5f;
 
-    [Tooltip("Height of the finish-line trigger volume. Just needs to comfortably contain the hull.")]
-    [SerializeField] private float EndGateHeight = 30f;
-
-    [Header("Destination")]
-    [Tooltip("Glowing material for the finish line drawn across the channel. Leave empty for no line.")]
-    [SerializeField] private Material FinishLineMaterial;
-    [SerializeField] private float FinishLineHeight = 0.3f;
-    [SerializeField] private float FinishLineDepth = 2.5f;
-    [Tooltip("Water between the finish line and the destination harbour.")]
-    [SerializeField] private float DockSetBack = 6f;
-    [Tooltip("Turn applied to the harbour model at the destination so its quay faces the arriving ship.")]
-    [SerializeField] private float DockYaw = -90f;
-
     [Tooltip("Height the ship floats at. The generator owns this because it owns where the course starts.")]
     [SerializeField] private float ShipSpawnHeight = 1f;
 
     [Header("Mooring")]
     [Tooltip("Half the ship's width. The quay's near edge goes this far plus QuayGap to the ship's right.")]
     [SerializeField] private float ShipHalfBeam = 3f;
-    [Tooltip("Water between the hull and the quay at the start.")]
+    [Tooltip("Water between the hull and the quay when alongside.")]
     [SerializeField] private float QuayGap = 1.2f;
     [Tooltip("Slides the quay along the ship (+ = towards the bow).")]
     [SerializeField] private float QuayOffsetZ = 0f;
+
+    [Tooltip("Turn applied to the harbour model so its long side runs along the ship as the quay.")]
+    [SerializeField] private float HarbourYaw = 90f;
 
     [Header("Difficulty")]
     [Range(0.1f, 0.4f)]
@@ -409,9 +397,9 @@ public class LevelGenerator : MonoBehaviour
             return false;
         }
 
-        if (EndPortPrefab == null)
+        if (StartPortPrefab == null)
         {
-            Debug.LogError("❌ [LEVEL GEN]: no EndPortPrefab assigned — the mission could never be completed.");
+            Debug.LogError("❌ [LEVEL GEN]: no StartPortPrefab (harbour model) assigned — there would be no berth to dock at.");
             return false;
         }
 
@@ -438,9 +426,10 @@ public class LevelGenerator : MonoBehaviour
         {
             for (int y = 0; y < length; y++)
             {
-                // A clear lane out of the dock, and a 3x3 apron around the arrival.
+                // A clear lane out of the dock, and clear harbour water round the destination
+                // berth, reaching east over the harbour model beside it.
                 if (Mathf.Abs(x - startX) <= 1 && y <= clearRows) continue;
-                if (Mathf.Abs(x - endX) <= 1 && Mathf.Abs(y - endY) <= 1) continue;
+                if (x >= endX - 1 && x <= endX + 2 && y >= endY - 1) continue;
 
                 // Choke points tighten towards the finish.
                 float depthFactor = (float)y / length;
@@ -607,11 +596,12 @@ public class LevelGenerator : MonoBehaviour
         float envZ = lengthZ + CellSize + (EnvironmentMargin * 2f);
 
         BuildSeaFloor(envCenter, envX, envZ);
+        SeaWaves.ClearCalm(); // the harbours below set their sheltered water
         BuildWater();
         BuildHazards(grid, width, length, originX);
         BuildBoundaryWalls(minX, maxX, lengthZ);
         BuildStartPort();
-        BuildEndPort(minX, maxX);
+        BuildEndPort();
         if (BuildCoast) BuildCoastline(minX, maxX, lengthZ);
 
         CaptureMapData(grid, width, length, originX);
@@ -962,63 +952,47 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// The home harbour: the model alongside the ship's starboard side with its quay fitted,
+    /// so the ship starts moored at the berth. Its water is sheltered (calm).
+    /// </summary>
     private void BuildStartPort()
     {
-        if (StartPortPrefab == null) return;
-
-        GameObject port = Instantiate(StartPortPrefab, Vector3.zero, Quaternion.identity, _levelRoot);
-        port.name = "StartPort";
-
-        // Alongside the ship's starboard (right) side, sitting on the water, so the ship
-        // starts moored at the quay. Anchoring by bounds keeps it off the hull whatever the pivot.
-        Bounds bounds = MeasureBounds(port);
-        Vector3 target = new Vector3((bounds.size.x * 0.5f) + ShipHalfBeam + QuayGap, bounds.size.y * 0.5f, QuayOffsetZ);
-        PlaceByBounds(port, target, bounds);
+        Vector3 berth = new Vector3(0f, ShipSpawnHeight, 0f);
+        GameObject port = PlaceHarbour("StartPort", berth);
+        Quay.Build(_levelRoot, port, berth, berth.x + ShipHalfBeam + QuayGap, destination: false);
+        SeaWaves.SetCalm(0, berth, 30f, 75f);
     }
 
     /// <summary>
-    /// The destination: an invisible finish trigger across the whole channel, a glowing gold
-    /// line on the water where it starts, and the harbour model at its own size just beyond,
-    /// so the player can see where they are going long before they arrive.
+    /// The destination: the same harbour model at the end of the route, its berth marked out
+    /// on the water, and the DockingPilot that brings the ship in when the player asks.
+    /// The voyage ends only here, tied up at the berth.
     /// </summary>
-    private void BuildEndPort(float minX, float maxX)
+    private void BuildEndPort()
     {
-        float width = (maxX - minX) + CellSize;
+        Vector3 berth = new Vector3(EndPosition.x, ShipSpawnHeight, EndPosition.z);
+        GameObject port = PlaceHarbour("EndDock", berth);
+        // Art only: the ship never collides with scenery, and the berth decides arrival.
+        foreach (var old in port.GetComponentsInChildren<EndPort>()) Destroy(old);
+        foreach (var col in port.GetComponentsInChildren<Collider>()) Destroy(col);
+        Quay quay = Quay.Build(_levelRoot, port, berth, berth.x + ShipHalfBeam + QuayGap, destination: true);
+        DockingPilot.Create(_levelRoot, quay);
+        SeaWaves.SetCalm(1, berth, 30f, 75f);
+    }
 
-        var gate = new GameObject("EndPort");
-        gate.transform.SetParent(_levelRoot, false);
-        gate.transform.position = new Vector3(EndPosition.x, EndGateHeight * 0.5f - 4f, EndPosition.z);
-        var trigger = gate.AddComponent<BoxCollider>();
-        trigger.isTrigger = true;
-        trigger.size = new Vector3(width, EndGateHeight, CellSize * 0.5f);
-        gate.AddComponent<EndPort>();
-
-        float lineZ = EndPosition.z - CellSize * 0.25f;
-        if (FinishLineMaterial != null)
-        {
-            var line = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            line.name = "FinishLine";
-            Destroy(line.GetComponent<Collider>());
-            line.transform.SetParent(_levelRoot, false);
-            line.transform.position = new Vector3(EndPosition.x, FinishLineHeight, lineZ);
-            line.transform.localScale = new Vector3(width, 0.25f, FinishLineDepth);
-            line.GetComponent<Renderer>().sharedMaterial = FinishLineMaterial;
-        }
-
-        // The same harbour model as the start, turned so its quay faces the arriving ship.
-        GameObject dockArt = StartPortPrefab != null ? StartPortPrefab : EndPortPrefab;
-        if (dockArt == null) return;
-
-        GameObject dock = Instantiate(dockArt, Vector3.zero, Quaternion.Euler(0f, DockYaw, 0f) * dockArt.transform.rotation, _levelRoot);
-        dock.name = "EndDock";
-        // Art only: the trigger above decides arrival, and the ship never collides with scenery.
-        foreach (var port in dock.GetComponentsInChildren<EndPort>()) Destroy(port);
-        foreach (var col in dock.GetComponentsInChildren<Collider>()) Destroy(col);
-
-        Bounds bounds = MeasureBounds(dock);
-        Vector3 target = new Vector3(EndPosition.x, bounds.size.y * 0.5f,
-                                     EndPosition.z + CellSize * 0.25f + DockSetBack + bounds.size.z * 0.5f);
-        PlaceByBounds(dock, target, bounds);
+    /// <summary>
+    /// The harbour model to the starboard side of a ship lying at <paramref name="berth"/>, its
+    /// near edge QuayGap off the hull. Turned so its long side is the quay, as real ships lie.
+    /// </summary>
+    private GameObject PlaceHarbour(string name, Vector3 berth)
+    {
+        GameObject port = Instantiate(StartPortPrefab, Vector3.zero, Quaternion.Euler(0f, HarbourYaw, 0f), _levelRoot);
+        port.name = name;
+        Bounds bounds = MeasureBounds(port);
+        Vector3 target = new Vector3(berth.x + (bounds.size.x * 0.5f) + ShipHalfBeam + QuayGap, bounds.size.y * 0.5f, berth.z + QuayOffsetZ);
+        PlaceByBounds(port, target, bounds);
+        return port;
     }
 
     /// <summary>

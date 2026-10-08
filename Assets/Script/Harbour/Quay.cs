@@ -1,0 +1,159 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// A harbour's quay, fitted along the near edge of the harbour model: one berth the length of
+/// the ship, marked as real ports mark them (a yellow edge line and end bars on the quay,
+/// black fenders hanging on its face, bollards for the mooring lines), and at the destination
+/// a yellow outline on the water showing exactly where the ship should lie.
+/// Its trigger, just inside the quay face, is how ShipHull knows the ship has bumped it.
+/// The berth: the ship lies with its centre at <see cref="Berth"/>, bow to +Z, quay to starboard.
+/// </summary>
+public class Quay : MonoBehaviour
+{
+    private const float MaxBerthHalfLength = 10f;
+
+    /// <summary>Half the berth's length: up to 10 m, less if the quay is shorter.</summary>
+    public float BerthHalfLength { get; private set; } = MaxBerthHalfLength;
+
+    /// <summary>Where the ship's centre lies when alongside (at the ship's ride height).</summary>
+    public Vector3 Berth { get; private set; }
+    /// <summary>World x of the quay face.</summary>
+    public float FaceX { get; private set; }
+    /// <summary>Height of the quay's deck.</summary>
+    public float DeckY { get; private set; }
+    /// <summary>The bollards the lines go to, bow first.</summary>
+    public readonly List<Vector3> Bollards = new List<Vector3>();
+
+    private GameObject _outline;
+    private static Material _yellow, _black, _iron;
+
+    /// <summary>The destination berth's yellow outline on the water: shown until the ship is tied up.</summary>
+    public void ShowOutline(bool show)
+    {
+        if (_outline != null) _outline.SetActive(show);
+    }
+
+    /// <summary>
+    /// Fits a quay to <paramref name="harbour"/> (already placed with its near edge at
+    /// <paramref name="faceX"/>) for a ship lying at <paramref name="berth"/>.
+    /// </summary>
+    public static Quay Build(Transform parent, GameObject harbour, Vector3 berth, float faceX, bool destination)
+    {
+        Materials();
+        var go = new GameObject(destination ? "DestinationQuay" : "HomeQuay");
+        go.transform.SetParent(parent, false);
+        var quay = go.AddComponent<Quay>();
+        quay.Berth = berth;
+        quay.FaceX = faceX;
+        // Line the model's deck (its biggest low, flat part: lamps and cranes may stick out
+        // further) up with the quay face, centred on the berth, so the fenders and markings
+        // sit on the real edge and not out in the water.
+        Bounds deckPart = Deck(harbour);
+        harbour.transform.position += new Vector3(faceX - deckPart.min.x, 0f, berth.z - deckPart.center.z);
+        quay.DeckY = deckPart.max.y;
+        quay.BerthHalfLength = Mathf.Clamp(deckPart.extents.z - 2f, 4f, MaxBerthHalfLength);
+        float BerthHalfLength = quay.BerthHalfLength;
+
+        float deck = quay.DeckY;
+        float z0 = berth.z;
+
+        // Fenders: black rubber hanging down the face, every few metres along the berth.
+        for (float z = -BerthHalfLength; z <= BerthHalfLength + 0.01f; z += 3.5f)
+            Piece(go, PrimitiveType.Cylinder, _black, new Vector3(faceX - 0.3f, deck * 0.5f, z0 + z), new Vector3(0.6f, deck * 0.5f, 0.6f));
+
+        // Bollards near the edge: bow, two springs, stern.
+        foreach (float z in new[] { BerthHalfLength - 1f, 3f, -3f, -BerthHalfLength + 1f })
+        {
+            var at = new Vector3(faceX + 1f, deck, z0 + z);
+            Piece(go, PrimitiveType.Cylinder, _iron, at + Vector3.up * 0.3f, new Vector3(0.45f, 0.3f, 0.45f));
+            Piece(go, PrimitiveType.Cylinder, _iron, at + Vector3.up * 0.65f, new Vector3(0.65f, 0.06f, 0.65f));
+            quay.Bollards.Add(at + Vector3.up * 0.5f);
+        }
+
+        // The berth painted on the quay: a yellow edge line and a bar at each end.
+        Piece(go, PrimitiveType.Cube, _yellow, new Vector3(faceX + 0.35f, deck + 0.02f, z0), new Vector3(0.3f, 0.04f, BerthHalfLength * 2f));
+        foreach (float z in new[] { -BerthHalfLength, BerthHalfLength })
+            Piece(go, PrimitiveType.Cube, _yellow, new Vector3(faceX + 1.6f, deck + 0.02f, z0 + z), new Vector3(2.6f, 0.04f, 0.35f));
+
+        if (destination)
+        {
+            // Where to lie, on the (calm) harbour water: a yellow outline round the ship's place.
+            quay._outline = new GameObject("BerthOutline");
+            quay._outline.transform.SetParent(go.transform, false);
+            // Sized to the ship (17.3 m), whatever the quay's length.
+            float halfW = faceX - berth.x - 0.6f, y = 0.08f, shipHalf = MaxBerthHalfLength;
+            float l = shipHalf * 2f;
+            Piece(quay._outline, PrimitiveType.Cube, _yellow, new Vector3(berth.x - halfW, y, z0), new Vector3(0.35f, 0.05f, l));
+            Piece(quay._outline, PrimitiveType.Cube, _yellow, new Vector3(berth.x + halfW, y, z0), new Vector3(0.35f, 0.05f, l));
+            Piece(quay._outline, PrimitiveType.Cube, _yellow, new Vector3(berth.x, y, z0 - shipHalf), new Vector3(halfW * 2f, 0.05f, 0.35f));
+            Piece(quay._outline, PrimitiveType.Cube, _yellow, new Vector3(berth.x, y, z0 + shipHalf), new Vector3(halfW * 2f, 0.05f, 0.35f));
+        }
+
+        // The quay itself, for bumps: just inside the face, the harbour's whole length.
+        Bounds b = MeasureRenderers(harbour);
+        var bump = new GameObject("QuayEdge");
+        bump.transform.SetParent(go.transform, false);
+        bump.transform.position = new Vector3(faceX + 3f, 0f, b.center.z);
+        var box = bump.AddComponent<BoxCollider>();
+        box.isTrigger = true;
+        box.size = new Vector3(6f, 12f, Mathf.Max(b.size.z, BerthHalfLength * 2f));
+        return quay;
+    }
+
+    /// <summary>
+    /// The harbour's deck: the drawn part with the biggest footprint that stays low (not a
+    /// crane or a stack of boxes). Falls back to the whole model, 2 m high.
+    /// </summary>
+    private static Bounds Deck(GameObject harbour)
+    {
+        Bounds best = default;
+        float area = 0f;
+        foreach (var r in harbour.GetComponentsInChildren<Renderer>())
+        {
+            Bounds b = r.bounds;
+            if (b.max.y > 6f || b.max.y < 0.3f) continue;
+            float a = b.size.x * b.size.z;
+            if (a > area) { area = a; best = b; }
+        }
+        if (area > 0f) return best;
+        Bounds all = MeasureRenderers(harbour);
+        return new Bounds(new Vector3(all.center.x, 1f, all.center.z), new Vector3(all.size.x, 2f, all.size.z));
+    }
+
+    private static Bounds MeasureRenderers(GameObject go)
+    {
+        var rs = go.GetComponentsInChildren<Renderer>();
+        if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.one * 20f);
+        Bounds b = rs[0].bounds;
+        foreach (var r in rs) b.Encapsulate(r.bounds);
+        return b;
+    }
+
+    private static void Piece(GameObject parent, PrimitiveType type, Material mat, Vector3 position, Vector3 scale)
+    {
+        var p = GameObject.CreatePrimitive(type);
+        Object.Destroy(p.GetComponent<Collider>());
+        p.transform.SetParent(parent.transform, false);
+        p.transform.position = position;
+        p.transform.localScale = scale;
+        var r = p.GetComponent<Renderer>();
+        r.sharedMaterial = mat;
+    }
+
+    private static void Materials()
+    {
+        if (_yellow != null) return;
+        var lit = Shader.Find("Universal Render Pipeline/Lit");
+        Material M(string name, Color c)
+        {
+            var m = new Material(lit) { name = name };
+            m.SetColor("_BaseColor", c);
+            m.SetFloat("_Smoothness", 0.15f);
+            return m;
+        }
+        _yellow = M("Berth yellow", new Color(0.98f, 0.80f, 0.12f));
+        _black = M("Fender", new Color(0.08f, 0.08f, 0.09f));
+        _iron = M("Bollard", new Color(0.22f, 0.24f, 0.27f));
+    }
+}

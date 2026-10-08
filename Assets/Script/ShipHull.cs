@@ -67,6 +67,14 @@ public class ShipHull : MonoBehaviour
     {
         if (_isDestroyed) return;
         if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing) return;
+        // The harbour pilot has her (or she's tied up): nothing can be hit.
+        if (DockingPilot.Busy) return;
+        // The quay: coming in too fast bumps it. No damage, but she's pushed off and slowed.
+        if (other.name == "QuayEdge")
+        {
+            BumpQuay(other);
+            return;
+        }
         // A sandbank doesn't hole the hull: the ship runs aground and must back off.
         if (other.GetComponentInParent<Shoal>() != null)
         {
@@ -112,6 +120,20 @@ public class ShipHull : MonoBehaviour
         if (CrewVoice.Instance != null)
             CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout, new[] { "We're off the sandbank, Captain. Deep water again." },
                 ShipTelemetry.Capture(), "hull:refloat");
+    }
+
+    private float _nextBump;
+
+    /// <summary>Into the quay without the pilot: pushed off, slowed, and told how to dock.</summary>
+    private void BumpQuay(Collider quay)
+    {
+        if (Time.time < _nextBump) return;
+        _nextBump = Time.time + InvulnerableSeconds;
+        PushClear(quay);
+        if (CrewVoice.Instance != null)
+            CrewVoice.Instance.SpeakFrom(RadioChannel.Lookout,
+                new[] { "We bumped the quay, Captain! No damage. Come in slowly and say \"request docking\" for the pilot." },
+                ShipTelemetry.Capture(), "hull:quay");
     }
 
     /// <summary>

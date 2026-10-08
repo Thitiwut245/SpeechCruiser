@@ -4,8 +4,9 @@ using System.Collections.Generic;
 /// "Try saying" for beginners: two or three phrases that fit what is happening right now,
 /// shown as chips beside the radio. A rock ahead suggests the turn away from it and slowing
 /// down; a stopped ship suggests getting going; fog suggests asking the lookout; the dock in
-/// sight suggests slowing down. In chapter 3 the orders come with "please", as that chapter
-/// teaches. Pure logic over a snapshot, so it can be tested.
+/// sight suggests slowing down; near the berth, "request docking", and alongside, "make
+/// fast". In chapter 3 the orders come with "please", as that chapter teaches. Pure logic
+/// over a snapshot, so it can be tested.
 /// </summary>
 public static class PhraseHints
 {
@@ -19,6 +20,10 @@ public static class PhraseHints
         public int Gear;
         public int SpeedKn;
         public bool DockClose;
+        /// <summary>Near enough the destination berth to ask for the pilot.</summary>
+        public bool DockReady;
+        /// <summary>Alongside the berth, waiting to tie up.</summary>
+        public bool Alongside;
         public bool Fog;
         /// <summary>A rescue is waiting and the ship is near it.</summary>
         public bool RescueNear;
@@ -32,7 +37,16 @@ public static class PhraseHints
     {
         var list = new List<string>(4);
 
-        if (s.RescueNear)
+        if (s.Alongside)
+        {
+            Add(list, s, "make fast", true);
+        }
+        else if (s.DockReady)
+        {
+            if (s.SpeedKn > 3) Add(list, s, "slow down", true);
+            Add(list, s, "request docking", true);
+        }
+        else if (s.RescueNear)
         {
             Add(list, s, "stop", true);
             Add(list, s, "slow ahead", true);

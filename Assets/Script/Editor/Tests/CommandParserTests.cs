@@ -69,6 +69,15 @@ public class CommandParserTests
     [TestCase("How fast are we going?", ShipAction.QuerySpeed)]
     [TestCase("Can you turn to port?", ShipAction.TurnPort)]
     [TestCase("Finn, full ahead", ShipAction.EngineFull)]
+    [TestCase("Request docking", ShipAction.RequestDocking)]
+    [TestCase("Requesting docking, please", ShipAction.RequestDocking)]
+    [TestCase("Permission to dock", ShipAction.RequestDocking)]
+    [TestCase("Bring her alongside", ShipAction.RequestDocking)]
+    [TestCase("Make fast", ShipAction.MakeFast)]
+    [TestCase("Make her fast!", ShipAction.MakeFast)]
+    [TestCase("Tie up the ship", ShipAction.MakeFast)]
+    [TestCase("All fast", ShipAction.MakeFast)]
+    [TestCase("Where is the dock?", ShipAction.QueryDestination)]
     public void StandardOrders(string speech, ShipAction expected)
     {
         AssertOrders(speech, expected);

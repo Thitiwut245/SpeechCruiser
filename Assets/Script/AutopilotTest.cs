@@ -191,10 +191,11 @@ public class AutopilotTest : MonoBehaviour
             _currentWaypointIndex++;
             if (_currentWaypointIndex >= _path.Count)
             {
-                Debug.Log("[AUTOPILOT] Reached final waypoint.");
+                Debug.Log("[AUTOPILOT] Reached final waypoint: requesting docking.");
                 nav.SetGear(ShipEngine.TelegraphGear.Stop);
                 nav.RudderMidships();
                 _isActive = false; // Turn off
+                if (DockingPilot.Instance != null) StartCoroutine(DockAndMakeFast());
                 return;
             }
             targetPos = _path[_currentWaypointIndex];
@@ -220,5 +221,16 @@ public class AutopilotTest : MonoBehaviour
         {
             nav.SetGear(ShipEngine.TelegraphGear.Half);
         }
+    }
+
+    /// <summary>At the end of the route: wait to slow, ask for the berth, then make fast once alongside.</summary>
+    private System.Collections.IEnumerator DockAndMakeFast()
+    {
+        var nav = ShipNavigator.Instance;
+        while (nav != null && Mathf.Abs(nav.Engine.Speed) > DockingPilot.MaxRequestSpeed) yield return null;
+        if (DockingPilot.Instance == null) yield break;
+        DockingPilot.Instance.RequestDocking();
+        while (DockingPilot.Instance != null && DockingPilot.Instance.Current == DockingPilot.Stage.Piloting) yield return null;
+        if (DockingPilot.Instance != null) DockingPilot.Instance.MakeFast();
     }
 }

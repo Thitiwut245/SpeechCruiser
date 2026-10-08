@@ -38,6 +38,10 @@ public enum ShipAction
 
     // --- Undo: restores the gear and rudder from before the last order ---
     Belay,
+
+    // --- Harbour: docking at the destination berth (DockingPilot) ---
+    RequestDocking,
+    MakeFast,
 }
 
 /// <summary>
@@ -52,6 +56,7 @@ public enum ActionCategory
     Engine,
     Helm,
     Query,
+    Harbour,
 }
 
 public static class ShipActionExtensions
@@ -61,6 +66,7 @@ public static class ShipActionExtensions
         if (a == ShipAction.None) return ActionCategory.Nothing;
         if (a.IsQuery()) return ActionCategory.Query;
         if (a.IsHelm()) return ActionCategory.Helm;
+        if (a.IsHarbour()) return ActionCategory.Harbour;
         return ActionCategory.Engine;
     }
 
@@ -128,6 +134,12 @@ public static class ShipActionExtensions
     public static bool IsStarboardTurn(this ShipAction a)
     {
         return a == ShipAction.TurnStarboard || a == ShipAction.HardStarboard;
+    }
+
+    /// <summary>True for the docking orders, which the harbour pilot carries out and answers himself.</summary>
+    public static bool IsHarbour(this ShipAction a)
+    {
+        return a == ShipAction.RequestDocking || a == ShipAction.MakeFast;
     }
 
     /// <summary>True if this is a helm order (rudder), as opposed to an engine order.</summary>

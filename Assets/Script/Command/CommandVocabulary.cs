@@ -204,6 +204,27 @@ public static class CommandVocabulary
             "distance to harbour", "where we go", "where go", "finish", "finish line",
             "goal", "where is end", "the end", "where is finish", "where is goal"),
 
+        // ---------------- Harbour: docking at the berth ----------------
+        // Never a bare "dock": "dock" asks where the dock is. Fillers ("the", "ship", "please",
+        // "can", "we") are stripped first, so every phrase here survives that.
+        new Entry(ShipAction.RequestDocking,
+            "request docking", "requesting docking", "docking", "request to dock", "requesting to dock",
+            "permission to dock", "request permission to dock", "request berth", "request a berth", "berth",
+            "come alongside", "go alongside", "bring her alongside", "alongside", "take her in", "take us in",
+            "dock her", "start docking", "begin docking", "ready to dock", "ready for docking",
+            "request pilot", "pilot", "call pilot", "call harbour", "harbour control",
+            // Whisper's spellings
+            "doc king", "talking request", "request talking", "docking request"),
+
+        new Entry(ShipAction.MakeFast,
+            "make fast", "make her fast", "make it fast", "all fast", "make fast fore and aft",
+            "tie up", "tie her up", "tie it up", "tie", "tie off",
+            "lines out", "lines ashore", "send lines", "send the lines", "throw lines", "throw the lines",
+            "put out lines", "put out the lines", "mooring lines", "moor", "moor her", "moor up",
+            "secure", "secure her", "fasten", "make secure",
+            // Whisper's spellings
+            "make fest", "make vast", "tire up", "tide up"),
+
         new Entry(ShipAction.QueryFuel,
             "fuel status", "how much fuel", "fuel", "fuel level", "how is fuel",
             "fuel remaining", "bunker status", "how much fuel left"),

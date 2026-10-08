@@ -16,6 +16,31 @@ public class PhraseHintsTests
     }
 
     [Test]
+    public void NearTheBerthSuggestsRequestingDocking()
+    {
+        var s = Cruising();
+        s.DockClose = true;
+        s.DockReady = true;
+        s.SpeedKn = 2;
+        Assert.AreEqual("request docking", PhraseHints.For(s)[0]);
+
+        s.SpeedKn = 7; // too fast for the pilot: slow down first
+        var hints = PhraseHints.For(s);
+        Assert.AreEqual("slow down", hints[0]);
+        CollectionAssert.Contains(hints, "request docking");
+    }
+
+    [Test]
+    public void AlongsideSuggestsMakingFast()
+    {
+        var s = Cruising();
+        s.Gear = 0;
+        s.SpeedKn = 0;
+        s.Alongside = true;
+        Assert.AreEqual("make fast", PhraseHints.For(s)[0]);
+    }
+
+    [Test]
     public void AStoppedShipSuggestsGettingGoing()
     {
         var s = Cruising();

@@ -690,6 +690,9 @@ public class ShipHUD : MonoBehaviour
             Gear = (int)nav.Engine.Gear,
             SpeedKn = Mathf.RoundToInt(Mathf.Abs(nav.currentSpeed)),
             DockClose = t.DestinationKnown && t.DestinationDistanceM < 140,
+            DockReady = DockingPilot.Instance != null && DockingPilot.Instance.Current == DockingPilot.Stage.AtSea &&
+                        DockingPilot.Instance.DistanceToBerth <= DockingPilot.RequestRange,
+            Alongside = DockingPilot.Instance != null && DockingPilot.Instance.Current == DockingPilot.Stage.Alongside,
             Fog = mission != null && (mission.Weather == Weather.Fog || mission.Weather == Weather.NightFog),
             RescueNear = _rescue != null && !_rescue.Boarded && (Flat(_rescue.transform.position - nav.transform.position)).magnitude < 80f,
             Polite = mission != null && mission.Chapter == 3,

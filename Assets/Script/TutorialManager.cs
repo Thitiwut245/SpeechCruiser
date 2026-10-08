@@ -282,7 +282,7 @@ public class TutorialManager : MonoBehaviour
             new Step
             {
                 Title = "The chart",
-                Text = "The chart shows the whole route. Orange squares are danger. The dock is the gold line at the top.",
+                Text = "The chart shows the whole route. Orange squares are danger. The harbour is at the top: dock at the yellow berth.",
                 Try = "Press " + (_map != null ? _map.ToggleKeyName : "M") + " to open the chart",
                 Done = () => _map != null && _map.IsOpen,
             },

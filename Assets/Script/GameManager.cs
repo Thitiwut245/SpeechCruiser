@@ -30,7 +30,10 @@ public class GameManager : Singleton<GameManager>
     public float ParSeconds { get; private set; }
 
     /// <summary>Par for the level currently built: the shipyard shows it before sailing.</summary>
-    public float ParFor(LevelGenerator level) => level != null ? Mathf.Round(level.SmoothedSolutionLength / Mathf.Max(ParSpeed, 0.1f)) : 0f;
+    [Tooltip("Seconds added to the par time for docking: slowing down, the pilot, and making fast.")]
+    [SerializeField] private float DockingAllowance = 40f;
+
+    public float ParFor(LevelGenerator level) => level != null ? Mathf.Round(level.SmoothedSolutionLength / Mathf.Max(ParSpeed, 0.1f) + DockingAllowance) : 0f;
 
     public float OnTimeShare => OnTimeBonusShare;
 
