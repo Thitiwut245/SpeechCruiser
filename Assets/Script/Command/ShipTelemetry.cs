@@ -44,6 +44,15 @@ public struct ShipTelemetry
     /// <summary>The same in plain words: "dead ahead", "ahead on the left"...</summary>
     public string DestinationWhere;
 
+    /// <summary>The sky: clear, fog, night fog or a storm (story missions set it).</summary>
+    public Weather Weather;
+    /// <summary>The same in words: "clear skies", "thick fog"...</summary>
+    public string WeatherWords;
+    /// <summary>How the sea is where the ship is: "calm", "gentle", "moderate" or "rough".</summary>
+    public string SeaState;
+    /// <summary>Containers on deck.</summary>
+    public int Containers;
+
     private static int RoundTo(float v, int step)
     {
         return Mathf.RoundToInt(v / step) * step;
@@ -67,7 +76,11 @@ public struct ShipTelemetry
             DestinationKnown = false,
             DestinationRelative = "",
             DestinationWhere = "",
+            Weather = AudioService.Instance != null ? AudioService.Instance.SeaWeather : Weather.Clear,
+            SeaState = "calm",
+            Containers = GameSession.Instance != null ? GameSession.Instance.CargoAboard : 0,
         };
+        t.WeatherWords = WeatherWordsFor(t.Weather);
 
         var nav = ShipNavigator.Instance;
         if (nav != null)
@@ -78,6 +91,8 @@ public struct ShipTelemetry
             t.Compass = CompassPoint(nav.transform.eulerAngles.y);
             t.CompassWords = CompassWordsFor(t.Compass);
             t.FuelPct = RoundTo(nav.fuel, 5);
+            Vector3 p = nav.transform.position;
+            t.SeaState = SeaStateFor(SeaWaves.Roughness * SeaWaves.Exposure(p.x, p.z));
         }
 
         // The hazard on course matters most; otherwise report the closest one.
@@ -132,7 +147,30 @@ public struct ShipTelemetry
                ", speed " + SpeedKn + " kn" +
                ", heading " + Compass +
                ", fuel " + FuelPct + "%" +
-               ", radar " + radar + dock + "]";
+               ", radar " + radar + dock +
+               ", sea " + SeaState +
+               ", weather " + WeatherWords +
+               ", cargo " + Containers + " containers]";
+    }
+
+    public static string WeatherWordsFor(Weather w)
+    {
+        switch (w)
+        {
+            case Weather.Fog: return "thick fog";
+            case Weather.NightFog: return "fog, and night";
+            case Weather.Storm: return "a storm";
+            default: return "clear skies";
+        }
+    }
+
+    /// <summary>Words for the sea's roughness where the ship is (1 is a fresh breeze).</summary>
+    public static string SeaStateFor(float roughness)
+    {
+        if (roughness < 0.35f) return "calm";
+        if (roughness < 0.8f) return "gentle";
+        if (roughness < 1.4f) return "moderate";
+        return "rough";
     }
 
     private static void SetHazardDirection(ref ShipTelemetry t, float relative)

@@ -115,14 +115,14 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
         CrewChat.Unregister(this); 
     }
 
-    public void Converse(RadioChannel crew, string playerSpeech)
+    public void Converse(RadioChannel crew, string playerSpeech, bool conversational = true)
     {
         if (string.IsNullOrWhiteSpace(playerSpeech)) return;
 
         if (!Ready)
         {
             Debug.LogWarning("[RADIO]: OpenAI API Key is missing. Falling back to simple phrases.");
-            if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(crew);
+            Fallback(crew, playerSpeech, conversational);
             if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
             return;
         }
@@ -137,7 +137,14 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
             return;
         }
 
-        StartCoroutine(ConverseCoroutine(crew, playerSpeech));
+        StartCoroutine(ConverseCoroutine(crew, playerSpeech, conversational));
+    }
+
+    /// <summary>No model reply: the crew still answers small talk on their own, or asks again.</summary>
+    private static void Fallback(RadioChannel crew, string speech, bool conversational)
+    {
+        if (SmallTalk.Answer(crew, speech, conversational)) return;
+        if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(crew);
     }
     
     public void AskCrew(string modelName, string crewName, string playerSpeech)
@@ -149,7 +156,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
         Converse(isLookout ? RadioChannel.Lookout : RadioChannel.ChiefEngineer, playerSpeech);
     }
 
-    private IEnumerator ConverseCoroutine(RadioChannel crew, string speech)
+    private IEnumerator ConverseCoroutine(RadioChannel crew, string speech, bool conversational)
     {
         _busy = true;
         int epoch = RadioEpoch.Current;
@@ -234,7 +241,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
 
                 if (string.IsNullOrEmpty(reply))
                 {
-                    if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(crew);
+                    Fallback(crew, speech, conversational);
                 }
                 else
                 {
@@ -251,7 +258,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
             {
                 Debug.LogWarning("[RADIO]: lost contact with " + crewName + " (" + request.error + ")");
                 Debug.LogWarning("[RADIO]: Response: " + request.downloadHandler.text);
-                if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(crew);
+                Fallback(crew, speech, conversational);
             }
         }
 

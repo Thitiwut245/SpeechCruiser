@@ -15,7 +15,11 @@ public interface ICrewChat
     /// <summary>True while a reply is being generated.</summary>
     bool IsBusy { get; }
 
-    void Converse(RadioChannel crew, string playerSpeech);
+    /// <summary>
+    /// Answer <paramref name="playerSpeech"/>. <paramref name="conversational"/>: said on the
+    /// talk key, so a plain remark may get a chatty reply if the backend fails (SmallTalk).
+    /// </summary>
+    void Converse(RadioChannel crew, string playerSpeech, bool conversational = true);
 
     void ResetMemory();
 }

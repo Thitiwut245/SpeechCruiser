@@ -224,6 +224,26 @@ public class CommandRouter : MonoBehaviour
             return;
         }
 
+        // Small talk ("hello", "how are you?", "what's the weather?", "where are you from?"):
+        // the conversation model answers on the talk key when it's online; otherwise the crew
+        // answer straight away themselves. It beats the parser's guess at a question's topic
+        // only for personal questions ("where are you from?" isn't asking where the dock is).
+        if (IsSmallTalk(parsed, transcript))
+        {
+            if (isConversation && ChatReady)
+            {
+                SendToConversation(target, transcript, true);
+                return;
+            }
+            if (SmallTalk.Answer(target, transcript, isConversation))
+            {
+                _misses = 0;
+                OnActionExecuted?.Invoke(ShipAction.None);
+                EndInstantTurn();
+                return;
+            }
+        }
+
         // Orders are orders on either key; the talk key only changes where non-orders go.
         if (parsed.HasConfidentOrder || (parsed.HasConfidentCommand && (!isConversation || !ChatReady)))
         {
@@ -234,7 +254,7 @@ public class CommandRouter : MonoBehaviour
 
         if (isConversation && ChatReady && !parsed.NoChange && !parsed.WasFillerOnly)
         {
-            SendToConversation(target, transcript);
+            SendToConversation(target, transcript, true);
             return;
         }
 
@@ -261,21 +281,22 @@ public class CommandRouter : MonoBehaviour
 
         if (isConversation)
         {
-            SendToConversation(target, transcript);
+            SendToConversation(target, transcript, true);
             return;
         }
 
-        // A question nobody can answer without the chat model: say what can be asked, not "say again".
+        // A question nobody can answer without the chat model: an honest "don't know" that
+        // says what can be asked, not "say again".
         if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && !ChatReady)
         {
-            Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
+            if (!SmallTalk.Answer(target, transcript, false)) Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
             EndInstantTurn();
             return;
         }
 
         if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && UseConversationFallback)
         {
-            SendToConversation(target, transcript);
+            SendToConversation(target, transcript, false);
             return;
         }
 
@@ -306,7 +327,7 @@ public class CommandRouter : MonoBehaviour
 
                 if (UseConversationFallback)
                 {
-                    SendToConversation(capturedTarget, captured);
+                    SendToConversation(capturedTarget, captured, false);
                 }
                 else
                 {
@@ -319,13 +340,23 @@ public class CommandRouter : MonoBehaviour
 
         if (UseConversationFallback)
         {
-            SendToConversation(target, transcript);
+            SendToConversation(target, transcript, false);
         }
         else
         {
             SayAgainOrHint(target);
             EndInstantTurn();
         }
+    }
+
+    /// <summary>True if no order was heard and the words are everyday talk. Public for the tests.</summary>
+    public static bool IsSmallTalk(CommandParser.Result parsed, string transcript)
+    {
+        var topic = SmallTalk.Classify(transcript);
+        if (topic == SmallTalk.Topic.None) return false;
+        if (parsed.Matches.Count == 0) return true;
+        bool topicGuessOnly = parsed.Matches.Count == 1 && parsed.Matches[0].FirstToken < 0;
+        return topicGuessOnly && SmallTalk.IsPersonal(topic);
     }
 
     /// <summary>"Say again" — but after repeated misses, suggest a simple order and the radio card.</summary>
@@ -568,18 +599,20 @@ public class CommandRouter : MonoBehaviour
         if (line == null) CrewVoice.Instance.SayAgain(speaker);
     }
 
-    private void SendToConversation(RadioChannel target, string transcript)
+    private void SendToConversation(RadioChannel target, string transcript, bool conversational)
     {
         var chat = CrewChat.Active;
 
         if (chat == null || !chat.Ready)
         {
-            SayAgainOrHint(target);
+            // No model: the crew still answer small talk themselves.
+            if (SmallTalk.Answer(target, transcript, conversational)) _misses = 0;
+            else SayAgainOrHint(target);
             EndInstantTurn();
             return;
         }
 
-        chat.Converse(target, transcript);
+        chat.Converse(target, transcript, conversational);
     }
 
     private void EndInstantTurn()
