@@ -311,7 +311,7 @@ public class ShipHUD : MonoBehaviour
         var pips = new VisualElement();
         pips.style.flexDirection = FlexDirection.Row;
         pips.style.marginTop = 6f;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 5; i++) // up to two more with hull plating; the unused ones hide
         {
             var block = new VisualElement();
             block.style.width = 14f;
@@ -598,18 +598,20 @@ public class ShipHUD : MonoBehaviour
     }
 
     private ShipHull _hull;
-    private int _shownHealth = -1;
+    private int _shownHealth = -1, _shownMax = -1;
 
     private void UpdateHull()
     {
         if (_hull == null && ShipNavigator.Instance != null) _hull = ShipNavigator.Instance.GetComponentInChildren<ShipHull>();
         ShipHull hull = _hull;
-        if (hull != null && _healthBlocks.Count == 3 && hull.CurrentHealth != _shownHealth)
+        if (hull != null && _healthBlocks.Count == 5 && (hull.CurrentHealth != _shownHealth || hull.MaxHealthAmount != _shownMax))
         {
             int health = hull.CurrentHealth;
             _shownHealth = health;
-            for (int i = 0; i < 3; i++)
+            _shownMax = hull.MaxHealthAmount;
+            for (int i = 0; i < 5; i++)
             {
+                _healthBlocks[i].style.display = i < _shownMax ? DisplayStyle.Flex : DisplayStyle.None;
                 bool full = i < health;
                 Color c = health == 1 ? UiTheme.Coral : UiTheme.White;
                 _healthBlocks[i].style.backgroundColor = full ? c : new Color(0f, 0f, 0f, 0f);

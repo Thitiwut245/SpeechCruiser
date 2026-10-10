@@ -122,7 +122,7 @@ public class EmergencyCall : MonoBehaviour
         _running = true;
         _started = Time.unscaledTime;
         _clock = 0f;
-        _window = WindowFor(_count);
+        _window = WindowFor(_count) + (GameSession.Instance != null && GameSession.Instance.CrewLevel >= 3 ? 1.5f : 0f); // a seasoned crew buys time
         _count++;
         _tries = 0;
         _hazard = kind;

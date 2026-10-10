@@ -79,10 +79,67 @@ public class GameSession : Singleton<GameSession>
     public const int StartingCredits = 500;
     [SerializeField] private int _engineLevel = 1;
     [SerializeField] private int _helmLevel = 1;
+    private int _lookoutLevel = 1, _platingLevel = 1, _crewLevel = 1;
 
     public int Credits => _credits;
     public int EngineLevel => _engineLevel;
     public int HelmLevel => _helmLevel;
+
+    /// <summary>The level (1 to 3) of an upgrade.</summary>
+    public int Level(Upgrade u)
+    {
+        switch (u)
+        {
+            case Upgrade.Engine: return _engineLevel;
+            case Upgrade.Rudder: return _helmLevel;
+            case Upgrade.Lookout: return _lookoutLevel;
+            case Upgrade.Hull: return _platingLevel;
+            default: return _crewLevel;
+        }
+    }
+
+    /// <summary>Lookout gear: the radar sees 25% further per level.</summary>
+    public float RadarRangeFactor => 1f + 0.25f * (_lookoutLevel - 1);
+
+    /// <summary>Hull plating: one more hit per level.</summary>
+    public int ExtraHull => _platingLevel - 1;
+
+    /// <summary>Crew experience: 2 = "did you mean...?" hints; 3 = also earlier warnings and longer emergency calls.</summary>
+    public int CrewLevel => _crewLevel;
+
+    /// <summary>
+    /// Why the next level of <paramref name="u"/> can't be fitted yet, or null if it can: it needs
+    /// its radio certificate (earned at sea, Progression) and the credits.
+    /// </summary>
+    public string WhyNot(Upgrade u)
+    {
+        int level = Level(u);
+        if (level >= MaxUpgradeLevel) return "max";
+        var cert = Progression.For(u, level + 1);
+        if (!Progression.Earned(cert)) return "certificate";
+        if (_credits < cert.Credits) return "credits";
+        return null;
+    }
+
+    /// <summary>Fits the next level of <paramref name="u"/> if its certificate is earned and it can be paid for.</summary>
+    public bool TryBuy(Upgrade u)
+    {
+        if (WhyNot(u) != null) return false;
+        var cert = Progression.For(u, Level(u) + 1);
+        switch (u)
+        {
+            case Upgrade.Engine: _engineLevel++; break;
+            case Upgrade.Rudder: _helmLevel++; break;
+            case Upgrade.Lookout: _lookoutLevel++; break;
+            case Upgrade.Hull: _platingLevel++; break;
+            default: _crewLevel++; break;
+        }
+        _credits -= cert.Credits;
+        SaveCareer();
+        OnProgressUpdated?.Invoke();
+        Debug.Log($"[GAME SESSION]: fitted {u} Mk {Level(u)}. Credits remaining: {_credits}");
+        return true;
+    }
 
     /// <summary>The story mission being sailed, or else the job picked in the shipyard.</summary>
     public JobSpec CurrentJob => StoryProgress.ActiveMission != null ? StoryProgress.ActiveMission.Job : _careerJob;
@@ -119,8 +176,8 @@ public class GameSession : Singleton<GameSession>
     public const int EngineBaseCost = 250;
     public const int HelmBaseCost = 250;
 
-    public int EngineUpgradeCost => EngineBaseCost * _engineLevel;
-    public int HelmUpgradeCost => HelmBaseCost * _helmLevel;
+    public int EngineUpgradeCost => _engineLevel < MaxUpgradeLevel ? Progression.For(Upgrade.Engine, _engineLevel + 1).Credits : 0;
+    public int HelmUpgradeCost => _helmLevel < MaxUpgradeLevel ? Progression.For(Upgrade.Rudder, _helmLevel + 1).Credits : 0;
 
     /// <summary>Both upgrades stop at Mk 3: past that the ship outruns the channels.</summary>
     public const int MaxUpgradeLevel = 3;
@@ -159,7 +216,7 @@ public class GameSession : Singleton<GameSession>
     // ------------------------------------------------------------ saved career
 
     private const string CareerPref = "career.";
-    private static readonly string[] CareerKeys = { "credits", "engine", "helm", "hull", "delivered", "voyages", "job", "atsea" };
+    private static readonly string[] CareerKeys = { "credits", "engine", "helm", "hull", "delivered", "voyages", "job", "atsea", "lookout", "plating", "crew" };
 
     /// <summary>A career has been played before (the title screen offers to start a new one). Opening the shipyard isn't enough.</summary>
     public bool HasSavedCareer => PlayerPrefs.GetInt(CareerPref + "voyages", 0) > 0;
@@ -217,6 +274,10 @@ public class GameSession : Singleton<GameSession>
         _credits = PlayerPrefs.GetInt(CareerPref + "credits", _credits);
         _engineLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "engine", _engineLevel), 1, MaxUpgradeLevel);
         _helmLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "helm", _helmLevel), 1, MaxUpgradeLevel);
+        _lookoutLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "lookout", 1), 1, MaxUpgradeLevel);
+        _platingLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "plating", 1), 1, MaxUpgradeLevel);
+        _crewLevel = Mathf.Clamp(PlayerPrefs.GetInt(CareerPref + "crew", 1), 1, MaxUpgradeLevel);
+        Progression.Begin(_engineLevel, _helmLevel, PlayerPrefs.GetInt("tutorial_done", 0) == 1);
         _hullHealth = PlayerPrefs.GetInt(CareerPref + "hull", -1);
         MissionsCompleted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "delivered", 0));
         VoyagesStarted = Mathf.Max(0, PlayerPrefs.GetInt(CareerPref + "voyages", 0));
@@ -233,6 +294,9 @@ public class GameSession : Singleton<GameSession>
         PlayerPrefs.SetInt(CareerPref + "credits", _credits);
         PlayerPrefs.SetInt(CareerPref + "engine", _engineLevel);
         PlayerPrefs.SetInt(CareerPref + "helm", _helmLevel);
+        PlayerPrefs.SetInt(CareerPref + "lookout", _lookoutLevel);
+        PlayerPrefs.SetInt(CareerPref + "plating", _platingLevel);
+        PlayerPrefs.SetInt(CareerPref + "crew", _crewLevel);
         PlayerPrefs.SetInt(CareerPref + "hull", _hullHealth);
         PlayerPrefs.SetInt(CareerPref + "delivered", MissionsCompleted);
         PlayerPrefs.SetInt(CareerPref + "voyages", VoyagesStarted);
@@ -245,6 +309,7 @@ public class GameSession : Singleton<GameSession>
     {
         foreach (var key in CareerKeys) PlayerPrefs.DeleteKey(CareerPref + key);
         StoryProgress.Reset();
+        Progression.Reset(); // certificates and rank start again too
         // A new career is a new learner: the drill comes back too.
         PlayerPrefs.DeleteKey("tutorial_done");
         PlayerPrefs.DeleteKey("tutorial_step");
@@ -252,6 +317,7 @@ public class GameSession : Singleton<GameSession>
         _credits = StartingCredits;
         _engineLevel = 1;
         _helmLevel = 1;
+        _lookoutLevel = _platingLevel = _crewLevel = 1;
         _hullHealth = -1;
         MissionsCompleted = 0;
         VoyagesStarted = 0;
@@ -344,19 +410,11 @@ public class GameSession : Singleton<GameSession>
         return charged;
     }
 
+    /// <summary>The old way in ("Engine" or "Helm"); the cost now comes from the certificate.</summary>
     public bool TryBuyUpgrade(string upgradeType, int cost)
     {
-        if (_credits < cost) return false;
-        if ((upgradeType == "Engine" ? _engineLevel : _helmLevel) >= MaxUpgradeLevel) return false;
-
-        if (upgradeType == "Engine") _engineLevel++;
-        else if (upgradeType == "Helm") _helmLevel++;
-        else return false;
-
-        _credits -= cost;
-        SaveCareer();
-        OnProgressUpdated?.Invoke();
-        Debug.Log($"[GAME SESSION]: Upgraded {upgradeType}. Credits remaining: {_credits}");
-        return true;
+        if (upgradeType == "Engine") return TryBuy(Upgrade.Engine);
+        if (upgradeType == "Helm") return TryBuy(Upgrade.Rudder);
+        return false;
     }
 }

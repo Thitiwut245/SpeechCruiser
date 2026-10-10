@@ -145,7 +145,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
     {
         if (SmallTalk.Answer(crew, speech, conversational))
         {
-            LanguageLog.Answered();
+            LanguageLog.Talked();
             return;
         }
         LanguageLog.Unclear();
@@ -251,7 +251,7 @@ public class OpenAIClient : MonoBehaviour, ICrewChat
                 else
                 {
                     OnSubtitleUpdated?.Invoke(reply, crewName);
-                    LanguageLog.Answered();
+                    LanguageLog.Talked();
                     ResearchLog.Replied(crewName, reply);
 
                     RecordExchange(crew, speech, reply);

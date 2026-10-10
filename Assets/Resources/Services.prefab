@@ -58,7 +58,7 @@ MonoBehaviour:
   modelPath: Whisper/ggml-base.en.bin
   isModelPathInStreamingAssets: 1
   initOnAwake: 1
-  useGpu: 0
+  useGpu: 1
   flashAttention: 0
   language: en
   translateToEnglish: 0

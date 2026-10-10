@@ -1,0 +1,30 @@
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Recording : hold T (order) or Y (talk)
+    Recording --> AudioCheck : release the key, or press again in toggle mode
+    AudioCheck --> Idle : no audio, too short, too quiet
+    state "Whisper (whisper.cpp, on-device)" as Whisper
+    AudioCheck --> Whisper : audio OK
+    Whisper --> Idle : noise, nothing intelligible
+    state "CommandParser" as Parsing
+    Whisper --> Parsing : transcript
+    state "Local reply" as LocalReply
+    Parsing --> LocalReply : radio check, word help, small talk
+    LocalReply --> Idle
+    Parsing --> Execution : confident order
+    Parsing --> Conversation : talk key or question
+    Parsing --> IntentClassifier : no confident match
+    IntentClassifier --> Execution : action found
+    IntentClassifier --> Conversation : not found, conversation fallback on
+    IntentClassifier --> SayAgain : not found, fallback off
+    Execution --> Redirect : order belongs to the other crew member
+    Redirect --> Idle
+    Execution --> ReadBack : right crew member
+    ReadBack --> Idle : ship carries out the order
+    SayAgain --> Idle : Say again, Bridge. Over. (hint after 2 misses)
+    state "Conversation (GPT-4o mini)" as Conversation
+    Conversation --> Idle : reply as subtitle and voice
+    note right of ReadBack
+        Non-standard wording is read back
+        as the standard SMCP phrase
+    end note

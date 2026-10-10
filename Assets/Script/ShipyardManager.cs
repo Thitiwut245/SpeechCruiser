@@ -47,10 +47,7 @@ public class ShipyardManager : MonoBehaviour
     private Button _jobEasyBtn;
     private Button _jobNormalBtn;
     private Button _jobHardBtn;
-    private Label _engineLevelText;
-    private Label _helmLevelText;
-    private Button _upgradeEngineBtn;
-    private Button _upgradeHelmBtn;
+    private UpgradesPage _upgrades;
     private Button _startMissionBtn;
     private Label _loadingCaption;
 
@@ -106,14 +103,11 @@ public class ShipyardManager : MonoBehaviour
         _jobEasyBtn = root.Q<Button>("job-btn-easy");
         _jobNormalBtn = root.Q<Button>("job-btn-normal");
         _jobHardBtn = root.Q<Button>("job-btn-hard");
-        _engineLevelText = root.Q<Label>("engine-level-text");
-        _helmLevelText = root.Q<Label>("helm-level-text");
-        _upgradeEngineBtn = root.Q<Button>("upgrade-engine-btn");
-        _upgradeHelmBtn = root.Q<Button>("upgrade-helm-btn");
         _startMissionBtn = root.Q<Button>("start-mission-btn");
         _loadingCaption = root.Q<Label>("loading-caption");
         _jobsPage = root.Q<VisualElement>("page-jobs");
         _upgradesPage = root.Q<VisualElement>("page-upgrades");
+        _upgrades = new UpgradesPage(_upgradesPage, message => ShowToast(message));
         _upgradesLink = root.Q<Button>("upgrades-link");
         _upgradesLink.clicked += () => ShowUpgrades(!_upgradesPage.ClassListContains("shown"));
         var slot = root.Q<VisualElement>("lever-slot");
@@ -126,8 +120,6 @@ public class ShipyardManager : MonoBehaviour
         _jobEasyBtn.clicked += () => SelectJob(JobSpec.Easy);
         _jobNormalBtn.clicked += () => SelectJob(JobSpec.Normal);
         _jobHardBtn.clicked += () => SelectJob(JobSpec.Hard);
-        _upgradeEngineBtn.clicked += OnUpgradeEngine;
-        _upgradeHelmBtn.clicked += OnUpgradeHelm;
         _startMissionBtn.clicked += OnStartMission;
 
         _vcam = FindAnyObjectByType<CinemachineCamera>();
@@ -411,10 +403,7 @@ public class ShipyardManager : MonoBehaviour
         SetJobCard(_jobNormalBtn, "route-normal", JobSpec.Normal, "Rocks and mines");
         SetJobCard(_jobHardBtn, "route-hard", JobSpec.Hard, "A long, crowded route");
 
-        _engineLevelText.text = "Faster  ·  level " + session.EngineLevel + " of " + GameSession.MaxUpgradeLevel;
-        _helmLevelText.text = "Sharper turns  ·  level " + session.HelmLevel + " of " + GameSession.MaxUpgradeLevel;
-        SetBuyButton(_upgradeEngineBtn, session.EngineUpgradeCost, session.Credits, session.EngineLevel >= GameSession.MaxUpgradeLevel);
-        SetBuyButton(_upgradeHelmBtn, session.HelmUpgradeCost, session.Credits, session.HelmLevel >= GameSession.MaxUpgradeLevel);
+        _upgrades.Refresh();
 
         RefreshStartButton();
     }
@@ -435,19 +424,6 @@ public class ShipyardManager : MonoBehaviour
         label.text = open ? blurb : "Opens after " + more + (more == 1 ? " more delivery" : " more deliveries");
     }
 
-    private static void SetBuyButton(Button button, int cost, int credits, bool maxed)
-    {
-        if (maxed)
-        {
-            button.text = "MAX";
-            button.SetEnabled(false);
-            return;
-        }
-        bool affordable = credits >= cost;
-        button.text = affordable ? "BUY  $" + cost : "$" + cost;
-        button.SetEnabled(affordable);
-    }
-
     private void RefreshStartButton()
     {
         if (_startMissionBtn != null) _startMissionBtn.SetEnabled(!_loading);
@@ -457,20 +433,6 @@ public class ShipyardManager : MonoBehaviour
     {
         _toastText.text = message;
         _toastUntil = Time.unscaledTime + seconds;
-    }
-
-    private void OnUpgradeEngine()
-    {
-        var session = GameSession.Instance;
-        if (session.TryBuyUpgrade("Engine", session.EngineUpgradeCost))
-            ShowToast("Engine upgraded to Mk " + session.EngineLevel);
-    }
-
-    private void OnUpgradeHelm()
-    {
-        var session = GameSession.Instance;
-        if (session.TryBuyUpgrade("Helm", session.HelmUpgradeCost))
-            ShowToast("Rudder upgraded to Mk " + session.HelmLevel);
     }
 
     private void OnStartMission()

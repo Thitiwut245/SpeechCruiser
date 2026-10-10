@@ -217,6 +217,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIManager
   Document: {fileID: 500908261}
+  SubtitleHoldSeconds: 4
+  ReadSecondsPerChar: 0.05
+  SubtitleFadeSeconds: 1
 --- !u!114 &500908261
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -356,13 +359,13 @@ Light:
   serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 0.97295064, b: 0.8283019, a: 1}
-  m_Intensity: 1.6
+  m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
-    m_Type: 1
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -860,6 +863,8 @@ MonoBehaviour:
   FirstVoyageDensityScale: 0.6
   FirstVoyageMinPathWeave: 1.05
   WeaveRelaxPerAttempt: 0.03
+  MaxWeaveRelax: 0.06
+  BlockedExtraAttempts: 10
   WallOverlap: 3
   MinChannelWidth: 16
   HazardCellFill: 0.7
@@ -1001,6 +1006,7 @@ MonoBehaviour:
   YawAccel: 14
   FullAuthoritySpeed: 6
   PivotAuthority: 0.3
+  ReverseBlendSpeed: 1
   LateralDrift: 0.18
   BankAngle: 6
   BankSmoothing: 3
@@ -1352,8 +1358,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4861be3d4f51854e80872c12f645c16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  TowingFee: 150
   TowedHullHealth: 1
+  ParSpeed: 6
+  OnTimeBonusShare: 0.2
 --- !u!114 &1971103196
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1373,6 +1380,9 @@ MonoBehaviour:
   fuelCriticalThreshold: 10
   alertCooldown: 12
   checkInterval: 0.25
+  dockSightedMetres: 150
+  quietSeconds: 40
+  gapAfterLine: 4
   yieldToPlayer: 1
 --- !u!114 &1971103197
 MonoBehaviour:
@@ -1389,6 +1399,7 @@ MonoBehaviour:
   _isActive: 0
   _waypointRadius: 25
   _steerMultiplier: 1.5
+  _speedRunScale: 10
 --- !u!1 &2078121428
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,0 +1,159 @@
+% =============================================================
+% 4.x การออกแบบข้อมูล
+% =============================================================
+
+\section{การออกแบบข้อมูล}
+
+เกมเป็นเกมผู้เล่นเดี่ยวที่ทำงานบนเครื่องของผู้เล่นเพียงเครื่องเดียว จึงไม่ใช้ระบบฐานข้อมูล แต่จัดเก็บข้อมูล 2 กลุ่ม ได้แก่ (1) ข้อมูลความก้าวหน้าและการตั้งค่า ซึ่งเก็บด้วย PlayerPrefs ของ Unity ในรูปแบบคู่คีย์และค่า (Key-Value) และ (2) ข้อมูลบันทึกผลการทดลอง ซึ่งเก็บเป็นแฟ้ม CSV 3 แฟ้ม เพื่อให้ผู้ดำเนินการทดลองนำไปวิเคราะห์ด้วยโปรแกรมตารางคำนวณหรือโปรแกรมสถิติได้โดยตรง ดังภาพที่ \ref{fig:data_overview}
+
+\begin{figure}[!htbp]
+\centering
+\begin{mermaid}
+graph LR
+    subgraph Game["เกม (Unity)"]
+        GS["GameSession / Progression"]
+        ST["StoryProgress"]
+        SS["SettingsService"]
+        RL["ResearchLog"]
+    end
+
+    subgraph Prefs["PlayerPrefs (Windows Registry)"]
+        P1["career.*"]
+        P2["progress.*"]
+        P3["story.done.*"]
+        P4["การตั้งค่า"]
+    end
+
+    subgraph Files["แฟ้ม CSV (Sessions)"]
+        F1["turns.csv"]
+        F2["voyages.csv"]
+        F3["emergencies.csv"]
+    end
+
+    GS --> P1
+    GS --> P2
+    ST --> P3
+    SS --> P4
+    RL --> F1
+    RL --> F2
+    RL --> F3
+\end{mermaid}
+\caption{ภาพรวมการจัดเก็บข้อมูลของเกม}
+\label{fig:data_overview}
+\end{figure}
+
+\subsection{ข้อมูลความก้าวหน้าของผู้เล่น}
+
+ข้อมูลความก้าวหน้าบันทึกทุกครั้งที่ผู้เล่นจบการเดินเรือหรือซื้ออัปเกรด ดังตารางที่ \ref{tab:data_progress}
+
+\begin{table}[!htbp]
+\centering
+\caption{คีย์ข้อมูลความก้าวหน้าของผู้เล่น}
+\label{tab:data_progress}
+\begin{tabular}{|L{4.46cm}|L{1.55cm}|L{7.27cm}|}
+\hline
+\textbf{คีย์} & \textbf{ชนิด} & \textbf{ความหมาย} \\
+\hline
+\texttt{career.\allowbreak credits} & int & เงินสะสมของผู้เล่น \\ \hline
+\texttt{career.\allowbreak engine}, \texttt{career.\allowbreak helm}, \texttt{career.\allowbreak lookout}, \texttt{career.\allowbreak plating}, \texttt{career.\allowbreak crew} & int & ระดับอัปเกรดของเครื่องยนต์ หางเสือ การเฝ้าระวัง ตัวเรือ และลูกเรือ \\ \hline
+\texttt{career.\allowbreak hull} & int & ความทนทานของตัวเรือที่เหลืออยู่ \\ \hline
+\texttt{career.\allowbreak delivered}, \texttt{career.\allowbreak voyages} & int & จำนวนงานที่ส่งสำเร็จ และจำนวนการเดินเรือทั้งหมด \\ \hline
+\texttt{career.\allowbreak job} & string & ระดับงานขนส่งที่เลือกล่าสุด (EASY, NORMAL, HARD) \\ \hline
+\texttt{career.\allowbreak atsea} & int & ผู้เล่นออกจากเกมระหว่างเดินเรือหรือไม่ (1 = ใช่) \\ \hline
+\texttt{progress.\allowbreak skill.\allowbreak <ทักษะ>} & int & จำนวนครั้งที่ใช้ทักษะภาษาแต่ละด้าน ได้แก่ EngineOrders, HelmOrders, HelmDegrees, Questions, CrewTalk, CleanVoyages, ClearVoyages, Emergencies \\ \hline
+\texttt{progress.\allowbreak cert.\allowbreak <รหัส>} & int & ได้รับใบรับรองแล้วหรือไม่ (1 = ได้รับ) ใช้ปลดล็อกการอัปเกรด \\ \hline
+\texttt{story.\allowbreak done.\allowbreak <บท-ภารกิจ>} & int & ภารกิจในโหมดเนื้อเรื่องที่ผ่านแล้ว เช่น \texttt{story.\allowbreak done.1-2} \\ \hline
+\texttt{tutorial\_\allowbreak done}, \texttt{tutorial\_\allowbreak step} & int & เล่นบทฝึกสอนจบแล้วหรือไม่ และขั้นตอนล่าสุดที่เล่นถึง \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{ข้อมูลการตั้งค่า}
+
+ข้อมูลการตั้งค่าบันทึกเมื่อผู้เล่นเปลี่ยนค่าในหน้าตั้งค่า ดังตารางที่ \ref{tab:data_settings}
+
+\begin{table}[!htbp]
+\centering
+\caption{คีย์ข้อมูลการตั้งค่า}
+\label{tab:data_settings}
+\begin{tabular}{|L{4.46cm}|L{1.55cm}|L{7.27cm}|}
+\hline
+\textbf{คีย์} & \textbf{ชนิด} & \textbf{ความหมาย} \\
+\hline
+\texttt{Selected\allowbreak Microphone} & string & ชื่ออุปกรณ์ไมโครโฟนที่เลือก \\ \hline
+\texttt{MasterVolume}, \texttt{MusicVolume}, \texttt{EffectsVolume}, \texttt{RadioVolume} & float & ระดับเสียงรวม ดนตรี เสียงประกอบ และเสียงวิทยุ (0--1) \\ \hline
+\texttt{ToggleToTalk} & int & 0 = กดค้างเพื่อพูด, 1 = กดครั้งแรกเพื่อเริ่ม กดอีกครั้งเพื่อส่ง \\ \hline
+\texttt{SubtitleScale} & float & ขนาดคำบรรยายบทพูดของลูกเรือ \\ \hline
+\texttt{Binding.\allowbreak CommandPtt}, \texttt{Binding.\allowbreak ConversationPtt} & string & ปุ่มสั่งการและปุ่มสนทนาที่ผู้เล่นกำหนดเอง (JSON) \\ \hline
+\texttt{research.\allowbreak participant} & string & รหัสผู้เข้าร่วมการทดลอง (ไม่เกิน 24 ตัวอักษร) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{แฟ้มบันทึกผลการทดลอง}
+
+แฟ้มบันทึกผลเก็บที่โฟลเดอร์ \texttt{Sessions} ในโฟลเดอร์ข้อมูลของเกมบนเครื่องผู้เล่น ทุกแถวขึ้นต้นด้วยคอลัมน์ร่วม ได้แก่ \texttt{session} (วันเวลาที่เปิดเกม), \texttt{participant} (รหัสผู้เข้าร่วม), \texttt{voyage} (ลำดับการเดินเรือ), \texttt{mission} (ชื่อภารกิจหรืองาน) และ \texttt{time\_utc} (เวลาที่บันทึก) ส่วนคอลัมน์เฉพาะของแต่ละแฟ้มแสดงดังตารางที่ \ref{tab:data_turns}--\ref{tab:data_emergencies}
+
+\begin{table}[!htbp]
+\centering
+\caption{โครงสร้างแฟ้ม turns.csv (หนึ่งแถวต่อการสื่อสารหนึ่งครั้ง)}
+\label{tab:data_turns}
+\begin{tabular}{|L{4.90cm}|L{8.80cm}|}
+\hline
+\textbf{คอลัมน์} & \textbf{ความหมาย} \\
+\hline
+\texttt{input}, \texttt{key} & พูดหรือพิมพ์ (voice, typed) และปุ่มที่ใช้ (order = T, talk = Y) \\ \hline
+\texttt{speech\_s} & ความยาวเสียงที่บันทึก (วินาที) \\ \hline
+\texttt{heard} & ข้อความที่ Whisper ถอดได้ หรือข้อความที่พิมพ์ \\ \hline
+\texttt{outcome} & ผลลัพธ์ ได้แก่ order, answered, word, unclear, no reply (ไม่มีลูกเรือตอบ), rejected:none (ไม่มีข้อความ) หรือ rejected:<เหตุผล> \\ \hline
+\texttt{route} & ส่วนที่เข้าใจคำสั่ง ได้แก่ local (ตัวแยกคำสั่ง), classifier (GPT จำแนกเจตนา บันทึกแม้ไม่ได้เรียกบริการจริง), chat (GPT สนทนา) \\ \hline
+\texttt{actions}, \texttt{standard}, \texttt{taught} & คำสั่งที่ทำ, ใช้รูปประโยคมาตรฐานหรือไม่ และรูปประโยคมาตรฐานที่ลูกเรือทวนให้ \\ \hline
+\texttt{reply\_by}, \texttt{reply} & ลูกเรือที่ตอบ และข้อความที่ตอบ \\ \hline
+\texttt{stt\_ms} & เวลาตั้งแต่ปล่อยปุ่มจนได้ข้อความ (มิลลิวินาที) \\ \hline
+\texttt{reply\_ms}, \texttt{total\_ms} & เวลาตั้งแต่ได้ข้อความจนลูกเรือตอบ และเวลารวมตั้งแต่ปล่อยปุ่มจนลูกเรือตอบ \\ \hline
+\texttt{ship\_ms} & เวลาตั้งแต่ปล่อยปุ่มจนเรือเริ่มทำตามคำสั่ง \\ \hline
+\texttt{danger}, \texttt{hull} & มีสิ่งกีดขวางใกล้เรือขณะสั่งหรือไม่ และความทนทานของเรือขณะนั้น \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\caption{โครงสร้างแฟ้ม voyages.csv (หนึ่งแถวต่อการเดินเรือหนึ่งรอบ)}
+\label{tab:data_voyages}
+\begin{tabular}{|L{4.90cm}|L{8.80cm}|}
+\hline
+\textbf{คอลัมน์} & \textbf{ความหมาย} \\
+\hline
+\texttt{delivered}, \texttt{seconds}, \texttt{par\_seconds} & ส่งสินค้าสำเร็จหรือไม่ เวลาที่ใช้ และเวลามาตรฐานของด่าน \\ \hline
+\texttt{hits}, \texttt{mine\_hits} & จำนวนครั้งที่ชนสิ่งกีดขวาง และจำนวนครั้งที่ชนทุ่นระเบิด \\ \hline
+\texttt{cargo\_loaded}, \texttt{cargo\_delivered} & จำนวนตู้สินค้าที่บรรทุก และจำนวนที่ส่งถึง \\ \hline
+\texttt{calls}, \texttt{understood}, \texttt{understood\_pct} & จำนวนครั้งที่สื่อสาร จำนวนที่ลูกเรือเข้าใจ และร้อยละที่เข้าใจ \\ \hline
+\texttt{orders}, \texttt{standard\_orders} & จำนวนคำสั่ง และจำนวนคำสั่งที่ใช้รูปประโยคมาตรฐาน \\ \hline
+\texttt{say\_again}, \texttt{words\_asked} & จำนวนครั้งที่ลูกเรือขอให้พูดซ้ำ และจำนวนคำศัพท์ที่ผู้เล่นถามความหมาย \\ \hline
+\texttt{avg\_reaction\_s} & เวลาเฉลี่ยตั้งแต่ลูกเรือเตือนภัยจนผู้เล่นออกคำสั่ง \\ \hline
+\texttt{practise} & รูปประโยคที่แนะนำให้ผู้เล่นฝึกต่อ \\ \hline
+\texttt{avg\_stt\_ms}, \texttt{avg\_total\_ms}, \texttt{avg\_ship\_ms} & ค่าเฉลี่ยของเวลาตอบสนองในรอบนั้น \\ \hline
+\texttt{emergencies}, \texttt{emergencies\_saved} & จำนวนสถานการณ์ฉุกเฉิน และจำนวนที่ผู้เล่นหลบได้ทัน \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\caption{โครงสร้างแฟ้ม emergencies.csv (หนึ่งแถวต่อสถานการณ์ฉุกเฉินหนึ่งครั้ง)}
+\label{tab:data_emergencies}
+\begin{tabular}{|L{4.90cm}|L{8.80cm}|}
+\hline
+\textbf{คอลัมน์} & \textbf{ความหมาย} \\
+\hline
+\texttt{hazard}, \texttt{distance\_m} & ชนิดสิ่งกีดขวาง และระยะห่างเมื่อเริ่มสถานการณ์ (เมตร) \\ \hline
+\texttt{window\_s} & เวลาที่ผู้เล่นมีในการออกคำสั่ง (วินาที) \\ \hline
+\texttt{outcome} & ผลลัพธ์ ได้แก่ saved (หลบทัน), hit (ชน), cleared (พ้นอันตรายเอง) หรือ ended (ภารกิจจบก่อน) \\ \hline
+\texttt{reaction\_ms}, \texttt{tries} & เวลาจริงตั้งแต่เริ่มสถานการณ์จนออกคำสั่งที่ถูกต้อง (รวมเวลาบันทึกและแปลงเสียง ขณะที่ \texttt{window\_s} ไม่นับเวลาดังกล่าว) และจำนวนครั้งที่พูด \\ \hline
+\texttt{standard}, \texttt{said} & ใช้รูปประโยคมาตรฐานหรือไม่ และข้อความที่ผู้เล่นพูด \\
+\hline
+\end{tabular}
+\end{table}
+
+จากตารางที่ \ref{tab:data_turns}--\ref{tab:data_emergencies} ข้อมูลที่บันทึกใช้รหัสผู้เข้าร่วมและไม่มีแฟ้มเสียง จึงไม่บันทึกชื่อจริงโดยตรง แต่คอลัมน์ \texttt{heard} อาจมีคำที่ผู้เล่นพูดเอง ผู้จัดทำจะตรวจและลบข้อมูลที่ระบุตัวตนได้ก่อนวิเคราะห์ เพื่อคุ้มครองความเป็นส่วนตัวของกลุ่มตัวอย่าง หากเขียนแฟ้มไม่สำเร็จ ระบบจะบันทึกข้อผิดพลาดเพียงครั้งเดียวและให้เกมเล่นต่อได้ตามปกติ

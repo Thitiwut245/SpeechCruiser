@@ -47,21 +47,7 @@
             </ui:VisualElement>
 
             <ui:VisualElement name="page-upgrades" class="yard-page">
-                <ui:Label text="UPGRADE YOUR SHIP" class="section-label" />
-                <ui:VisualElement class="card upgrade-card">
-                    <ui:VisualElement class="card-main">
-                        <ui:Label text="ENGINE" class="card-title" />
-                        <ui:Label name="engine-level-text" text="Faster  ·  level 1 of 3" class="card-desc" />
-                    </ui:VisualElement>
-                    <ui:Button name="upgrade-engine-btn" text="$100" class="buy-btn" />
-                </ui:VisualElement>
-                <ui:VisualElement class="card upgrade-card">
-                    <ui:VisualElement class="card-main">
-                        <ui:Label text="RUDDER" class="card-title" />
-                        <ui:Label name="helm-level-text" text="Sharper turns  ·  level 1 of 3" class="card-desc" />
-                    </ui:VisualElement>
-                    <ui:Button name="upgrade-helm-btn" text="$100" class="buy-btn" />
-                </ui:VisualElement>
+                <!-- Built in code (UpgradesPage): rank, then each upgrade with its certificate. -->
             </ui:VisualElement>
 
             <ui:Button name="upgrades-link" text="UPGRADE SHIP" class="yard-link" />

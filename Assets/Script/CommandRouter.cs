@@ -190,6 +190,7 @@ public class CommandRouter : MonoBehaviour
         if (!chatting && IsWait(transcript)) transcript = "stop";
 
         var parsed = CommandParser.Parse(transcript);
+        _lastParsed = parsed;
 
         // "Help! Turn right!" turns right: the orders card only opens when no order was heard.
         if (HelpPattern.IsMatch(transcript) && !parsed.HasConfidentOrder)
@@ -252,7 +253,7 @@ public class CommandRouter : MonoBehaviour
             if (SmallTalk.Answer(target, transcript, isConversation))
             {
                 _misses = 0;
-                LanguageLog.Answered();
+                LanguageLog.Talked();
                 OnActionExecuted?.Invoke(ShipAction.None);
                 EndInstantTurn();
                 return;
@@ -304,7 +305,7 @@ public class CommandRouter : MonoBehaviour
         // says what can be asked, not "say again".
         if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && !ChatReady)
         {
-            if (SmallTalk.Answer(target, transcript, false)) LanguageLog.Answered();
+            if (SmallTalk.Answer(target, transcript, false)) LanguageLog.Talked();
             else Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
             EndInstantTurn();
             return;
@@ -377,9 +378,37 @@ public class CommandRouter : MonoBehaviour
     }
 
     /// <summary>"Say again" — but after repeated misses, suggest a simple order and the radio card.</summary>
+    private CommandParser.Result _lastParsed;
+
+    /// <summary>
+    /// Experienced crew (Crew Trust I): an order they half-caught comes back as a question with
+    /// the standard phrase ("Did you mean "port twenty", Sir?"), so the Captain hears the right
+    /// words and can say them again. Null if nothing was close enough.
+    /// </summary>
+    public static string DidYouMean(CommandParser.Result parsed)
+    {
+        if (parsed.Matches == null) return null;
+        foreach (var m in parsed.Matches)
+        {
+            if (m.Confidence < CommandParser.AcceptLow || m.FirstToken < 0) continue;
+            if (!m.Action.IsMachinery() && !m.Action.IsQuery()) continue;
+            string phrase = StandardPhrases.For(m.Action, parsed.Degrees);
+            if (phrase != null) return phrase;
+        }
+        return null;
+    }
+
     private void SayAgainOrHint(RadioChannel target)
     {
         LanguageLog.Unclear();
+        string guess = GameSession.Instance != null && GameSession.Instance.CrewLevel >= 2 ? DidYouMean(_lastParsed) : null;
+        if (guess != null)
+        {
+            _misses = 0;
+            string you = target == RadioChannel.Lookout ? "Sir" : "Captain";
+            Say(target, new[] { "Did you mean \"" + guess + "\", " + you + "? Say it again. Over." }, "didyoumean");
+            return;
+        }
         _misses++;
         if (_misses >= MissesBeforeHint)
         {
@@ -467,7 +496,7 @@ public class CommandRouter : MonoBehaviour
                 // then model the standard order.
                 bool standard = StandardPhrases.IsStandard(resolved, m.Phrase);
                 string taught = StandardPhrases.For(resolved, parsed.Degrees);
-                LanguageLog.Order(standard, taught, Time.time, resolved);
+                LanguageLog.Order(standard, taught, Time.time, resolved, parsed.Degrees.HasValue);
                 if (!standard && taught != null && recast == null)
                 {
                     recast = taught;
@@ -482,7 +511,7 @@ public class CommandRouter : MonoBehaviour
 
         RememberUndo(gearBefore, engineChanged, helmChanged);
         _misses = 0;
-        if (query != ShipAction.None) LanguageLog.Answered();
+        if (query != ShipAction.None) LanguageLog.Question();
         foreach (var done in readBacks) OnActionExecuted?.Invoke(done);
         if (query != ShipAction.None) OnActionExecuted?.Invoke(query);
 
@@ -554,8 +583,8 @@ public class CommandRouter : MonoBehaviour
         // standard phrase: model it. A "continue" (no words) is fine as it is.
         string taught = StandardPhrases.For(resolved, degrees);
         bool standard = string.IsNullOrEmpty(rawSpeech) || resolved.IsQuery();
-        if (executed) LanguageLog.Order(standard, taught, Time.time, resolved);
-        else LanguageLog.Answered();
+        if (executed) LanguageLog.Order(standard, taught, Time.time, resolved, degrees.HasValue);
+        else LanguageLog.Question();
         OnActionExecuted?.Invoke(resolved);
         Acknowledge(target, resolved);
         if (executed && !standard && taught != null) StartCoroutine(RecastLater(OwnerOf(resolved, target), taught, FollowUpDelaySeconds));
@@ -671,7 +700,7 @@ public class CommandRouter : MonoBehaviour
             if (SmallTalk.Answer(target, transcript, conversational))
             {
                 _misses = 0;
-                LanguageLog.Answered();
+                LanguageLog.Talked();
             }
             else SayAgainOrHint(target);
             EndInstantTurn();

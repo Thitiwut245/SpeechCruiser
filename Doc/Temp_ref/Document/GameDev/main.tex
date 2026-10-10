@@ -1,0 +1,132 @@
+\documentclass{cskkuproject}
+
+% ==========================================
+% ข้อมูลโครงงาน — ตัวอย่างประเภท A: พัฒนาระบบ
+% ==========================================
+
+\titleTH{ระบบจัดการเอกสารโครงงานคอมพิวเตอร์แบบออนไลน์ วิทยาลัยการคอมพิวเตอร์ มหาวิทยาลัยขอนแก่น}
+\titleEN{Online Document Management System for Computer Projects, College of Computing, Khon Kaen University}
+
+% ข้อมูลนักศึกษาคนที่ 1
+\firstStudentID{653450001-1}
+\firstStudentPrefixTH{นาย}
+\firstStudentPrefixEN{Mr.}
+\firstStudentNameTH{สมชาย ใจดี}
+\firstStudentNameEN{Somchai Jaidee}
+
+% ข้อมูลนักศึกษาคนที่ 2
+\secondStudentID{653450002-9}
+\secondStudentPrefixTH{นางสาว}
+\secondStudentPrefixEN{Miss}
+\secondStudentNameTH{สมหญิง รักเรียน}
+\secondStudentNameEN{Somying Rakrian}
+
+% ข้อมูลหลักสูตร
+\degreeTH{วิทยาศาสตรบัณฑิต}
+\degreeEN{Bachelor of Science}
+\majorTH{วิทยาการคอมพิวเตอร์}
+\majorEN{Computer Science}
+
+% อาจารย์ที่ปรึกษา
+\advisorTH{ผศ.ดร.ประสิทธิ์ สร้างสรรค์}
+\advisorEN{Asst.Prof.Prasit Sangsan, Ph.D.}
+
+% ปีการศึกษา
+\academicYearTH{2568}
+\academicYearEN{2025}
+
+% รหัสวิชา
+\courseCode{CP354 772}
+\courseName{โครงงานคอมพิวเตอร์ 2}
+\semester{2}
+
+% คำสำคัญ
+\keywordsTH{LaTeX, ระบบจัดการเอกสาร, โครงงานคอมพิวเตอร์, เว็บแอปพลิเคชัน, Docker}
+\keywordsEN{LaTeX, Document Management System, Computer Project, Web Application, Docker}
+
+
+\begin{document}
+
+% ==========================================
+% หน้าปก
+% ==========================================
+\maketitlepage
+
+% ตั้งค่าเลขหน้าส่วนต้นเป็นอักษรไทย (ก, ข, ค, ...)
+\pagenumbering{arabic}
+\setcounter{page}{0}
+\renewcommand{\thepage}{\ThaiAlph{\value{page}}}
+
+% ==========================================
+% บทคัดย่อ
+% ==========================================
+\begin{abstractTH}
+\input{Document/GameDev/abstractTH}
+\end{abstractTH}
+
+\begin{abstractEN}
+\input{Document/GameDev/abstractEN}
+\end{abstractEN}
+
+% ==========================================
+% กิตติกรรมประกาศ
+% ==========================================
+\begin{acknowledgement}
+\input{acknowledgement}
+\end{acknowledgement}
+
+% ==========================================
+% สารบัญ
+% ==========================================
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+% ==========================================
+% เนื้อเรื่อง 5 บท
+% ==========================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{บทนำ}
+\input{Document/GameDev/chapter1}
+
+\chapter{งานวิจัยและทฤษฎีที่เกี่ยวข้อง}
+\input{Document/GameDev/chapter2}
+
+\chapter{วิธีการดำเนินงาน}
+\input{Document/GameDev/chapter3}
+
+\chapter{การวิเคราะห์ระบบ และพัฒนาโปรแกรม}
+\input{Document/GameDev/chapter4}
+
+\chapter{บทสรุป}
+\input{Document/GameDev/chapter5}
+
+% ==========================================
+% เอกสารอ้างอิง
+% ==========================================
+\clearpage
+\addcontentsline{toc}{chapter}{เอกสารอ้างอิง}
+\makeatletter
+\let\ps@plain\ps@empty
+\makeatother
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+% ==========================================
+% ภาคผนวก
+% ==========================================
+\input{Document/GameDev/appendices}
+
+% ==========================================
+% ประวัติผู้เขียน
+% ==========================================
+\begin{biography}
+\input{biography}
+\end{biography}
+
+\end{document}

@@ -1,0 +1,177 @@
+\documentclass{cskkuproject}
+
+% ==========================================
+% ข้อมูลโครงงาน — ตัวอย่างประเภท A: พัฒนาระบบ
+% ==========================================
+
+\titleTH{การออกแบบและพัฒนาเกมเดินเรือด้วยระบบสั่งการด้วยเสียงเพื่อส่งเสริมทักษะการสื่อสาร}
+\titleEN{Design and Development of a Voice-Controlled Ship Navigation Game to Enhance Communication Skills}
+
+% ข้อมูลนักศึกษาคนที่ 1
+\firstStudentID{663380213-6}
+\firstStudentPrefixTH{นาย}
+\firstStudentPrefixEN{Mr.}
+\firstStudentNameTH{ธิติวุฒิ ศรีอมรรัตน์}
+\firstStudentNameEN{Thitiwut Sriamonrat}
+
+% ข้อมูลหลักสูตร
+\degreeTH{วิทยาศาสตรบัณฑิต}
+\degreeEN{Bachelor of Science}
+\majorTH{วิทยาการคอมพิวเตอร์}
+\majorEN{Computer Science}
+
+% อาจารย์ที่ปรึกษา
+\advisorTH{ผศ.ดร.วชิราวุธ ธรรมวิเศษ}
+\advisorEN{Asst. Prof. Wachirawut Thamviset, Ph.D.}
+
+% ปีการศึกษา
+\academicYearTH{2569}
+\academicYearEN{2026}
+
+% รหัสวิชา
+\courseCode{CP354 771}
+\courseName{โครงงานทางวิทยาการคอมพิวเตอร์}
+\semester{2}
+
+% คำสำคัญ
+\keywordsTH{เกมเพื่อการเรียนรู้, การรู้จำเสียง, ความวิตกกังวลในการใช้ภาษาต่างประเทศ, การเรียนรู้โดยใช้เกมเป็นฐาน, เกมเดินเรือ}
+\keywordsEN{Serious game, Speech recognition, Foreign language anxiety, Digital game-based learning, Ship navigation game}
+
+
+% ตารางทุกตารางใช้คอลัมน์ L: ข้อความชิดซ้าย ไม่ยืดช่องว่างระหว่างคำภาษาไทยในคอลัมน์แคบ
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash\hspace{0pt}}p{#1}}
+
+% ช่องว่างระหว่างคำไทยที่ไม่มีเว้นวรรคในต้นฉบับยืดได้น้อยลง (เดิม plus 1pt)
+% เพื่อไม่ให้คำในประโยคเดียวกันถูกแยกห่าง เช่น "การ เรียน รู้"
+\XeTeXlinebreakskip = 0pt plus 0.2pt
+
+% รายการข้อในคอลัมน์ที่ย่อเข้ามา: ยอมให้ขอบขวาไม่เสมอได้เล็กน้อย แทนการยืดช่องว่างระหว่างคำ
+% (LaTeX ตั้ง \rightskip ของรายการจาก \@rightskip จึงต้องตั้งทั้งสองค่า)
+\makeatletter
+\newcommand{\listraggedright}{\@rightskip=0pt plus 2em\relax\rightskip=\@rightskip}
+\makeatother
+\setlist{before=\listraggedright}
+
+% เนื้อหาย่อหน้า: ยอมให้ขอบขวาสั้นลงได้ไม่เกินประมาณ 1 ตัวอักษร แทนการยืดช่องว่างจนเห็นเป็นช่องโหว่
+\makeatletter
+\AtBeginDocument{\@rightskip=0pt plus 1em\relax\rightskip=\@rightskip}
+\makeatother
+
+% หัวข้อชิดซ้ายและไม่ตัดคำด้วยยัติภังค์ (รูปแบบอื่นเหมือนเทมเพลต)
+\newcommand{\headingstyle}{\bfseries\large\upshape\raggedright\hyphenpenalty=10000\exhyphenpenalty=10000}
+\titleformat{\section}{\headingstyle}{\thesection}{0.45\firstindentlength}{}
+\titleformat{\subsection}{\headingstyle}{\thesubsection}{0.45\firstindentlength}{}
+\titleformat{\subsubsection}{\headingstyle}{\thesubsubsection}{0.45\firstindentlength}{}
+\titleformat{name=\section,numberless}{\headingstyle}{}{0pt}{}
+\titleformat{name=\subsection,numberless}{\headingstyle}{}{0pt}{}
+\titleformat{name=\subsubsection,numberless}{\headingstyle}{}{0pt}{}
+
+% ตารางและรูปวางในตำแหน่งที่เหมาะ (ไม่บังคับ [H]) เพื่อไม่ให้เหลือที่ว่างครึ่งหน้า
+% แต่ไม่ลอยข้ามหัวข้อ \section
+\usepackage[section]{placeins}
+% หน้าที่มีแต่ตาราง/รูป: เริ่มจากบนหน้า ไม่จัดกึ่งกลางแนวตั้ง และให้ตาราง/รูปอยู่ร่วมกับข้อความได้มากขึ้น
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
+% คำบรรยายภาพที่ยาวเกิน 1 บรรทัด: ชิดซ้ายและไม่ตัดคำด้วยยัติภังค์ (บรรทัดเดียวยังจัดกึ่งกลาง)
+\DeclareCaptionFont{nohyphen}{\hyphenpenalty=10000\relax}
+\captionsetup[figure]{justification=raggedright,singlelinecheck=true,font=nohyphen}
+
+% สารบัญ สารบัญภาพ และสารบัญตาราง: รายการที่ยาวเกินบรรทัดชิดซ้าย ไม่ยืดช่องว่าง
+\makeatletter
+\renewcommand{\@tocrmarg}{2.55em plus 1fil}
+\makeatother
+
+\begin{document}
+
+% ==========================================
+% หน้าปก
+% ==========================================
+\maketitlepage
+
+% ตั้งค่าเลขหน้าส่วนต้นเป็นอักษรไทย (ก, ข, ค, ...)
+\pagenumbering{arabic}
+\setcounter{page}{0}
+\renewcommand{\thepage}{\ThaiAlph{\value{page}}}
+
+% ==========================================
+% บทคัดย่อ
+% ==========================================
+\begin{abstractTH}
+\input{Document/GameDev/abstractTH}
+\end{abstractTH}
+
+\begin{abstractEN}
+\input{Document/GameDev/abstractEN}
+\end{abstractEN}
+
+% ==========================================
+% กิตติกรรมประกาศ
+% ==========================================
+\begin{acknowledgement}
+\input{acknowledgement}
+\end{acknowledgement}
+
+% ==========================================
+% สารบัญ
+% ==========================================
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+% ==========================================
+% เนื้อเรื่อง 5 บท
+% ==========================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{บทนำ}
+\input{Document/GameDev/chapter1}
+
+\chapter{ทฤษฎีและงานวิจัยที่เกี่ยวข้อง}
+\input{Document/GameDev/chapter2}
+
+\chapter{วิธีการดำเนินโครงงาน}
+\input{Document/GameDev/chapter3}
+
+\chapter{ผลการดำเนินงาน}
+\input{Document/GameDev/chapter4}
+
+\chapter{สรุปผลการดำเนินงาน}
+\input{Document/GameDev/chapter5}
+
+% ==========================================
+% เอกสารอ้างอิง
+% ==========================================
+\clearpage
+\addcontentsline{toc}{chapter}{เอกสารอ้างอิง}
+\makeatletter
+\let\ps@plain\ps@empty
+\makeatother
+\bibliographystyle{ieeetr}
+\bibliography{references}
+% ==========================================
+% ภาคผนวก
+% ==========================================
+\input{Document/GameDev/appendices}
+
+% ==========================================
+% ประวัติผู้เขียน
+% ==========================================
+\begin{biography}
+\input{biography}
+\end{biography}
+
+\end{document}

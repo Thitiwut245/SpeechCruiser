@@ -1,0 +1,332 @@
+% =============================
+% ภาคผนวก 
+% =============================
+
+% =============================
+% ภาคผนวก ก — แบบสอบถามความคิดเห็นผู้เล่น
+% =============================
+\setcounter{chapter}{-1}
+\appendiceschapter{แบบวัดและแบบสอบถามผู้เล่น}
+
+\section*{แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษและแบบสอบถามประสบการณ์ผู้เล่น}
+
+\textbf{คำชี้แจง} แบบวัดและแบบสอบถามนี้จัดทำขึ้นเพื่อประเมินเกมเดินเรือด้วยระบบสั่งการด้วยเสียงเพื่อส่งเสริมทักษะการสื่อสาร ประกอบด้วย 4 ตอน ผู้เข้าร่วมตอบตอนที่ 1 และ 2 ก่อนเล่นเกม และตอบตอนที่ 2 ซ้ำอีกครั้ง พร้อมตอนที่ 3 และ 4 หลังเล่นเกม การเข้าร่วมเป็นไปโดยสมัครใจ ผู้เข้าร่วมสามารถยุติการเข้าร่วมได้ทุกเมื่อ ข้อมูลทั้งหมดอ้างอิงด้วยรหัสผู้เข้าร่วมเท่านั้น ไม่มีการระบุชื่อ และนำไปใช้เพื่อการศึกษาเท่านั้น เกมไม่บันทึกเสียงของผู้เข้าร่วม แต่ข้อความที่ระบบถอดจากเสียงพูดอาจส่งไปประมวลผลผ่าน OpenAI API
+
+\noindent\textbf{รหัสผู้เข้าร่วม:} \rule{3cm}{0.4pt} \quad (ผู้ดำเนินการทดลองเป็นผู้กรอก และกรอกรหัสเดียวกันในหน้าตั้งค่าของเกม)
+
+\subsection*{ตอนที่ 1 ข้อมูลทั่วไป (ตอบก่อนเล่น)}
+\noindent 1. เพศ: $\square$ ชาย \quad $\square$ หญิง \quad $\square$ ไม่ระบุ \newline
+2. อายุ: \rule{2cm}{0.4pt} ปี \newline
+3. ชั้นปีที่ศึกษาในระดับปริญญาตรี: \rule{1cm}{0.4pt} \newline
+4. ความสามารถในการพูดภาษาอังกฤษของตนเอง: $\square$ อ่อนมาก \quad $\square$ อ่อน \quad $\square$ ปานกลาง \quad $\square$ ดี \quad $\square$ ดีมาก \newline
+5. ความถี่ในการเล่นวิดีโอเกม: $\square$ ไม่เล่น \quad $\square$ น้อยกว่าสัปดาห์ละครั้ง \quad $\square$ 1--3 วันต่อสัปดาห์ \quad $\square$ 4 วันขึ้นไปต่อสัปดาห์ \newline
+6. เคยเรียนหรือใช้ภาษาอังกฤษทางทะเลมาก่อนหรือไม่: $\square$ เคย \quad $\square$ ไม่เคย
+
+\clearpage
+\subsection*{ตอนที่ 2 แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษ (ตอบก่อนเล่นและหลังเล่น)}
+ข้อความเขียนขึ้นเป็นภาษาไทยตามองค์ประกอบของแบบวัด Foreign Language Classroom Anxiety Scale (FLCAS)~\cite{horwitz1986} โปรดเลือกระดับที่ตรงกับความรู้สึกของท่านมากที่สุด โดย 5 = เห็นด้วยอย่างยิ่ง 4 = เห็นด้วย 3 = ไม่แน่ใจ 2 = ไม่เห็นด้วย และ 1 = ไม่เห็นด้วยอย่างยิ่ง
+
+\begin{table}[H]
+\centering
+\caption{แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษ}
+\label{tab:survey_anxiety}
+\small
+\begin{tabular}{|L{8.20cm}|c|c|c|c|c|}
+\hline
+\textbf{ข้อความ} & \textbf{5} & \textbf{4} & \textbf{3} & \textbf{2} & \textbf{1} \\ \hline
+1. ฉันรู้สึกประหม่าเมื่อต้องพูดภาษาอังกฤษโดยไม่มีเวลาเตรียมตัว & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+2. ฉันรู้สึกมั่นใจเมื่อต้องพูดภาษาอังกฤษให้ผู้อื่นทำตาม (R) & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+3. ฉันรู้สึกกดดันเมื่อต้องพูดภาษาอังกฤษภายใต้เวลาที่จำกัด & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+4. ฉันกังวลว่าผู้ฟังจะไม่เข้าใจสิ่งที่ฉันพูดเป็นภาษาอังกฤษ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+5. ฉันสบายใจที่จะพูดภาษาอังกฤษ แม้จะไม่แน่ใจว่าใช้คำถูกต้อง (R) & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+6. ฉันรู้สึกอายเมื่อผู้ฟังขอให้ฉันพูดซ้ำ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+7. ฉันกลัวว่าจะพูดผิดเมื่อต้องสื่อสารเป็นภาษาอังกฤษ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+8. ฉันกังวลว่าผู้อื่นจะคิดว่าภาษาอังกฤษของฉันไม่ดี & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+9. ฉันนึกคำศัพท์ที่รู้ไม่ออกเมื่อรู้สึกกดดันขณะพูดภาษาอังกฤษ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+10. ฉันกล้าพูดภาษาอังกฤษอีกครั้งเมื่อผู้ฟังไม่เข้าใจในครั้งแรก (R) & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+11. ฉันพูดภาษาอังกฤษได้อย่างสงบแม้อยู่ในสถานการณ์เร่งด่วน (R) & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+12. ฉันอยากหลีกเลี่ยงสถานการณ์ที่ต้องพูดภาษาอังกฤษ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+\end{tabular}
+\end{table}
+
+\noindent หมายเหตุ: ข้อที่มีเครื่องหมาย (R) เป็นข้อความเชิงบวก ใช้การกลับคะแนน (6 $-$ คะแนนที่ตอบ) ก่อนรวมคะแนน คะแนนรวมอยู่ระหว่าง 12--60 คะแนน คะแนนสูงหมายถึงมีความวิตกกังวลในการพูดภาษาอังกฤษสูง ข้อ 1, 2, 3, 9, 11 และ 12 วัดด้านความประหม่าในการสื่อสาร (Communication Apprehension) และข้อ 4, 5, 6, 7, 8 และ 10 วัดด้านความกลัวการถูกประเมินในทางลบ (Fear of Negative Evaluation) ฉบับที่ใช้เก็บข้อมูลจริงจะไม่แสดงเครื่องหมาย (R)
+
+\clearpage
+\subsection*{ตอนที่ 3 แบบสอบถามประสบการณ์การเล่นเกม (ตอบหลังเล่น)}
+โปรดเลือกระดับความคิดเห็นของท่าน โดยใช้เกณฑ์ 5 ระดับเดียวกับตอนที่ 2
+
+\begin{table}[H]
+\centering
+\caption{แบบสอบถามประสบการณ์การเล่นเกม}
+\label{tab:survey_game}
+\small
+\begin{tabular}{|L{8.20cm}|c|c|c|c|c|}
+\hline
+\textbf{ข้อความ} & \textbf{5} & \textbf{4} & \textbf{3} & \textbf{2} & \textbf{1} \\ \hline
+1. การสั่งการเรือด้วยเสียงภาษาอังกฤษเข้าใจง่าย & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+2. การเคลื่อนที่ของเรือในเกมมีความสมจริง & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+3. การตอบกลับของลูกเรือปัญญาประดิษฐ์มีความสมจริง & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+4. เมื่อลูกเรือขอให้พูดซ้ำ ฉันรู้ว่าต้องปรับการพูดอย่างไร & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+5. คำแนะนำประโยค (Try Saying) ช่วยให้ฉันรู้ว่าควรพูดอะไร & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+6. การที่ลูกเรือทวนคำสั่งด้วยรูปประโยคมาตรฐานช่วยให้ฉันใช้ภาษาได้ถูกต้องขึ้น & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+7. ฉันไม่กังวลเมื่อพูดผิดกับลูกเรือปัญญาประดิษฐ์ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+8. ระหว่างเล่น ฉันกล้าออกคำสั่งเป็นภาษาอังกฤษ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+9. ฉันรู้สึกสนุกขณะเล่นเกมนี้ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+10. ฉันรู้สึกหงุดหงิดเมื่อระบบไม่เข้าใจคำสั่งของฉัน (R) & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+\end{tabular}
+\end{table}
+
+\noindent หมายเหตุ: ข้อ 10 เป็นข้อความเชิงลบ ใช้การกลับคะแนน (6 $-$ คะแนนที่ตอบ) ก่อนหาค่าเฉลี่ย ค่าเฉลี่ยสูงหมายถึงประสบการณ์การเล่นเกมที่ดี ฉบับที่ใช้เก็บข้อมูลจริงจะไม่แสดงเครื่องหมาย (R)
+
+\subsection*{ตอนที่ 4 ข้อเสนอแนะเพิ่มเติม (ตอบหลังเล่น)}
+\noindent 1. สิ่งที่ท่านชอบมากที่สุดในเกมนี้
+
+\noindent\rule{\textwidth}{0.4pt}\\[0.5cm]
+\noindent 2. สิ่งที่ทำให้ท่านรู้สึกกังวลหรือไม่สะดวกระหว่างเล่น
+
+\noindent\rule{\textwidth}{0.4pt}\\[0.5cm]
+\noindent 3. ข้อเสนอแนะเพื่อปรับปรุงเกมนี้
+
+\noindent\rule{\textwidth}{0.4pt}\\[0.5cm]
+\noindent\rule{\textwidth}{0.4pt}
+
+
+% =============================
+% ภาคผนวก ข — รหัสต้นฉบับ (Source Code)
+% =============================
+\appendiceschapter{รหัสต้นฉบับ}
+\section*{ส่วนที่ 1: รหัสต้นฉบับส่วนการเชื่อมต่อและรู้จำเสียง (Speech-to-Text)}
+\textit{ส่วนนี้แสดงตัวอย่างโค้ด C\# สำหรับรับเสียงจากไมโครโฟนและแปลงเป็นข้อความ (Speech-to-Text) ด้วยโมเดล Whisper ที่ทำงานภายในเครื่อง (whisper.cpp)}
+
+
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[language={[Sharp]C},basicstyle=\ttfamily\scriptsize,firstnumber=449]
+private async void StopRecordingAndProcess()
+{
+    if (!_isRecording) return;
+
+    RadioMode modeUsed = _currentMode;
+    bool testing = _testing;
+    int epoch = _recordingEpoch;
+    _currentMode = RadioMode.None;
+    _isRecording = false;
+
+    int sampleCount = Microphone.GetPosition(_activeDevice);
+    Microphone.End(_activeDevice);
+    if (!testing) ResearchLog.BeginVoice(modeUsed == RadioMode.Conversation); // the clock starts as the key is let go
+
+    if (_recordingClip == null || sampleCount <= 0)
+    {
+        Reject(RadioStatus.NoAudio, "No sound from the microphone. Check Settings.", "(no audio captured)");
+        return;
+    }
+
+    int channels = Mathf.Max(1, _recordingClip.channels);
+    float seconds = (float)sampleCount / SAMPLING_RATE;
+    ResearchLog.SpeechLength(seconds);
+
+    if (seconds < MinSpeechSeconds)
+    {
+        Reject(RadioStatus.TooShort, "Too short. Hold the key while you speak.", "(too short: " + seconds.ToString("0.00") + "s)");
+        return;
+    }
+\end{lstlisting}
+\vspace{0.3em}
+\begin{lstlisting}[language={[Sharp]C},basicstyle=\ttfamily\scriptsize,firstnumber=491]
+double sumSquares = 0.0;
+float peak = 0f;
+for (int i = 0; i < needed; i++)
+{
+    float s = _captureBuffer[i];
+    sumSquares += (double)s * s;
+    float a = s < 0f ? -s : s;
+    if (a > peak) peak = a;
+}
+float rms = (float)Math.Sqrt(sumSquares / needed);
+\end{lstlisting}
+\vspace{0.3em}
+\begin{lstlisting}[language={[Sharp]C},basicstyle=\ttfamily\scriptsize,firstnumber=508]
+if (rms < SilenceRmsThreshold)
+{
+    Reject(RadioStatus.TooQuiet, "Too quiet. Speak louder or move closer to the mic.", "(silence: rms " + rms.ToString("0.0000") + ")");
+    return;
+}
+
+var speech = PadForWhisper(_captureBuffer, sampleCount, channels);
+\end{lstlisting}
+\caption{รหัสต้นฉบับสำหรับรับคำสั่งเสียงและตรวจสอบสัญญาณเสียงก่อนแปลงเป็นข้อความ (ตัดตอนจาก RadioMic.cs บรรทัด 449--477, 491--500, 508--514)}
+\label{fig:code_stt}
+\end{figure}
+\section*{ส่วนที่ 2: รหัสต้นฉบับส่วนระบบฟิสิกส์และการควบคุมเรือ (Ship Navigation Physics)}
+\textit{ส่วนนี้แสดงตัวอย่างโค้ด C\# สำหรับการคำนวณความเร็วและแรงเฉื่อยของเครื่องยนต์}
+
+
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[language={[Sharp]C},basicstyle=\ttfamily\scriptsize,firstnumber=102]
+public void SetSpeed(float newSpeed)
+{
+    if (newSpeed >= SpeedFull - 0.5f) SetGear(TelegraphGear.Full);
+    else if (newSpeed >= SpeedHalf - 0.5f) SetGear(TelegraphGear.Half);
+    else if (newSpeed >= SpeedSlow - 0.5f) SetGear(TelegraphGear.Slow);
+    else if (newSpeed >= SpeedDeadSlow - 0.5f) SetGear(TelegraphGear.DeadSlow);
+    else if (newSpeed <= SpeedFullAstern + 0.5f) SetGear(TelegraphGear.FullAstern);
+    else if (newSpeed < -0.1f) SetGear(TelegraphGear.SlowAstern);
+    else SetGear(TelegraphGear.Stop);
+}
+\end{lstlisting}
+\vspace{0.3em}
+\begin{lstlisting}[language={[Sharp]C},basicstyle=\ttfamily\scriptsize,firstnumber=136]
+private void UpdateEngine()
+{
+    _targetSpeed = GetSpeedForGear(CurrentGear);
+
+    // The engine upgrade scales speed, acceleration and braking together, so a faster
+    // ship still stops in the same time instead of sliding twice as far.
+    float engine = GameSession.Instance != null ? GameSession.Instance.EngineSpeedFactor : 1f;
+    float accelMultiplier = engine;
+    if (GameSession.Instance != null) accelMultiplier *= GameSession.Instance.CargoAccelerationFactor;
+
+    // Three regimes: pushing against the motion brakes hard, speeding up uses the
+    // engine, and anything else is the hull coasting down on its own.
+    bool pushingAgainst = Mathf.Abs(CurrentSpeed) > 0.05f && Mathf.Abs(_targetSpeed) > 0.05f &&
+                          Mathf.Sign(_targetSpeed) != Mathf.Sign(CurrentSpeed);
+    float rate = pushingAgainst ? AsternBrakeRate * engine
+               : Mathf.Abs(_targetSpeed) > Mathf.Abs(CurrentSpeed) ? AccelerationRate * accelMultiplier
+               : DecelerationRate * engine;
+    CurrentSpeed = Mathf.MoveTowards(CurrentSpeed, _targetSpeed, rate * Time.deltaTime);
+    // Aground, the engine can only back the ship off the way it came.
+    if (AgroundDirection != 0 && CurrentSpeed * AgroundDirection > 0f) CurrentSpeed = 0f;
+
+    IsEngineRunning = Mathf.Abs(CurrentSpeed) > 0.05f;
+}
+\end{lstlisting}
+\caption{รหัสต้นฉบับระบบเครื่องยนต์และแรงเฉื่อยของความเร็วเรือ (ตัดตอนจาก ShipEngine.cs บรรทัด 102--111, 136--158)}
+\label{fig:code_engine}
+\end{figure}
+\section*{ส่วนที่ 3: รหัสต้นฉบับส่วนระบบลูกเรือปัญญาประดิษฐ์ (AI Crew System)}
+\textit{ส่วนนี้แสดงตัวอย่างโค้ดการส่งข้อความไปยัง OpenAI API เมื่อตัวแยกคำสั่งไม่พบคำสั่งที่ชัดเจนหรือเมื่อผู้เล่นสนทนากับลูกเรือ และรับผลลัพธ์การโต้ตอบกลับ}
+
+
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[language={[Sharp]C},basicstyle=\ttfamily\footnotesize,firstnumber=194]
+using (var request = new UnityWebRequest(Url, "POST"))
+{
+    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+    request.downloadHandler = new DownloadHandlerBuffer();
+    request.SetRequestHeader("Content-Type", "application/json");
+    request.SetRequestHeader("Authorization", "Bearer " + OpenAIKey.Value);
+    request.timeout = TimeoutSeconds;
+
+    float started = Time.realtimeSinceStartup;
+    yield return request.SendWebRequest();
+    float elapsed = Time.realtimeSinceStartup - started;
+\end{lstlisting}
+\caption{รหัสต้นฉบับระบบลูกเรือปัญญาประดิษฐ์และการโต้ตอบบทสนทนา (OpenAIClient.cs บรรทัด 194--204)}
+\label{fig:code_ai}
+\end{figure}
+
+
+% =============================
+% ภาคผนวก ค — แผนภาพ (Diagrams)
+% =============================
+\appendiceschapter{แผนภาพ}
+\section*{แผนภาพสถานะของระบบเกมหลัก}
+
+
+\begin{figure}[H]
+\centering
+\begin{mermaid}
+stateDiagram-v2
+    [*] --> MainMenu
+    state "Main Menu (Menu scene)" as MainMenu
+    state "Victory (Cargo Delivered)" as Victory
+    state "GameOver (Ship Lost)" as GameOver
+    MainMenu --> Shipyard : Story or Free Sail, load Game scene
+    Shipyard --> Playing : choose job, SET SAIL
+    Playing --> Victory : docked at the destination (MissionSuccess)
+    Playing --> GameOver : hull reaches 0 (MissionFailed)
+    Victory --> Shipyard : Continue, reload Game scene
+    GameOver --> Shipyard : Continue (towed home) or Try again
+    Victory --> MainMenu : Continue after a story mission
+    Playing --> MainMenu : pause menu, quit to menu
+    note right of Shipyard
+        Repair is free.
+        Upgrades cost credits and language certificates:
+        Engine, Rudder, Lookout, Hull, Crew
+    end note
+    note right of Victory
+        Results panel: hits, time, pay,
+        and the radio English report
+    end note
+\end{mermaid}
+\caption{แผนภาพสถานะของระบบเกมหลัก}
+\label{fig:state_main}
+\end{figure}
+\section*{แผนภาพสถานะของการประมวลผลคำสั่งและการโต้ตอบกับลูกเรือ}
+
+
+\begin{figure}[H]
+\centering
+\begin{mermaid}
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Recording : hold T (order) or Y (talk)
+    Recording --> AudioCheck : release the key, or press again in toggle mode
+    AudioCheck --> Idle : no audio, too short, too quiet
+    state "Whisper (whisper.cpp, on-device)" as Whisper
+    AudioCheck --> Whisper : audio OK
+    Whisper --> Idle : noise, nothing intelligible
+    state "CommandParser" as Parsing
+    Whisper --> Parsing : transcript
+    state "Local reply" as LocalReply
+    Parsing --> LocalReply : radio check, word help, small talk
+    LocalReply --> Idle
+    Parsing --> Execution : confident order
+    Parsing --> Conversation : talk key or question
+    Parsing --> IntentClassifier : no confident match
+    IntentClassifier --> Execution : action found
+    IntentClassifier --> Conversation : not found, conversation fallback on
+    IntentClassifier --> SayAgain : not found, fallback off
+    Execution --> Redirect : order belongs to the other crew member
+    Redirect --> Idle
+    Execution --> ReadBack : right crew member
+    ReadBack --> Idle : ship carries out the order
+    SayAgain --> Idle : Say again, Bridge. Over. (hint after 2 misses)
+    state "Conversation (GPT-4o mini)" as Conversation
+    Conversation --> Idle : reply as subtitle and voice
+    note right of ReadBack
+        Non-standard wording is read back
+        as the standard SMCP phrase
+    end note
+\end{mermaid}
+\caption{แผนภาพสถานะของการประมวลผลคำสั่งและการโต้ตอบกับลูกเรือ}
+\label{fig:state_ai_communication}
+\end{figure}
+
+
+% =============================
+% ภาคผนวก ง — เนื้อหาคำสั่งที่ใช้ภายในเกม
+% =============================
+\appendiceschapter{เนื้อหาและรูปประโยคที่ใช้สอนภายในเกม}
+\section*{คลังคำสั่งการเดินเรือมาตรฐาน (Standard Marine Communication Phrases)}
+
+
+เนื้อหาหลักที่ใช้เป็นข้อมูลนำเข้าเพื่อประเมินความถูกต้องของคำสั่งเสียงผู้เล่น อ้างอิงจากวลีสื่อสารมาตรฐานทางทะเล~\cite{imo2002smcp} ที่กัปตันใช้สั่งการพลถือท้ายและยามระวังหน้าและต้นกลเรือ ดังตารางที่ \ref{tab:voice_commands}
+
+\begin{table}[H]
+\centering
+\caption{ตัวอย่างคำสั่งเสียงที่รองรับภายในเกม}
+\label{tab:voice_commands}
+\small
+\begin{tabular}{|L{2.85cm}|L{5.22cm}|L{5.22cm}|}
+\hline
+\textbf{หมวดหมู่คำสั่ง} & \textbf{รูปแบบคำสั่งเสียงภาษาอังกฤษ} & \textbf{ผลลัพธ์ในเกม} \\ \hline
+การควบคุมทิศทาง & ``Starboard fifteen'' ``Hard-a-port'' ``Midships'' & พลถือท้ายปรับหางเสือไปทางขวา ไปทางซ้าย หรือหางเสือตรงกลางลำ (Midships) \\ \hline
+การควบคุมความเร็ว & ``Full ahead'' ``Slow ahead'' ``Stop engine'' ``Full astern'' & ต้นกลเรือปรับคันโทรเลขเครื่องยนต์ (Engine Telegraph) เพื่อเพิ่ม ลด หยุด หรือถอยหลัง \\ \hline
+สถานการณ์ฉุกเฉิน & ``Hard-a-starboard, full ahead'' ``Crash stop'' ``Emergency astern'' & สั่งหลายคำสั่งในประโยคเดียวเพื่อหลบสิ่งกีดขวางอย่างกะทันหัน หรือสั่งถอยหลังเต็มกำลัง (Full Astern) เพื่อหยุดเรือ \\ \hline
+การทวนถาม & ``Say again, Bridge. Over.'' & ลูกเรือใช้ประโยคนี้เมื่อระบบจับคู่คำสั่งไม่ได้และไม่สามารถส่งต่อไปยังบทสนทนาผ่าน GPT-4o mini ได้ \\ \hline
+\end{tabular}
+\end{table}

@@ -1,0 +1,26 @@
+graph TD
+    subgraph Client["Player PC (Client)"]
+        Unity["Unity Engine (Game Client)"]
+        Mic["Microphone (Audio Input)"]
+        Speaker["Speaker/Headphones (Audio Output)"]
+    end
+
+    subgraph Core["Core Systems"]
+        GameLogic["C# Game Logic, Command Parser and Ship Physics"]
+        UI["UI and HUD"]
+        STT["Speech-to-Text (Whisper, whisper.cpp on-device)"]
+        TTS["Windows Speech (TTS)"]
+    end
+
+    subgraph ExternalAPI["External API"]
+        LLM["OpenAI API (GPT-4o mini)"]
+    end
+
+    Mic -->|Voice Input| Unity
+    Unity -->|Audio Clip| STT
+    STT -->|Text| GameLogic
+    GameLogic -->|unclear text / chat only| LLM
+    LLM -->|intent JSON / reply text| GameLogic
+    GameLogic -->|Control| UI
+    GameLogic -->|crew line text| TTS
+    TTS -->|crew voice| Speaker

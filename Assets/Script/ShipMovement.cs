@@ -114,6 +114,7 @@ public class ShipMovement : MonoBehaviour
         // The drawn ship is the procedural cargo ship (CargoShipModel), same footprint as the old model.
         var meshRenderer = GetComponent<MeshRenderer>();
         CargoShipModel.Dress(visual.gameObject);
+        ShipLook.Attach(visual.gameObject); // the upgrades the Captain has earned, on the ship
         if (meshRenderer != null) meshRenderer.enabled = false;
 
         // Drawn children (not colliders) roll with the hull too.

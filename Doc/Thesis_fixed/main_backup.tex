@@ -1,0 +1,128 @@
+\documentclass{cskkuproject}
+
+% ==========================================
+% ข้อมูลโครงงาน — ตัวอย่างประเภท A: พัฒนาระบบ
+% ==========================================
+
+\titleTH{การออกแบบและพัฒนาเกมเดินเรือด้วยระบบสั่งการด้วยเสียงเพื่อส่งเสริมทักษะการสื่อสาร}
+\titleEN{Design and Development of a Voice-Controlled Ship Navigation Game to Enhance Communication Skills}
+
+% ข้อมูลนักศึกษาคนที่ 1
+\firstStudentID{663380213-6}
+\firstStudentPrefixTH{นาย}
+\firstStudentPrefixEN{Mr.}
+\firstStudentNameTH{ธิติวุฒิ ศรีอมรรัตน์}
+\firstStudentNameEN{Thitiwut Sriamonrat}
+
+% ข้อมูลหลักสูตร
+\degreeTH{วิทยาศาสตรบัณฑิต}
+\degreeEN{Bachelor of Science}
+\majorTH{วิทยาการคอมพิวเตอร์}
+\majorEN{Computer Science}
+
+% อาจารย์ที่ปรึกษา
+\advisorTH{ผศ.ดร.วชิราวุธ ธรรมวิเศษ}
+\advisorEN{Asst. Prof. Wachirawut Thamviset, Ph.D.}
+
+% ปีการศึกษา
+\academicYearTH{2569}
+\academicYearEN{2026}
+
+% รหัสวิชา
+\courseCode{CP354 771}
+\courseName{โครงงานทางวิทยาการคอมพิวเตอร์}
+\semester{2}
+
+% คำสำคัญ
+\keywordsTH{เกมเพื่อการเรียนรู้, การรู้จำเสียง, ความวิตกกังวลในการใช้ภาษาต่างประเทศ, การเรียนรู้โดยใช้เกมเป็นฐาน, เกมเดินเรือ}
+\keywordsEN{Serious game, Speech recognition, Foreign language anxiety, Digital game-based learning, Ship navigation game}
+
+
+% ตารางทุกตารางใช้คอลัมน์ L: ข้อความชิดซ้าย ไม่ยืดช่องว่างระหว่างคำภาษาไทยในคอลัมน์แคบ
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash\hspace{0pt}}p{#1}}
+
+\begin{document}
+
+% ==========================================
+% หน้าปก
+% ==========================================
+\maketitlepage
+
+% ตั้งค่าเลขหน้าส่วนต้นเป็นอักษรไทย (ก, ข, ค, ...)
+\pagenumbering{arabic}
+\setcounter{page}{0}
+\renewcommand{\thepage}{\ThaiAlph{\value{page}}}
+
+% ==========================================
+% บทคัดย่อ
+% ==========================================
+\begin{abstractTH}
+\input{Document/GameDev/abstractTH}
+\end{abstractTH}
+
+\begin{abstractEN}
+\input{Document/GameDev/abstractEN}
+\end{abstractEN}
+
+% ==========================================
+% กิตติกรรมประกาศ
+% ==========================================
+\begin{acknowledgement}
+\input{acknowledgement}
+\end{acknowledgement}
+
+% ==========================================
+% สารบัญ
+% ==========================================
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+% ==========================================
+% เนื้อเรื่อง 5 บท
+% ==========================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{บทนำ}
+\input{Document/GameDev/chapter1}
+
+\chapter{ทฤษฎีและงานวิจัยที่เกี่ยวข้อง}
+\input{Document/GameDev/chapter2}
+
+\chapter{วิธีการดำเนินโครงงาน}
+\input{Document/GameDev/chapter3}
+
+\chapter{ผลการดำเนินงาน}
+\input{Document/GameDev/chapter4}
+
+\chapter{สรุปผลการดำเนินงาน}
+\input{Document/GameDev/chapter5}
+
+% ==========================================
+% เอกสารอ้างอิง
+% ==========================================
+\clearpage
+\addcontentsline{toc}{chapter}{เอกสารอ้างอิง}
+\makeatletter
+\let\ps@plain\ps@empty
+\makeatother
+\bibliographystyle{ieeetr}
+\bibliography{references}
+% ==========================================
+% ภาคผนวก
+% ==========================================
+\input{Document/GameDev/appendices}
+
+% ==========================================
+% ประวัติผู้เขียน
+% ==========================================
+\begin{biography}
+\input{biography}
+\end{biography}
+
+\end{document}

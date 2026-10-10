@@ -178,8 +178,10 @@ public class MissionResultsPanel : MonoBehaviour
             AddRow("Time at sea", FormatTime(result.Seconds), null);
         }
 
-        AddLanguageRows(LanguageLog.Read());
+        var language = LanguageLog.Read();
+        AddLanguageRows(language);
         ResearchLog.EndVoyage(result);
+        string congrats = AddProgressRows(language, result);
 
         int change = result.CreditsAfter - result.CreditsBefore;
         _totalValue.text = "$" + result.CreditsAfter + "  (" + (change >= 0 ? "+$" + change : "-$" + (-change)) + ")";
@@ -187,6 +189,7 @@ public class MissionResultsPanel : MonoBehaviour
         _tip.text = TipFor(result);
         if (story != null && result.Delivered && result.Hits == 0 && (result.OnTimeBonus > 0 || result.ParSeconds <= 0f))
             _tip.text = "Clean run and on time. Well done, Captain!";
+        if (congrats != null) _tip.text = congrats;
 
         _backdrop.style.display = DisplayStyle.Flex;
         // Next frame, so the opacity transition runs from 0.
@@ -241,6 +244,42 @@ public class MissionResultsPanel : MonoBehaviour
         if (s.WordsAsked > 0) AddRow("Words asked about", s.WordsAsked.ToString(), "good", true);
         if (s.Practise != null && s.Practise.Count > 0)
             AddRow("Practise saying", "\"" + string.Join("\", \"", s.Practise) + "\"", null, true);
+    }
+
+    /// <summary>
+    /// The voyage's practice goes into the Captain's record (Progression): certificates earned,
+    /// a promotion, or else the nearest certificate and how far along it is. Returns the crew's
+    /// congratulations for the tip line, or null.
+    /// </summary>
+    private string AddProgressRows(LanguageLog.Summary s, MissionResult r)
+    {
+        var session = GameSession.Instance;
+        if (session != null) Progression.Begin(session.EngineLevel, session.HelmLevel, PlayerPrefs.GetInt("tutorial_done", 0) == 1);
+        var outcome = Progression.EndVoyage(new Progression.Voyage
+        {
+            EngineOrders = s.EngineStandard, HelmOrders = s.HelmStandard, HelmDegrees = s.HelmDegrees,
+            Questions = s.Questions, CrewTalk = s.CrewTalk, Emergencies = s.EmergenciesSaved,
+            Clean = r.Delivered && r.Hits == 0,
+            Clear = s.Calls >= 5 && s.UnderstoodPercent >= 80,
+        });
+
+        AddHeading("RECORD");
+        foreach (var c in outcome.Earned)
+            AddRow("Certificate earned", c.Title + "  ·  " + Progression.UpgradeName(c.For).ToLowerInvariant() + " Mk " + (c.Level == 2 ? "II" : "III") + " can be fitted", "good", true);
+        if (outcome.PromotedTo != null) AddRow("Promoted", outcome.PromotedTo, "good", true);
+        if (outcome.Earned.Count == 0)
+        {
+            var next = Progression.Closest();
+            if (next != null)
+            {
+                Progression.Need need = next.Needs[0];
+                foreach (var n in next.Needs) if (Progression.Count(n.Skill) < n.Target) { need = n; break; }
+                AddRow("Next: " + next.Title, Progression.SkillText(need.Skill).ToLowerInvariant() + "  " + Mathf.Min(Progression.Count(need.Skill), need.Target) + " / " + need.Target, null, true);
+            }
+        }
+        if (outcome.PromotedTo != null) return "Harris: \"Congratulations, " + outcome.PromotedTo + "! Well earned. The crew are proud of you.\"";
+        if (outcome.Earned.Count > 0) return "Finn: \"A new certificate, Sir! Fit the " + Progression.UpgradeName(outcome.Earned[0].For).ToLowerInvariant() + " in the shipyard: UPGRADE SHIP.\"";
+        return null;
     }
 
     private void AddHeading(string text)

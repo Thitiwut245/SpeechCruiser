@@ -1,0 +1,112 @@
+\contentsline {chapter}{บทคัดย่อ}{\relax ก}{Doc-Start}%
+\contentsline {chapter}{ABSTRACT}{ข}{Doc-Start}%
+\contentsline {chapter}{กิตติกรรมประกาศ}{ค}{chapter*.1}%
+\contentsline {chapter}{สารบัญ}{ง}{chapter*.2}%
+\contentsline {chapter}{สารบัญภาพ}{ช}{chapter*.3}%
+\contentsline {chapter}{สารบัญตาราง}{ซ}{chapter*.4}%
+\contentsline {chapter}{\numberline {1}บทนำ}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}ความเป็นมาและความสำคัญของปัญหา}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}นิยามศัพท์เฉพาะ}{1}{section.1.2}%
+\contentsline {section}{\numberline {1.3}วัตถุประสงค์}{2}{section.1.3}%
+\contentsline {section}{\numberline {1.4}เป้าหมายและขอบเขต}{2}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}ขอบเขตด้านเนื้อหา}{2}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}ขอบเขตด้านประชากรและกลุ่มตัวอย่าง}{3}{subsection.1.4.2}%
+\contentsline {subsection}{\numberline {1.4.3}ขอบเขตด้านเทคนิค}{3}{subsection.1.4.3}%
+\contentsline {section}{\numberline {1.5}ประโยชน์ที่คาดว่าจะได้รับ}{4}{section.1.5}%
+\contentsline {chapter}{\numberline {2}ทฤษฎีและงานวิจัยที่เกี่ยวข้อง}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}งานวิจัย โครงงาน และระบบงานที่เกี่ยวข้อง}{5}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}การเรียนรู้ภาษาผ่านเกมด้วยเทคโนโลยีการประมวลผลภาษาธรรมชาติ}{5}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}เครื่องมือเกมควบคุมด้วยเสียงเพื่อเสริมสร้างการเรียนรู้}{5}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}การสำรวจการโต้ตอบด้วยเสียงกับตัวละคร NPC ในเกม}{5}{subsection.2.1.3}%
+\contentsline {subsection}{\numberline {2.1.4}เกมเชิงพาณิชย์ที่สั่งการด้วยเสียง}{5}{subsection.2.1.4}%
+\contentsline {subsection}{\numberline {2.1.5}สรุปเปรียบเทียบงานวิจัยและเกมที่เกี่ยวข้อง}{6}{subsection.2.1.5}%
+\contentsline {subsection}{\numberline {2.1.6}เปรียบเทียบเทคโนโลยีเอนจินพัฒนาเกม (Game Engine)}{6}{subsection.2.1.6}%
+\contentsline {section}{\numberline {2.2}หลักการและทฤษฎีที่เกี่ยวข้อง}{7}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}การเรียนรู้โดยใช้เกมเป็นฐาน (Digital Game-Based Learning: DGBL)}{7}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}สมมติฐานตัวกรองทางอารมณ์ (Affective Filter Hypothesis)}{7}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}ความวิตกกังวลในการใช้ภาษาต่างประเทศและแบบวัด FLCAS}{7}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.4}ทฤษฎีการเรียนรู้ตามสถานการณ์ (Situated Learning Theory)}{8}{subsection.2.2.4}%
+\contentsline {subsection}{\numberline {2.2.5}วลีสื่อสารมาตรฐานทางทะเล (IMO Standard Marine Communication Phrases: SMCP)}{8}{subsection.2.2.5}%
+\contentsline {subsection}{\numberline {2.2.6}เทคโนโลยีการรู้จำเสียง (Speech Recognition)}{8}{subsection.2.2.6}%
+\contentsline {subsection}{\numberline {2.2.7}แบบจำลองภาษาขนาดใหญ่สำหรับลูกเรือปัญญาประดิษฐ์ (GPT-4o mini)}{9}{subsection.2.2.7}%
+\contentsline {chapter}{\numberline {3}วิธีการดำเนินโครงงาน}{10}{chapter.3}%
+\contentsline {section}{\numberline {3.1}ขั้นตอนการดำเนินงาน}{10}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}การวิเคราะห์ปัญหาและศึกษาทฤษฎีที่เกี่ยวข้อง}{10}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}การกำหนดขอบเขตและข้อกำหนดของระบบ}{10}{subsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1.3}การออกแบบระบบและเกม (Game Design)}{10}{subsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.1.4}การพัฒนาเกม (Game Development)}{11}{subsection.3.1.4}%
+\contentsline {subsection}{\numberline {3.1.5}การทดสอบระบบ (Testing)}{11}{subsection.3.1.5}%
+\contentsline {subsection}{\numberline {3.1.6}การประเมินผล (Evaluation)}{12}{subsection.3.1.6}%
+\contentsline {subsection}{\numberline {3.1.7}การจัดทำรายงานและสรุปผล}{14}{subsection.3.1.7}%
+\contentsline {section}{\numberline {3.2}เครื่องมือที่ใช้ในการดำเนินงาน}{14}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}ฮาร์ดแวร์}{14}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}ซอฟต์แวร์และบริการ}{15}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}แผนการดำเนินงาน}{15}{section.3.3}%
+\contentsline {chapter}{\numberline {4}ผลการดำเนินงาน}{17}{chapter.4}%
+\contentsline {section}{\numberline {4.1}การวิเคราะห์ระบบ}{17}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}ผู้ใช้งานระบบและสิทธิ์การเข้าถึง}{17}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}ความต้องการเชิงฟังก์ชัน}{17}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}ความต้องการที่ไม่ใช่เชิงฟังก์ชัน}{17}{subsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.1.4}กฎการตรวจสอบความถูกต้องของข้อมูล}{17}{subsection.4.1.4}%
+\contentsline {subsection}{\numberline {4.1.5}ตารางตรวจสอบย้อนกลับ}{19}{subsection.4.1.5}%
+\contentsline {subsection}{\numberline {4.1.6}แผนภาพกรณีใช้งาน}{19}{subsection.4.1.6}%
+\contentsline {subsection}{\numberline {4.1.7}แผนภาพลำดับ}{22}{subsection.4.1.7}%
+\contentsline {subsubsection}{\numberline {(1)}กระบวนการสั่งการด้วยเสียง}{22}{subsubsection.4.1.7.1}%
+\contentsline {subsubsection}{\numberline {(2)}กระบวนการเมื่อคำสั่งไม่ชัดเจน}{23}{subsubsection.4.1.7.2}%
+\contentsline {subsubsection}{\numberline {(3)}กระบวนการสนทนากับลูกเรือ}{25}{subsubsection.4.1.7.3}%
+\contentsline {subsection}{\numberline {4.1.8}รายละเอียดกรณีใช้งาน}{26}{subsection.4.1.8}%
+\contentsline {subsubsection}{\numberline {(1)}กรณีใช้งาน: สั่งการด้วยเสียง}{26}{subsubsection.4.1.8.1}%
+\contentsline {subsubsection}{\numberline {(2)}กรณีใช้งาน: ตอบสนองต่อสถานการณ์ฉุกเฉิน}{26}{subsubsection.4.1.8.2}%
+\contentsline {subsection}{\numberline {4.1.9}แผนภาพสถานะ}{26}{subsection.4.1.9}%
+\contentsline {section}{\numberline {4.2}การออกแบบเนื้อเรื่องของเกม (Storyboard)}{27}{section.4.2}%
+\contentsline {section}{\numberline {4.3}การออกแบบระบบการเล่น}{30}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}วิธีการเล่นเกม (How to Play)}{30}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}กระบวนการเล่นหลัก (Core Game Loop)}{30}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}สถาปัตยกรรมของระบบ (System Architecture)}{32}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}แผนภาพการติดตั้ง (Deployment Diagram)}{32}{subsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.3.5}โครงสร้างโฟลเดอร์ของโครงการ (Project Structure)}{33}{subsection.4.3.5}%
+\contentsline {subsection}{\numberline {4.3.6}การออกแบบหน้าจอ}{33}{subsection.4.3.6}%
+\contentsline {subsubsection}{\numberline {(1)}UI-01: หน้าจอหลัก (Main Menu)}{33}{subsubsection.4.3.6.1}%
+\contentsline {subsubsection}{\numberline {(2)}UI-02: หน้าจอเล่นเกม (Gameplay HUD)}{34}{subsubsection.4.3.6.2}%
+\contentsline {subsubsection}{\numberline {(3)}UI-03: หน้าจออู่ต่อเรือ (Shipyard)}{36}{subsubsection.4.3.6.3}%
+\contentsline {subsubsection}{\numberline {(4)}UI-04: หน้าจอสรุปผล (Result Screen)}{37}{subsubsection.4.3.6.4}%
+\contentsline {subsubsection}{\numberline {(5)}UI-05: เมนูหยุดเกม (Pause)}{37}{subsubsection.4.3.6.5}%
+\contentsline {subsubsection}{\numberline {(6)}UI-06: หน้าจอตั้งค่า (Settings)}{37}{subsubsection.4.3.6.6}%
+\contentsline {section}{\numberline {4.4}การออกแบบองค์ประกอบในเกม}{38}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}การออกแบบตัวละครและบทบาท (Characters and Roles)}{39}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}การออกแบบอุปสรรคและสิ่งกีดขวาง (Obstacles and Hazards)}{39}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}การออกแบบกราฟิกและเสียงประกอบ (Graphic and Audio Design)}{39}{subsection.4.4.3}%
+\contentsline {section}{\numberline {4.5}การออกแบบเชิงการศึกษาและการประเมินผล}{40}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}การออกแบบเชิงการศึกษา (Educational Design)}{40}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}แนวทางการประเมินผล (Evaluation Approach)}{40}{subsection.4.5.2}%
+\contentsline {section}{\numberline {4.6}การออกแบบข้อมูล}{41}{section.4.6}%
+\contentsline {subsection}{\numberline {4.6.1}ข้อมูลความก้าวหน้าของผู้เล่น}{41}{subsection.4.6.1}%
+\contentsline {subsection}{\numberline {4.6.2}ข้อมูลการตั้งค่า}{41}{subsection.4.6.2}%
+\contentsline {subsection}{\numberline {4.6.3}แฟ้มบันทึกผลการทดลอง}{42}{subsection.4.6.3}%
+\contentsline {section}{\numberline {4.7}การออกแบบการเชื่อมต่อบริการ}{46}{section.4.7}%
+\contentsline {subsection}{\numberline {4.7.1}การตั้งค่าโมเดลการรู้จำเสียง}{46}{subsection.4.7.1}%
+\contentsline {subsection}{\numberline {4.7.2}การเรียกบริการ OpenAI}{46}{subsection.4.7.2}%
+\contentsline {subsection}{\numberline {4.7.3}การจัดการข้อผิดพลาด}{46}{subsection.4.7.3}%
+\contentsline {section}{\numberline {4.8}การพัฒนาเกม}{49}{section.4.8}%
+\contentsline {subsection}{\numberline {4.8.1}การพัฒนาระบบรับคำสั่งเสียง (Speech Recognition System)}{49}{subsection.4.8.1}%
+\contentsline {subsection}{\numberline {4.8.2}การพัฒนาระบบลูกเรือปัญญาประดิษฐ์ (AI Crew System)}{49}{subsection.4.8.2}%
+\contentsline {subsection}{\numberline {4.8.3}การพัฒนาระบบฟิสิกส์และการควบคุมเรือ (Ship Physics)}{49}{subsection.4.8.3}%
+\contentsline {subsection}{\numberline {4.8.4}ระยะการพัฒนาเกม (Development Phases)}{49}{subsection.4.8.4}%
+\contentsline {section}{\numberline {4.9}การทดสอบระบบ}{53}{section.4.9}%
+\contentsline {subsection}{\numberline {4.9.1}แผนการทดสอบ}{53}{subsection.4.9.1}%
+\contentsline {subsection}{\numberline {4.9.2}ผลการทดสอบหน่วย}{53}{subsection.4.9.2}%
+\contentsline {subsection}{\numberline {4.9.3}ผลการทดสอบตามความต้องการ}{53}{subsection.4.9.3}%
+\contentsline {subsection}{\numberline {4.9.4}รายละเอียดกรณีทดสอบที่สำคัญ}{54}{subsection.4.9.4}%
+\contentsline {subsubsection}{\numberline {(1)}TC-03: แยกคำสั่งมาตรฐานและคำสั่งผสม}{54}{subsubsection.4.9.4.1}%
+\contentsline {subsubsection}{\numberline {(2)}TC-10: เตือนภัยและตัดสินคำสั่งฉุกเฉิน}{54}{subsubsection.4.9.4.2}%
+\contentsline {subsection}{\numberline {4.9.5}ผลการทดสอบความต้องการที่ไม่ใช่เชิงฟังก์ชัน}{54}{subsection.4.9.5}%
+\contentsline {chapter}{\numberline {5}สรุปผลการดำเนินงาน}{60}{chapter.5}%
+\contentsline {section}{\numberline {5.1}ผลการดำเนินงานที่แล้วเสร็จ}{60}{section.5.1}%
+\contentsline {section}{\numberline {5.2}ปัญหาและข้อจำกัด}{61}{section.5.2}%
+\contentsline {section}{\numberline {5.3}แนวทางการแก้ไขและข้อเสนอแนะ}{61}{section.5.3}%
+\contentsline {chapter}{เอกสารอ้างอิง}{63}{Item.71}%
+\contentsline {chapter}{ภาคผนวก~\relax ก: แบบวัดและแบบสอบถามผู้เล่น}{66}{chapter.0}%
+\contentsline {chapter}{ภาคผนวก~ข: รหัสต้นฉบับ}{70}{appendix.A}%
+\contentsline {chapter}{ภาคผนวก~ค: แผนภาพ}{74}{appendix.B}%
+\contentsline {chapter}{ภาคผนวก~ง: เนื้อหาและรูปประโยคที่ใช้สอนภายในเกม}{77}{appendix.C}%
+\contentsline {chapter}{ประวัติผู้เขียน}{78}{appendix*.69}%

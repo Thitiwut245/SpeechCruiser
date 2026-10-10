@@ -23,11 +23,14 @@ public static class LanguageLog
         public List<string> Practise; // standard phrases for orders said another way, most frequent first
         public int Emergencies;      // story emergency calls (EmergencyCall)
         public int EmergenciesSaved; // ... answered in time
+        // What the certificates count (Progression): standard orders by kind, questions, talk.
+        public int EngineStandard, HelmStandard, HelmDegrees, Questions, CrewTalk;
 
         public int UnderstoodPercent => Calls > 0 ? Mathf.RoundToInt(100f * Mathf.Min(Understood, Calls) / Calls) : 0;
     }
 
     private static int _calls, _understood, _orders, _standard, _unclear, _words, _emergencies, _saved;
+    private static int _engineStd, _helmStd, _helmDeg, _questions, _talk;
 
     /// <summary>An order was carried out: which, and whether it was said in standard radio English.</summary>
     public static event System.Action<ShipAction, bool> OnOrder;
@@ -40,6 +43,7 @@ public static class LanguageLog
     public static void Begin()
     {
         _calls = _understood = _orders = _standard = _unclear = _words = _emergencies = _saved = 0;
+        _engineStd = _helmStd = _helmDeg = _questions = _talk = 0;
         _reactions.Clear();
         _practise.Clear();
         _warnedAt = -1f;
@@ -60,7 +64,13 @@ public static class LanguageLog
     public static void Unclear() { _unclear++; ResearchLog.Unclear(); }
 
     /// <summary>The Captain asked about a word or how to say something.</summary>
-    public static void WordAsked() { _words++; _understood++; ResearchLog.WordAsked(); }
+    public static void WordAsked() { _words++; _talk++; _understood++; ResearchLog.WordAsked(); }
+
+    /// <summary>A report was asked for and given ("any danger?", "where is the dock?").</summary>
+    public static void Question() { _questions++; Answered(); }
+
+    /// <summary>The crew answered small talk or a chat.</summary>
+    public static void Talked() { _talk++; Answered(); }
 
     /// <summary>A danger warning sounded at <paramref name="time"/> (game seconds).</summary>
     public static void Warned(float time)
@@ -72,9 +82,11 @@ public static class LanguageLog
     /// An order was carried out at <paramref name="time"/>. <paramref name="standardPhrase"/> is
     /// what it should be called when the Captain said it another way, else null.
     /// </summary>
-    public static void Order(bool standard, string standardPhrase, float time, ShipAction action = ShipAction.None)
+    public static void Order(bool standard, string standardPhrase, float time, ShipAction action = ShipAction.None, bool degrees = false)
     {
         ResearchLog.Order(action, standard, standardPhrase);
+        if (standard && action.IsHelm()) { _helmStd++; if (degrees) _helmDeg++; }
+        else if (standard && action.Category() == ActionCategory.Engine) _engineStd++;
         _orders++;
         _understood++;
         if (standard) _standard++;
@@ -109,6 +121,11 @@ public static class LanguageLog
             Practise = _practise.OrderByDescending(p => p.Value).Select(p => p.Key).Take(3).ToList(),
             Emergencies = _emergencies,
             EmergenciesSaved = _saved,
+            EngineStandard = _engineStd,
+            HelmStandard = _helmStd,
+            HelmDegrees = _helmDeg,
+            Questions = _questions,
+            CrewTalk = _talk,
         };
     }
 }

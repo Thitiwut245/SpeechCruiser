@@ -183,7 +183,9 @@ public class CrewAlertSystem : MonoBehaviour
 
         float tti = radar.TimeToImpact;
 
-        int stage = tti <= braceSeconds ? 3 : tti <= closingSeconds ? 2 : tti <= warnSeconds ? 1 : 0;
+        // A seasoned crew (Crew Trust II) calls hazards earlier.
+        float warn = warnSeconds + (GameSession.Instance != null && GameSession.Instance.CrewLevel >= 3 ? 2f : 0f);
+        int stage = tti <= braceSeconds ? 3 : tti <= closingSeconds ? 2 : tti <= warn ? 1 : 0;
         if (stage <= _threatStage) return false;
         // A story emergency call is doing the talking (and just after a save, no "brace!"): one clear order.
         if (EmergencyCall.Running || Time.unscaledTime < EmergencyCall.QuietUntil) { _threatStage = stage; return false; }

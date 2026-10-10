@@ -77,7 +77,8 @@ public class RadarSystem : MonoBehaviour
     /// <summary>The hazard on course, or null. The crew keep it to tell when it has really been passed.</summary>
     public Collider ThreatCollider { get; private set; }
 
-    public float Range => ScanDistance;
+    /// <summary>How far the radar sees: further with better lookout gear (GameSession.RadarRangeFactor).</summary>
+    public float Range => ScanDistance * (GameSession.Instance != null ? GameSession.Instance.RadarRangeFactor : 1f);
     public float SweepAngle => _sweepAngle;
 
     private void Awake()
@@ -107,7 +108,7 @@ public class RadarSystem : MonoBehaviour
         Vector3 heading = speed < 0f ? -forward : forward;
         float absSpeed = Mathf.Abs(speed);
 
-        int count = Physics.OverlapSphereNonAlloc(pos, ScanDistance, _hits, ~0, QueryTriggerInteraction.Collide);
+        int count = Physics.OverlapSphereNonAlloc(pos, Range, _hits, ~0, QueryTriggerInteraction.Collide);
 
         float closestDist = float.PositiveInfinity;
         Collider closest = null;

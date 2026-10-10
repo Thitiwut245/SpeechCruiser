@@ -23,7 +23,11 @@ public class ShipHull : MonoBehaviour
     private float _nextPracticeRemark;
 
     [Header("Hull Integrity")]
-    [SerializeField] private int MaxHealth = 3;
+    [UnityEngine.Serialization.FormerlySerializedAs("MaxHealth")]
+    [SerializeField] private int BaseHealth = 3;
+
+    /// <summary>Hits the hull can take: more with hull plating (GameSession.ExtraHull).</summary>
+    private int MaxHealth => BaseHealth + (GameSession.Instance != null ? GameSession.Instance.ExtraHull : 0);
 
     [Header("Collision")]
     [Tooltip("Seconds after a hit during which the hull can't be hit again.")]

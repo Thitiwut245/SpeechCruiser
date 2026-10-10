@@ -49,6 +49,7 @@ public class MenuBackdrop : MonoBehaviour
             var hull = new GameObject("HullVisual");
             hull.transform.SetParent(_ship, false);
             CargoShipModel.Dress(hull);
+            ShipLook.Attach(hull);
         }
 
         // Look between the ship and the quay, a little closer to the ship.

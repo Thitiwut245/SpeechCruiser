@@ -1,0 +1,24 @@
+graph TD
+    subgraph PC["เครื่องคอมพิวเตอร์ของผู้เล่น (Windows 10/11)"]
+        Mic["ไมโครโฟน / ชุดหูฟัง"]
+        subgraph App["SpeechCruiser.exe (Unity)"]
+            Game["ตรรกะเกม ฟิสิกส์เรือ และ UI"]
+            Whisper["whisper.cpp + ggml-base.en.bin"]
+            TTS["เสียงลูกเรือ (Windows Speech)"]
+        end
+        Prefs["PlayerPrefs (Registry)"]
+        Logs["แฟ้ม CSV ในโฟลเดอร์ Sessions"]
+        Key["OPENAI_API_KEY หรือ openai.key"]
+    end
+
+    subgraph Cloud["บริการภายนอก"]
+        OpenAI["OpenAI API (GPT-4o mini)"]
+    end
+
+    Mic -- "เสียงพูด" --> Whisper
+    Whisper -- "ข้อความ" --> Game
+    Game --> TTS
+    Game --> Prefs
+    Game --> Logs
+    Key -.-> Game
+    Game -- "HTTPS :443 (เฉพาะเมื่อจำเป็น)" --> OpenAI

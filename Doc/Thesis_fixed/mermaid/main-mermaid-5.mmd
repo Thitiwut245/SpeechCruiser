@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor P as Player
+    participant R as CommandRouter
+    participant C as CommandParser
+    participant I as IntentClassifier
+    participant O as OpenAI API
+    participant L as OpenAIClient (crew chat)
+    participant V as CrewVoice
+
+    P->>R: "starbird fitten" (from Whisper)
+    R->>C: Parse(text)
+    C-->>R: No confident order
+    R->>I: Classify(text)
+    I->>O: POST chat/completions (JSON mode)
+    O-->>I: {"action": ...}
+    alt action found
+        I-->>R: TurnStarboard
+        R->>V: Read back with the standard phrase
+    else not found
+        I-->>R: None
+        R->>L: Converse (crew reply)
+        L->>V: Crew reply text
+    else error / timeout / no key
+        R->>V: Say again (hint after 2 misses)
+    end
+    V-->>P: Crew reply on the radio

@@ -314,7 +314,8 @@ public static class CargoShipModel
 
         // The funnel, raked back, in company colours with a black top; a radar mast in front.
         Tapered(Paint.Funnel, new Vector3(0f, DeckY + 5.2f, back + 0.9f), new Vector2(0.75f, 0.6f), new Vector2(0.6f, 0.5f), 1.5f, 0.25f);
-        Tapered(Paint.Soot, new Vector3(0f, DeckY + 6.7f, back + 0.65f), new Vector2(0.6f, 0.5f), new Vector2(0.58f, 0.48f), 0.35f, 0.05f);
+        // The black top starts just inside the funnel and a hair wider, so no two faces share a plane.
+        Tapered(Paint.Soot, new Vector3(0f, DeckY + 6.66f, back + 0.66f), new Vector2(0.62f, 0.52f), new Vector2(0.6f, 0.5f), 0.39f, 0.05f);
         Box(Paint.Steel, new Vector3(0f, DeckY + 6.0f, mid + 0.6f), new Vector3(0.12f, 1.5f, 0.12f));
         Box(Paint.Steel, new Vector3(0f, DeckY + 6.6f, mid + 0.6f), new Vector3(1.1f, 0.08f, 0.2f));
     }
