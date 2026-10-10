@@ -492,6 +492,18 @@ public class CommandParserTests
         AssertOrders(speech, expected);
     }
 
+    // Whisper (base.en) hears "hard a port" as "Hard Report."; a plain report is still a status query.
+    [TestCase("Hard Report.", ShipAction.HardPort)]
+    [TestCase("hard to report", ShipAction.HardPort)]
+    [TestCase("Hardaport!", ShipAction.HardPort)]
+    [TestCase("Report", ShipAction.QueryStatus)]
+    [TestCase("Status report", ShipAction.QueryStatus)]
+    [TestCase("Give me a report", ShipAction.QueryStatus)]
+    public void HardReportIsHardAPort(string speech, ShipAction expected)
+    {
+        AssertOrders(speech, expected);
+    }
+
     [Test]
     public void HarryIsHarris()
     {

@@ -158,7 +158,9 @@ public static class CommandVocabulary
 
         new Entry(ShipAction.HardPort,
             "hard port", "hard to port", "hard a port", "hard left", "hard over port", "full left", "full port",
-            "full port rudder", "hard aport", "hard to part", "hard to pork"),
+            "full port rudder", "hard aport", "hard to part", "hard to pork",
+            // observed Whisper mishears for "hard a port"; beat the status query's "report"
+            "hard report", "hard to report", "hardaport"),
 
         new Entry(ShipAction.HardStarboard,
             "hard starboard", "hard to starboard", "hard a starboard", "hard right", "full right", "full starboard", "hard light",
