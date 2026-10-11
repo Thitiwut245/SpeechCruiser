@@ -40,8 +40,8 @@
 \contentsline {subsection}{\numberline {3.1.7}การจัดทำรายงานและสรุปผล}{14}{subsection.3.1.7}%
 \contentsline {section}{\numberline {3.2}เครื่องมือที่ใช้ในการดำเนินงาน}{14}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}ฮาร์ดแวร์}{14}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}ซอฟต์แวร์และบริการ}{15}{subsection.3.2.2}%
-\contentsline {section}{\numberline {3.3}แผนการดำเนินงาน}{15}{section.3.3}%
+\contentsline {subsection}{\numberline {3.2.2}ซอฟต์แวร์และบริการ}{14}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}แผนการดำเนินงาน}{16}{section.3.3}%
 \contentsline {chapter}{\numberline {4}ผลการดำเนินงาน}{17}{chapter.4}%
 \contentsline {section}{\numberline {4.1}การวิเคราะห์ระบบ}{17}{section.4.1}%
 \contentsline {subsection}{\numberline {4.1.1}ผู้ใช้งานระบบและสิทธิ์การเข้าถึง}{17}{subsection.4.1.1}%
@@ -53,10 +53,10 @@
 \contentsline {subsection}{\numberline {4.1.7}แผนภาพลำดับ}{22}{subsection.4.1.7}%
 \contentsline {subsubsection}{\numberline {(1)}กระบวนการสั่งการด้วยเสียง}{22}{subsubsection.4.1.7.1}%
 \contentsline {subsubsection}{\numberline {(2)}กระบวนการเมื่อคำสั่งไม่ชัดเจน}{23}{subsubsection.4.1.7.2}%
-\contentsline {subsubsection}{\numberline {(3)}กระบวนการสนทนากับลูกเรือ}{25}{subsubsection.4.1.7.3}%
-\contentsline {subsection}{\numberline {4.1.8}รายละเอียดกรณีใช้งาน}{26}{subsection.4.1.8}%
-\contentsline {subsubsection}{\numberline {(1)}กรณีใช้งาน: สั่งการด้วยเสียง}{26}{subsubsection.4.1.8.1}%
-\contentsline {subsubsection}{\numberline {(2)}กรณีใช้งาน: ตอบสนองต่อสถานการณ์ฉุกเฉิน}{26}{subsubsection.4.1.8.2}%
+\contentsline {subsubsection}{\numberline {(3)}กระบวนการสนทนากับลูกเรือ}{24}{subsubsection.4.1.7.3}%
+\contentsline {subsection}{\numberline {4.1.8}รายละเอียดกรณีใช้งาน}{25}{subsection.4.1.8}%
+\contentsline {subsubsection}{\numberline {(1)}กรณีใช้งาน: สั่งการด้วยเสียง}{25}{subsubsection.4.1.8.1}%
+\contentsline {subsubsection}{\numberline {(2)}กรณีใช้งาน: ตอบสนองต่อสถานการณ์ฉุกเฉิน}{25}{subsubsection.4.1.8.2}%
 \contentsline {subsection}{\numberline {4.1.9}แผนภาพสถานะ}{26}{subsection.4.1.9}%
 \contentsline {section}{\numberline {4.2}การออกแบบเนื้อเรื่องของเกม (Storyboard)}{27}{section.4.2}%
 \contentsline {section}{\numberline {4.3}การออกแบบระบบการเล่น}{30}{section.4.3}%
@@ -98,8 +98,8 @@
 \contentsline {subsection}{\numberline {4.9.3}ผลการทดสอบตามความต้องการ}{53}{subsection.4.9.3}%
 \contentsline {subsection}{\numberline {4.9.4}รายละเอียดกรณีทดสอบที่สำคัญ}{54}{subsection.4.9.4}%
 \contentsline {subsubsection}{\numberline {(1)}TC-03: แยกคำสั่งมาตรฐานและคำสั่งผสม}{54}{subsubsection.4.9.4.1}%
-\contentsline {subsubsection}{\numberline {(2)}TC-10: เตือนภัยและตัดสินคำสั่งฉุกเฉิน}{54}{subsubsection.4.9.4.2}%
-\contentsline {subsection}{\numberline {4.9.5}ผลการทดสอบความต้องการที่ไม่ใช่เชิงฟังก์ชัน}{54}{subsection.4.9.5}%
+\contentsline {subsubsection}{\numberline {(2)}TC-10: เตือนภัยและตัดสินคำสั่งฉุกเฉิน}{57}{subsubsection.4.9.4.2}%
+\contentsline {subsection}{\numberline {4.9.5}ผลการทดสอบความต้องการที่ไม่ใช่เชิงฟังก์ชัน}{58}{subsection.4.9.5}%
 \contentsline {chapter}{\numberline {5}สรุปผลการดำเนินงาน}{60}{chapter.5}%
 \contentsline {section}{\numberline {5.1}ผลการดำเนินงานที่แล้วเสร็จ}{60}{section.5.1}%
 \contentsline {section}{\numberline {5.2}ปัญหาและข้อจำกัด}{61}{section.5.2}%

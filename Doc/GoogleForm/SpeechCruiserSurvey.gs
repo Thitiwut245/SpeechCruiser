@@ -1,21 +1,21 @@
 /**
- * SpeechCruiser study: builds the two Google Forms from Appendix ก (ภาคผนวก ก)
- * and scores the answers.
+ * SpeechCruiser study: builds the Google Form from Appendix ก (ภาคผนวก ก) and scores the answers.
  *
  * How to use
  *   1. Open https://script.google.com and create a new project.
  *   2. Replace the contents of Code.gs with this file and save.
  *   3. Run createForms() once and allow the permissions it asks for.
- *      The log (View > Logs) prints the links of both forms and the response sheet.
+ *      The log (View > Logs) prints the form's link and the response sheet.
  *   4. After the study, run scoreResponses(). It writes the sheet "คะแนน" with each
  *      participant's pre/post scores, Cronbach's alpha and the paired t-test.
  *
- * The two forms
- *   ก่อนเล่น  consent, participant code, Part 1 (general), Part 2 (anxiety scale)
- *   หลังเล่น  participant code, Part 2 again, Part 3 (game experience), Part 4 (comments)
- * Both write to one spreadsheet. The participant code links them to each other
- * and to the game's CSV logs (enter the same code in the game's Settings > Study).
- * Keep the item wording identical to the thesis appendix: scoring matches answers by title.
+ * One form for the whole session, sent once at the end:
+ *   consent, participant code, Part 1 (general), Part 2 (anxiety, before playing),
+ *   a stop page while the participant plays (the form stays open),
+ *   Part 2 again (after playing), Part 3 (game experience), Part 4 (comments).
+ * Pre and post answers are in the same response, so nothing has to be matched up.
+ * No participant code is asked: the survey is not linked to the game's CSV logs, which the
+ * study separates by game session instead (the game is restarted for each participant).
  */
 
 const TITLE = 'แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษและประสบการณ์การเล่นเกม SpeechCruiser';
@@ -57,8 +57,6 @@ const EXPERIENCE_REVERSED = [10];               // negative statement: score = 6
 
 const SCALE_LOW = 'ไม่เห็นด้วยอย่างยิ่ง';
 const SCALE_HIGH = 'เห็นด้วยอย่างยิ่ง';
-const CODE_TITLE = 'รหัสผู้เข้าร่วม';
-const CODE_PATTERN = '[A-Za-z0-9-]{1,24}';
 const CONSENT_TITLE = 'ความยินยอมในการเข้าร่วม';
 const CONSENT_YES = 'ยินยอมเข้าร่วม';
 const CONSENT_NO = 'ไม่ยินยอม';
@@ -68,32 +66,18 @@ const experienceTitle = (i) => (i + 1) + '. ' + EXPERIENCE[i];
 
 function createForms() {
   const sheet = SpreadsheetApp.create('ผลแบบสอบถาม SpeechCruiser');
-  const pre = buildPreForm_();
-  const post = buildPostForm_();
-  pre.setDestination(FormApp.DestinationType.SPREADSHEET, sheet.getId());
-  post.setDestination(FormApp.DestinationType.SPREADSHEET, sheet.getId());
-
-  PropertiesService.getScriptProperties().setProperties({
-    PRE_FORM_ID: pre.getId(),
-    POST_FORM_ID: post.getId(),
-    SHEET_ID: sheet.getId(),
-  });
-
-  Logger.log('แบบฟอร์มก่อนเล่น (ส่งให้ผู้เข้าร่วม): ' + pre.getPublishedUrl());
-  Logger.log('แบบฟอร์มหลังเล่น (ส่งให้ผู้เข้าร่วม): ' + post.getPublishedUrl());
-  Logger.log('แก้ไขแบบฟอร์มก่อนเล่น: ' + pre.getEditUrl());
-  Logger.log('แก้ไขแบบฟอร์มหลังเล่น: ' + post.getEditUrl());
-  Logger.log('ชีตผลคำตอบ: ' + sheet.getUrl());
-}
-
-function buildPreForm_() {
-  const form = FormApp.create('[ก่อนเล่น] ' + TITLE);
-  setUp_(form,
-    'แบบวัดนี้เป็นส่วนหนึ่งของโครงงาน "การออกแบบและพัฒนาเกมเดินเรือด้วยระบบสั่งการด้วยเสียงเพื่อส่งเสริมทักษะการสื่อสาร" ' +
-    'ท่านจะตอบแบบวัดชุดนี้ก่อนเล่นเกม แล้วเล่นเกมประมาณ 30 นาที และตอบแบบวัดชุดที่ 2 หลังเล่น\n\n' +
-    'การเข้าร่วมเป็นไปโดยสมัครใจ ท่านยุติการเข้าร่วมได้ทุกเมื่อโดยไม่มีผลกระทบใด ๆ ' +
-    'ข้อมูลทั้งหมดอ้างอิงด้วยรหัสผู้เข้าร่วมเท่านั้น ไม่มีการเก็บชื่อหรืออีเมล และนำไปใช้เพื่อการศึกษาเท่านั้น ' +
-    'เกมไม่บันทึกเสียงของผู้เข้าร่วม แต่ข้อความที่ระบบถอดจากเสียงพูดอาจส่งไปประมวลผลผ่าน OpenAI API');
+  const form = FormApp.create(TITLE);
+  form.setDescription(
+      'แบบสอบถามนี้เป็นส่วนหนึ่งของโครงงาน "การออกแบบและพัฒนาเกมเดินเรือด้วยระบบสั่งการด้วยเสียงเพื่อส่งเสริมทักษะการสื่อสาร" ' +
+      'ท่านจะตอบตอนที่ 1 และ 2 ก่อนเล่นเกม แล้วเล่นเกมประมาณ 30 นาทีโดยเปิดฟอร์มนี้ค้างไว้ ' +
+      'จากนั้นกลับมาตอบตอนที่ 2 อีกครั้ง พร้อมตอนที่ 3 และ 4 แล้วจึงกดส่ง\n\n' +
+      'การเข้าร่วมเป็นไปโดยสมัครใจ ท่านยุติการเข้าร่วมได้ทุกเมื่อโดยไม่มีผลกระทบใด ๆ ' +
+      'แบบสอบถามไม่เก็บชื่อ อีเมล หรือข้อมูลที่ระบุตัวตนได้ และนำไปใช้เพื่อการศึกษาเท่านั้น ' +
+      'เกมไม่บันทึกเสียงของผู้เข้าร่วม แต่ข้อความที่ระบบถอดจากเสียงพูดอาจส่งไปประมวลผลผ่าน OpenAI API')
+    .setCollectEmail(false)
+    .setAllowResponseEdits(false)
+    .setShowLinkToRespondAgain(false)
+    .setProgressBar(true);
 
   const consent = form.addMultipleChoiceItem()
     .setTitle(CONSENT_TITLE)
@@ -104,8 +88,8 @@ function buildPreForm_() {
     consent.createChoice(CONSENT_NO, FormApp.PageNavigationType.SUBMIT),
   ]);
 
-  form.addPageBreakItem().setTitle('ตอนที่ 1 ข้อมูลทั่วไป');
-  addCode_(form);
+  // ---- before playing
+  form.addPageBreakItem().setTitle('ตอนที่ 1 ข้อมูลทั่วไป (ก่อนเล่น)');
   form.addMultipleChoiceItem().setTitle('1. เพศ')
     .setChoiceValues(['ชาย', 'หญิง', 'ไม่ระบุ']).setRequired(true);
   form.addTextItem().setTitle('2. อายุ (ปี)').setRequired(true)
@@ -121,60 +105,56 @@ function buildPreForm_() {
   form.addMultipleChoiceItem().setTitle('6. เคยเรียนหรือใช้ภาษาอังกฤษทางทะเลมาก่อนหรือไม่')
     .setChoiceValues(['เคย', 'ไม่เคย']).setRequired(true);
 
-  addAnxiety_(form);
-  form.setConfirmationMessage('ขอบคุณครับ/ค่ะ กรุณาแจ้งผู้ดำเนินการทดลองเพื่อเริ่มเล่นเกม');
-  return form;
-}
+  const preIds = addAnxiety_(form, 'ตอนที่ 2 แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษ (ก่อนเล่น)');
 
-function buildPostForm_() {
-  const form = FormApp.create('[หลังเล่น] ' + TITLE);
-  setUp_(form,
-    'กรุณาตอบแบบวัดชุดนี้หลังจากเล่นเกมเสร็จแล้ว โดยใช้รหัสผู้เข้าร่วมเดียวกับแบบวัดก่อนเล่น ' +
-    'ตอนที่ 2 มีข้อความเหมือนแบบวัดก่อนเล่น กรุณาตอบตามความรู้สึกของท่านในขณะนี้');
+  // ---- the game, with the form left open; the check stops an accidental "next"
+  form.addPageBreakItem().setTitle('หยุดตรงนี้ และเริ่มเล่นเกม')
+    .setHelpText('เปิดหน้านี้ค้างไว้ เล่นเกมประมาณ 30 นาทีตามที่ผู้ดำเนินการทดลองแนะนำ ' +
+                 'เมื่อเล่นเสร็จแล้วจึงกลับมาที่หน้านี้ และกดถัดไป');
+  form.addCheckboxItem().setTitle('ข้าพเจ้าเล่นเกมเสร็จแล้ว')
+    .setChoiceValues(['เล่นเสร็จแล้ว']).setRequired(true);
 
-  addCode_(form);
-  addAnxiety_(form);
+  // ---- after playing
+  const postIds = addAnxiety_(form, 'ตอนที่ 2 แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษ (หลังเล่น)',
+    'ข้อความเหมือนกับก่อนเล่น กรุณาตอบตามความรู้สึกของท่านในขณะนี้');
 
-  form.addPageBreakItem().setTitle('ตอนที่ 3 แบบสอบถามประสบการณ์การเล่นเกม')
+  form.addPageBreakItem().setTitle('ตอนที่ 3 แบบสอบถามประสบการณ์การเล่นเกม (หลังเล่น)')
     .setHelpText('โปรดเลือกระดับความคิดเห็นของท่าน (1 = ' + SCALE_LOW + ', 5 = ' + SCALE_HIGH + ')');
-  EXPERIENCE.forEach((_, i) => addScale_(form, experienceTitle(i)));
+  const expIds = EXPERIENCE.map((_, i) => addScale_(form, experienceTitle(i)));
 
-  form.addPageBreakItem().setTitle('ตอนที่ 4 ข้อเสนอแนะเพิ่มเติม');
+  form.addPageBreakItem().setTitle('ตอนที่ 4 ข้อเสนอแนะเพิ่มเติม (หลังเล่น)');
   form.addParagraphTextItem().setTitle('1. สิ่งที่ท่านชอบมากที่สุดในเกมนี้');
   form.addParagraphTextItem().setTitle('2. สิ่งที่ทำให้ท่านรู้สึกกังวลหรือไม่สะดวกระหว่างเล่น');
   form.addParagraphTextItem().setTitle('3. ข้อเสนอแนะเพื่อปรับปรุงเกมนี้');
-
   form.setConfirmationMessage('ขอบคุณที่สละเวลาเข้าร่วมการทดลองครับ/ค่ะ');
-  return form;
+
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, sheet.getId());
+
+  // The pre and post items share their wording, so scoring finds them by item id.
+  PropertiesService.getScriptProperties().setProperties({
+    FORM_ID: form.getId(),
+    SHEET_ID: sheet.getId(),
+    PRE_IDS: JSON.stringify(preIds),
+    POST_IDS: JSON.stringify(postIds),
+    EXP_IDS: JSON.stringify(expIds),
+  });
+
+  Logger.log('ลิงก์แบบสอบถาม (ส่งให้ผู้เข้าร่วม): ' + form.getPublishedUrl());
+  Logger.log('แก้ไขแบบสอบถาม: ' + form.getEditUrl());
+  Logger.log('ชีตผลคำตอบ: ' + sheet.getUrl());
 }
 
-function setUp_(form, description) {
-  form.setDescription(description)
-    .setCollectEmail(false)
-    .setAllowResponseEdits(false)
-    .setShowLinkToRespondAgain(false)
-    .setProgressBar(true);
-}
-
-function addCode_(form) {
-  form.addTextItem().setTitle(CODE_TITLE)
-    .setHelpText('ผู้ดำเนินการทดลองเป็นผู้แจ้งรหัส เช่น P01 (ใช้รหัสเดียวกันทั้งก่อนและหลังเล่น)')
-    .setRequired(true)
-    .setValidation(FormApp.createTextValidation()
-      .requireTextMatchesPattern(CODE_PATTERN)
-      .setHelpText('ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข หรือขีด (-) ไม่เกิน 24 ตัว').build());
-}
-
-function addAnxiety_(form) {
-  form.addPageBreakItem().setTitle('ตอนที่ 2 แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษ')
-    .setHelpText('โปรดเลือกระดับที่ตรงกับความรู้สึกของท่านมากที่สุด (1 = ' + SCALE_LOW + ', 5 = ' + SCALE_HIGH +
-                 ') ไม่มีคำตอบที่ถูกหรือผิด');
-  ANXIETY.forEach((_, i) => addScale_(form, anxietyTitle(i)));
+/** One page of the 12 anxiety items; returns their item ids in order. */
+function addAnxiety_(form, title, note) {
+  form.addPageBreakItem().setTitle(title)
+    .setHelpText((note ? note + ' ' : '') + 'โปรดเลือกระดับที่ตรงกับความรู้สึกของท่านมากที่สุด (1 = ' +
+                 SCALE_LOW + ', 5 = ' + SCALE_HIGH + ') ไม่มีคำตอบที่ถูกหรือผิด');
+  return ANXIETY.map((_, i) => addScale_(form, anxietyTitle(i)));
 }
 
 function addScale_(form, title) {
-  form.addScaleItem().setTitle(title).setBounds(1, 5)
-    .setLabels(SCALE_LOW, SCALE_HIGH).setRequired(true);
+  return form.addScaleItem().setTitle(title).setBounds(1, 5)
+    .setLabels(SCALE_LOW, SCALE_HIGH).setRequired(true).getId();
 }
 
 // ---------------------------------------------------------------------------
@@ -183,29 +163,30 @@ function addScale_(form, title) {
 
 function scoreResponses() {
   const props = PropertiesService.getScriptProperties();
-  const pre = latestByCode_(FormApp.openById(props.getProperty('PRE_FORM_ID')));
-  const post = latestByCode_(FormApp.openById(props.getProperty('POST_FORM_ID')));
+  const form = FormApp.openById(props.getProperty('FORM_ID'));
   const ss = SpreadsheetApp.openById(props.getProperty('SHEET_ID'));
+  const preIds = JSON.parse(props.getProperty('PRE_IDS'));
+  const postIds = JSON.parse(props.getProperty('POST_IDS'));
+  const expIds = JSON.parse(props.getProperty('EXP_IDS'));
 
   // Means on the 1–5 scale: the thesis analyses item means (Chapter 3).
-  const header = ['รหัส', 'ก่อน: เฉลี่ย', 'ก่อน: CA', 'ก่อน: FNE', 'ก่อน: รวม (12–60)',
+  const header = ['ลำดับ', 'ก่อน: เฉลี่ย', 'ก่อน: CA', 'ก่อน: FNE', 'ก่อน: รวม (12–60)',
                   'หลัง: เฉลี่ย', 'หลัง: CA', 'หลัง: FNE', 'หลัง: รวม (12–60)',
                   'ผลต่างค่าเฉลี่ย (หลัง − ก่อน)', 'ประสบการณ์: เฉลี่ย'];
   const rows = [];
   const preItems = [];          // the 12 scored pre-test answers of each participant
   const experienceItems = [];   // the 10 scored experience answers of each participant
-  Object.keys(pre).sort().forEach((code) => {
-    const a = scored_(pre[code], ANXIETY, anxietyTitle, ANXIETY_REVERSED);
-    if (!a) return;
+  responses_(form).forEach(({ code, byId }) => {
+    const a = scored_(byId, preIds, ANXIETY_REVERSED);
+    const b = scored_(byId, postIds, ANXIETY_REVERSED);
+    const e = scored_(byId, expIds, EXPERIENCE_REVERSED);
+    if (!a || !b) return;       // the form is only sent after both parts, so this is a broken response
     preItems.push(a);
-    const b = post[code] ? scored_(post[code], ANXIETY, anxietyTitle, ANXIETY_REVERSED) : null;
-    const e = post[code] ? scored_(post[code], EXPERIENCE, experienceTitle, EXPERIENCE_REVERSED) : null;
     if (e) experienceItems.push(e);
     rows.push([code,
                mean_(a), mean_(pick_(a, COMMUNICATION_APPREHENSION)), mean_(pick_(a, FEAR_OF_NEGATIVE_EVALUATION)), sum_(a),
-               b ? mean_(b) : '', b ? mean_(pick_(b, COMMUNICATION_APPREHENSION)) : '',
-               b ? mean_(pick_(b, FEAR_OF_NEGATIVE_EVALUATION)) : '', b ? sum_(b) : '',
-               b ? mean_(b) - mean_(a) : '', e ? mean_(e) : '']);
+               mean_(b), mean_(pick_(b, COMMUNICATION_APPREHENSION)), mean_(pick_(b, FEAR_OF_NEGATIVE_EVALUATION)), sum_(b),
+               mean_(b) - mean_(a), e ? mean_(e) : '']);
   });
 
   let sheet = ss.getSheetByName('คะแนน');
@@ -213,20 +194,17 @@ function scoreResponses() {
   sheet.getRange(1, 1, 1, header.length).setValues([header]).setFontWeight('bold');
   if (rows.length) sheet.getRange(2, 1, rows.length, header.length).setValues(rows);
 
-  // Summary. Only participants with both a pre and a post test enter the paired test.
   const last = Math.max(rows.length + 1, 2);
-  const pairedPre = 'FILTER(B2:B' + last + ',F2:F' + last + '<>"")';
-  const pairedPost = 'FILTER(F2:F' + last + ',F2:F' + last + '<>"")';
-  const diff = 'FILTER(J2:J' + last + ',J2:J' + last + '<>"")';
+  const pre = 'B2:B' + last, post = 'F2:F' + last, diff = 'J2:J' + last;
   const r = last + 2;
   const summary = [
     ['สรุป (ค่าเฉลี่ยรายข้อ 1–5)', ''],
-    ['จำนวนผู้ตอบครบทั้งก่อนและหลัง (n)', '=COUNT(' + diff + ')'],
-    ['ค่าเฉลี่ยความวิตกกังวลก่อนเล่น', '=AVERAGE(' + pairedPre + ')'],
-    ['ส่วนเบี่ยงเบนมาตรฐานก่อนเล่น', '=STDEV(' + pairedPre + ')'],
-    ['ค่าเฉลี่ยความวิตกกังวลหลังเล่น', '=AVERAGE(' + pairedPost + ')'],
-    ['ส่วนเบี่ยงเบนมาตรฐานหลังเล่น', '=STDEV(' + pairedPost + ')'],
-    ['Paired t-test: p (ทางเดียว, หลัง < ก่อน)', '=T.TEST(' + pairedPre + ',' + pairedPost + ',1,1)'],
+    ['จำนวนผู้ตอบครบ (n)', '=COUNT(' + diff + ')'],
+    ['ค่าเฉลี่ยความวิตกกังวลก่อนเล่น', '=AVERAGE(' + pre + ')'],
+    ['ส่วนเบี่ยงเบนมาตรฐานก่อนเล่น', '=STDEV(' + pre + ')'],
+    ['ค่าเฉลี่ยความวิตกกังวลหลังเล่น', '=AVERAGE(' + post + ')'],
+    ['ส่วนเบี่ยงเบนมาตรฐานหลังเล่น', '=STDEV(' + post + ')'],
+    ['Paired t-test: p (ทางเดียว, หลัง < ก่อน)', '=T.TEST(' + pre + ',' + post + ',1,1)'],
     ["ขนาดอิทธิพล Cohen's d_z (ผลต่างเฉลี่ย / SD ของผลต่าง)", '=AVERAGE(' + diff + ')/STDEV(' + diff + ')'],
     ["Cronbach's alpha ด้าน CA (ก่อนเล่น)", cronbachAlpha_(preItems.map((p) => pick_(p, COMMUNICATION_APPREHENSION)))],
     ["Cronbach's alpha ด้าน FNE (ก่อนเล่น)", cronbachAlpha_(preItems.map((p) => pick_(p, FEAR_OF_NEGATIVE_EVALUATION)))],
@@ -240,21 +218,24 @@ function scoreResponses() {
   Logger.log('เขียนชีต "คะแนน" แล้ว: ' + rows.length + ' คน');
 }
 
-/** The latest response of each participant code: code -> {title: answer}. */
-function latestByCode_(form) {
-  const out = {};
+/** Every consenting response in the order sent, with answers keyed by item id and a running number as its label. */
+function responses_(form) {
+  const out = [];
   form.getResponses().forEach((resp) => {
-    const answers = {};
-    resp.getItemResponses().forEach((ir) => { answers[ir.getItem().getTitle()] = ir.getResponse(); });
-    const code = String(answers[CODE_TITLE] || '').trim().toUpperCase();
-    if (code && answers[CONSENT_TITLE] !== CONSENT_NO) out[code] = answers;
+    const byId = {};
+    let consent = '';
+    resp.getItemResponses().forEach((ir) => {
+      byId[ir.getItem().getId()] = ir.getResponse();
+      if (ir.getItem().getTitle() === CONSENT_TITLE) consent = ir.getResponse();
+    });
+    if (consent !== CONSENT_NO) out.push({ code: 'R' + String(out.length + 1).padStart(2, '0'), byId });
   });
   return out;
 }
 
 /** The answers of one scale after reversing its reversed items; null if any is missing. */
-function scored_(answers, items, titleOf, reversed) {
-  const scores = items.map((_, i) => Number(answers[titleOf(i)]));
+function scored_(byId, ids, reversed) {
+  const scores = ids.map((id) => Number(byId[id]));
   if (scores.some((s) => !(s >= 1 && s <= 5))) return null;
   return scores.map((s, i) => (reversed.indexOf(i + 1) >= 0 ? 6 - s : s));
 }
