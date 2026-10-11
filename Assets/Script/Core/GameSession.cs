@@ -263,7 +263,10 @@ public class GameSession : Singleton<GameSession>
     {
         base.Awake();
         if (Instance != this) return;
-        LoadCareer();
+        // "-fresh" on the command line (the study's launcher): each participant starts a new
+        // career with the drill, whatever the last one reached. Settings (mic, keys, volume) stay.
+        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-fresh") >= 0) StartNewCareer();
+        else LoadCareer();
     }
 
     private void LoadCareer()
