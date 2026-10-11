@@ -69,6 +69,8 @@ public class ShipyardManager : MonoBehaviour
     /// <summary>Cargo is being loaded after SET SAIL: the radio check is over, the voyage is starting.</summary>
     public static bool IsLoadingCargo => _instance != null && _instance._loading;
     private bool _skipLoading;
+    private bool _toldReady;
+    private bool _restarting;
     private float _toastUntil;
     private CinemachinePositionComposer _composer;
     private CinemachineCamera _vcam;
@@ -107,9 +109,12 @@ public class ShipyardManager : MonoBehaviour
         _loadingCaption = root.Q<Label>("loading-caption");
         _jobsPage = root.Q<VisualElement>("page-jobs");
         _upgradesPage = root.Q<VisualElement>("page-upgrades");
-        _upgrades = new UpgradesPage(_upgradesPage, message => ShowToast(message));
+        _upgrades = new UpgradesPage(_upgradesPage, OnFitted);
         _upgradesLink = root.Q<Button>("upgrades-link");
-        _upgradesLink.clicked += () => ShowUpgrades(!_upgradesPage.ClassListContains("shown"));
+        _upgradesLink.clicked += () => SceneLoader.Page(() => ShowUpgrades(!_upgradesPage.ClassListContains("shown")));
+        // While something can be fitted, the link beats gently so it is noticed.
+        _upgradesLink.schedule.Execute(() =>
+            _upgradesLink.EnableInClassList("beat", _upgradesLink.ClassListContains("ready") && !_upgradesLink.ClassListContains("beat"))).Every(650);
         var slot = root.Q<VisualElement>("lever-slot");
         if (slot != null)
         {
@@ -149,8 +154,40 @@ public class ShipyardManager : MonoBehaviour
         if (!string.IsNullOrEmpty(last) && (last.StartsWith("VOYAGE ABANDONED") || last.StartsWith("TUTORIAL VOYAGE LEFT")))
             ShowToast(last.Substring(0, 1) + last.Substring(1).ToLowerInvariant(), 8f);
 
+        // A restart (pause menu, report, off-course prompt) sails again at once; from a checkpoint
+        // the ship is then put back there. Any other visit starts the mission from scratch.
+        var restart = VoyageRestart.Take();
+        if (restart == VoyageRestart.Mode.None) Checkpoints.Clear();
+
         // The briefing plays the first time; a retry goes straight to the ship ("Replay briefing" brings it back).
-        if (StoryProgress.TakeBriefing(_story)) PlayBriefing();
+        if (StoryProgress.TakeBriefing(_story) && restart == VoyageRestart.Mode.None) PlayBriefing();
+        if (restart != VoyageRestart.Mode.None) SailAgain(restart == VoyageRestart.Mode.FromCheckpoint);
+    }
+
+    /// <summary>A restart: Set Sail straight away, the crane hurrying, and back to the checkpoint if asked.</summary>
+    private void SailAgain(bool fromCheckpoint)
+    {
+        if (fromCheckpoint && StoryDirector.Instance != null)
+        {
+            var checkpoints = StoryDirector.Instance.GetComponent<Checkpoints>();
+            if (checkpoints != null) checkpoints.RestoreOnSailing();
+        }
+        _restarting = true; // a quick retry: no SET SAIL band over the checkpoint's message
+        OnStartMission();
+        _skipLoading = true;
+    }
+
+    /// <summary>Takes <paramref name="count"/> containers off the deck without a splash (a checkpoint had fewer aboard).</summary>
+    public static void ShedCargo(int count)
+    {
+        if (_instance == null || count <= 0 || GameSession.Instance == null) return;
+        int lost = GameSession.Instance.LoseCargo(count);
+        for (int i = 0; i < lost && _instance._spawnedContainers.Count > 0; i++)
+        {
+            var box = _instance._spawnedContainers[_instance._spawnedContainers.Count - 1];
+            _instance._spawnedContainers.RemoveAt(_instance._spawnedContainers.Count - 1);
+            if (box != null) Destroy(box);
+        }
     }
 
     // ------------------------------------------------------------ story mode
@@ -299,7 +336,45 @@ public class ShipyardManager : MonoBehaviour
     {
         _jobsPage.EnableInClassList("shown", !show);
         _upgradesPage.EnableInClassList("shown", show);
-        _upgradesLink.text = show ? (_story != null ? "BACK TO THE MISSION" : "BACK TO THE JOBS") : "UPGRADE SHIP";
+        RefreshUpgradeLink();
+    }
+
+    /// <summary>The link names how many upgrades are ready to fit, in rust, so they aren't missed.</summary>
+    private void RefreshUpgradeLink()
+    {
+        if (_upgradesLink == null) return;
+        bool showing = _upgradesPage.ClassListContains("shown");
+        int ready = GameSession.Instance != null ? GameSession.Instance.ReadyUpgrades().Count : 0;
+        _upgradesLink.text = showing ? (_story != null ? "BACK TO THE MISSION" : "BACK TO THE JOBS")
+                           : ready > 0 ? "UPGRADE SHIP  ·  " + ready + " READY" : "UPGRADE SHIP";
+        _upgradesLink.EnableInClassList("ready", ready > 0 && !showing);
+        if (ready == 0 || showing) _upgradesLink.RemoveFromClassList("beat");
+    }
+
+    /// <summary>Back in port with an upgrade ready to fit: say so once, by name.</summary>
+    private void TellReadyUpgrade()
+    {
+        if (_toldReady || GameSession.Instance == null) return;
+        var ready = GameSession.Instance.ReadyUpgrades();
+        if (ready.Count == 0) return;
+        _toldReady = true;
+        var u = ready[0];
+        string what = Progression.UpgradeName(u) + " Mk " + UpgradesPage.Roman(GameSession.Instance.Level(u) + 1);
+        ShowToast("New upgrade ready to fit: " + what + (ready.Count > 1 ? " and " + (ready.Count - 1) + " more" : "") + ". Open UPGRADE SHIP below.", 8f);
+    }
+
+    /// <summary>An upgrade fitted: the ship shows it off and the page says what changed.</summary>
+    private void OnFitted(Upgrade u)
+    {
+        var session = GameSession.Instance;
+        if (session == null) return;
+        int level = session.Level(u);
+        string name = Progression.UpgradeName(u) + "  ·  MK " + UpgradesPage.Roman(level);
+        ShowToast(Progression.UpgradeName(u) + " fitted: Mk " + UpgradesPage.Roman(level));
+        var nav = ShipNavigator.Instance;
+        Transform ship = nav != null && nav.Movement != null ? nav.Movement.Visual : null;
+        UpgradeFanfare.Play(ship, _document.rootVisualElement, name, Progression.For(u, level).Effect);
+        RefreshUpgradeLink();
     }
 
     /// <summary>The yard mends the hull between voyages, free: one less thing to manage before sailing.</summary>
@@ -338,6 +413,7 @@ public class ShipyardManager : MonoBehaviour
         {
             if (_lever != null && !_loading) _lever.ResetBack();
             if (!_loading) RepairForFree();
+            if (store) TellReadyUpgrade();
             _statusText.text = _story != null ? "Chapter " + _story.Chapter + ": " + StoryCatalog.Chapters[_story.Chapter - 1].Title
                                               : "Shipyard";
             RefreshUI();
@@ -404,6 +480,7 @@ public class ShipyardManager : MonoBehaviour
         SetJobCard(_jobHardBtn, "route-hard", JobSpec.Hard, "A long, crowded route");
 
         _upgrades.Refresh();
+        RefreshUpgradeLink();
 
         RefreshStartButton();
     }
@@ -455,6 +532,7 @@ public class ShipyardManager : MonoBehaviour
             _lever.Throw();
             yield return new WaitForSecondsRealtime(LeverSeconds);
         }
+        if (!_restarting) ScreenBanner.SetSail();
 
         // The route is rebuilt for the chosen job and current credits; the dock sits at the
         // origin every time, so the moored ship doesn't move.

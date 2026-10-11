@@ -239,6 +239,32 @@
     color: rgb(160, 50, 24);
 }
 
+/* Something can be fitted: the link turns rust, underlined, and beats gently. */
+.yard-link.ready {
+    color: rgb(160, 50, 24);
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
+    font-size: 20px;
+    transition-property: scale;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out;
+}
+
+.yard-link.ready.beat {
+    scale: 1.07 1.07;
+}
+
+/* An upgrade card that can be fitted now: a rust bar, as the chosen job has. */
+.upgrade-card.ready {
+    border-left-width: 5px;
+    border-left-color: rgb(160, 50, 24);
+    background-color: rgba(160, 50, 24, 0.08);
+}
+
+.upgrade-card.ready .card-title {
+    color: rgb(160, 50, 24);
+}
+
 .spacer {
     flex-grow: 1;
 }

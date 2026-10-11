@@ -121,6 +121,15 @@ public class GameSession : Singleton<GameSession>
         return null;
     }
 
+    /// <summary>The upgrades that can be fitted right now (certificate earned, credits enough), in catalog order.</summary>
+    public System.Collections.Generic.List<Upgrade> ReadyUpgrades()
+    {
+        var ready = new System.Collections.Generic.List<Upgrade>();
+        foreach (Upgrade u in Enum.GetValues(typeof(Upgrade)))
+            if (WhyNot(u) == null) ready.Add(u);
+        return ready;
+    }
+
     /// <summary>Fits the next level of <paramref name="u"/> if its certificate is earned and it can be paid for.</summary>
     public bool TryBuy(Upgrade u)
     {

@@ -15,6 +15,7 @@ public class SettingsService : Singleton<SettingsService>
     private const string RadioKey = "RadioVolume";
     private const string ToggleToTalkKey = "ToggleToTalk";
     private const string SubtitleScaleKey = "SubtitleScale";
+    private const string PathAssistKey = "PathAssist";
     private const string OrderBindingKey = "Binding.CommandPtt";
     private const string TalkBindingKey = "Binding.ConversationPtt";
 
@@ -30,6 +31,9 @@ public class SettingsService : Singleton<SettingsService>
 
     /// <summary>Press the radio key once to start talking and again to send, instead of holding it.</summary>
     public bool ToggleToTalk { get; private set; }
+
+    /// <summary>Story mode: the helmsman quietly keeps the ship toward the channel (PathAssist). On by default.</summary>
+    public bool PathAssist { get; private set; }
     public float SubtitleScale { get; private set; }
 
     /// <summary>Controls or subtitle size changed; the HUD re-reads key names and sizes.</summary>
@@ -47,6 +51,7 @@ public class SettingsService : Singleton<SettingsService>
         RadioVolume = PlayerPrefs.GetFloat(RadioKey, 1f);
         ToggleToTalk = PlayerPrefs.GetInt(ToggleToTalkKey, 0) == 1;
         SubtitleScale = PlayerPrefs.GetFloat(SubtitleScaleKey, 1f);
+        PathAssist = PlayerPrefs.GetInt(PathAssistKey, 1) == 1;
         AudioListener.volume = MasterVolume;
     }
 
@@ -84,6 +89,13 @@ public class SettingsService : Singleton<SettingsService>
         PlayerPrefs.SetInt(ToggleToTalkKey, toggle ? 1 : 0);
         PlayerPrefs.Save();
         OnControlsChanged?.Invoke();
+    }
+
+    public void SetPathAssist(bool on)
+    {
+        PathAssist = on;
+        PlayerPrefs.SetInt(PathAssistKey, on ? 1 : 0);
+        PlayerPrefs.Save();
     }
 
     public void SetSubtitleScale(float scale)

@@ -43,6 +43,7 @@ public class SettingsPanelController : IDisposable
     private readonly Button _talkKeyButton;
     private readonly Label _bindHint;
     private readonly Toggle _toggleToTalk;
+    private readonly Toggle _pathAssist;
     private readonly DropdownField _subtitleDropdown;
     private readonly TextField _participantField;
     private readonly Button _resetKeysButton;
@@ -67,6 +68,7 @@ public class SettingsPanelController : IDisposable
         _talkKeyButton = Require<Button>(root, "TalkKeyButton");
         _bindHint = Require<Label>(root, "BindHint");
         _toggleToTalk = Require<Toggle>(root, "ToggleToTalk");
+        _pathAssist = Require<Toggle>(root, "PathAssistToggle");
         _subtitleDropdown = Require<DropdownField>(root, "SubtitleDropdown");
         _participantField = Require<TextField>(root, "ParticipantField");
         _participantField.maxLength = ResearchLog.ParticipantMaxLength;
@@ -86,6 +88,7 @@ public class SettingsPanelController : IDisposable
         _effectsSlider.RegisterValueChangedCallback(OnEffectsChanged);
         _radioSlider.RegisterValueChangedCallback(OnRadioChanged);
         _toggleToTalk.RegisterValueChangedCallback(OnToggleToTalkChanged);
+        _pathAssist.RegisterValueChangedCallback(OnPathAssistChanged);
         _subtitleDropdown.RegisterValueChangedCallback(OnSubtitleChanged);
         _participantField.RegisterValueChangedCallback(OnParticipantChanged);
         _participantField.RegisterCallback<FocusInEvent>(OnParticipantFocus);
@@ -118,6 +121,7 @@ public class SettingsPanelController : IDisposable
         _effectsSlider.UnregisterValueChangedCallback(OnEffectsChanged);
         _radioSlider.UnregisterValueChangedCallback(OnRadioChanged);
         _toggleToTalk.UnregisterValueChangedCallback(OnToggleToTalkChanged);
+        _pathAssist.UnregisterValueChangedCallback(OnPathAssistChanged);
         _subtitleDropdown.UnregisterValueChangedCallback(OnSubtitleChanged);
         _participantField.UnregisterValueChangedCallback(OnParticipantChanged);
         _participantField.UnregisterCallback<FocusInEvent>(OnParticipantFocus);
@@ -140,6 +144,7 @@ public class SettingsPanelController : IDisposable
         _effectsSlider.SetValueWithoutNotify(settings.EffectsVolume);
         _radioSlider.SetValueWithoutNotify(settings.RadioVolume);
         _toggleToTalk.SetValueWithoutNotify(settings.ToggleToTalk);
+        _pathAssist.SetValueWithoutNotify(settings.PathAssist);
 
         int scaleIndex = Array.IndexOf(SettingsService.SubtitleScales, settings.SubtitleScale);
         _subtitleDropdown.SetValueWithoutNotify(SettingsService.SubtitleScaleNames[Mathf.Max(0, scaleIndex)]);
@@ -244,6 +249,11 @@ public class SettingsPanelController : IDisposable
     }
 
     // ------------------------------------------------------------ other settings
+
+    private void OnPathAssistChanged(ChangeEvent<bool> evt)
+    {
+        SettingsService.Instance.SetPathAssist(evt.newValue);
+    }
 
     private void OnToggleToTalkChanged(ChangeEvent<bool> evt)
     {

@@ -33,15 +33,23 @@ public class ShipHelm : MonoBehaviour
     [Tooltip("Heading error, in degrees, at which the autopilot calls the turn complete.")]
     [SerializeField] private float AutopilotTolerance = 1f;
 
-    private float _targetRudderAngle = 0f;
-    private float _currentRudderAngle = 0f;
-    private bool _isRudderCommandActive = false;
-    private float _rudderHoldTimer = 0f;
+    /// <summary>
+    /// The orders on the helm and where the rudder stands: everything one frame steps. Kept in
+    /// one value so CourseGuides can copy it and step the copy ahead to draw where the ship goes.
+    /// </summary>
+    public struct State
+    {
+        public float Rudder;       // the blade now, degrees (+ = starboard)
+        public float Target;       // where it is swinging to
+        public bool Ordered;       // a turn order is holding the rudder over
+        public float HoldLeft;     // seconds before a plain turn order eases off
+        public bool Autopilot;     // steering for a heading
+        public float Heading;      // the heading ordered
+        public float Direction;    // the side ordered (+1 starboard, -1 port)
+        public float MaxRudder;    // the rudder the helmsman may use on the autopilot
+    }
 
-    private bool _isAutopilotActive = false;
-    private float _targetHeading = 0f;
-    private float _autopilotDirection = 1f;
-    private float _autopilotMaxRudder = 35f;
+    private State _s = new State { MaxRudder = 35f };
     private ShipMovement _movement;
 
     private void Awake()
@@ -49,44 +57,55 @@ public class ShipHelm : MonoBehaviour
         _movement = GetComponent<ShipMovement>();
     }
 
-    public float CurrentRudderAngle => _currentRudderAngle;
-    public float TargetRudderAngle => _targetRudderAngle;
+    public float CurrentRudderAngle => _s.Rudder;
+    public float TargetRudderAngle => _s.Target;
     public float MaxAngle => MaxRudderAngle;
+
+    /// <summary>
+    /// Rudder the helmsman holds when no order is on, in degrees (PathAssist, story mode): the
+    /// blade eases to this instead of to midships. Orders always come first.
+    /// </summary>
+    public float Assist { get; set; }
+
+    /// <summary>A copy of the helm as it stands, to step ahead with <see cref="Step"/>.</summary>
+    public State Snapshot => _s;
 
     private void Update()
     {
-        UpdateAutopilot();
-        UpdateRudder();
+        bool steering = _s.Autopilot;
+        float rate = _movement != null ? _movement.TurnRate : 0f;
+        Step(ref _s, transform.eulerAngles.y, rate, Time.deltaTime);
+        if (steering && !_s.Autopilot) Debug.Log($"🚢 [HELM]: Steady on {NormalizeHeading(_s.Heading):F0}°.");
     }
 
     /// <param name="maxRudder">Rudder the helmsman may use; 0 or less means hard over.</param>
     public void OrderHeadingChange(float degreesToTurn, float maxRudder = 0f)
     {
-        _autopilotMaxRudder = maxRudder > 0f ? Mathf.Min(maxRudder, MaxRudderAngle) : MaxRudderAngle;
-        _isAutopilotActive = true;
-        _isRudderCommandActive = true;
-        _targetHeading = transform.eulerAngles.y + degreesToTurn;
-        _autopilotDirection = Mathf.Sign(degreesToTurn);
+        _s.MaxRudder = maxRudder > 0f ? Mathf.Min(maxRudder, MaxRudderAngle) : MaxRudderAngle;
+        _s.Autopilot = true;
+        _s.Ordered = true;
+        _s.Heading = transform.eulerAngles.y + degreesToTurn;
+        _s.Direction = Mathf.Sign(degreesToTurn);
 
         string direction = degreesToTurn < 0 ? "PORT" : "STARBOARD";
-        Debug.Log($"🚢 [HELM]: Coming {Mathf.Abs(degreesToTurn):F0} degrees {direction}, steering for {NormalizeHeading(_targetHeading):F0}°.");
+        Debug.Log($"🚢 [HELM]: Coming {Mathf.Abs(degreesToTurn):F0} degrees {direction}, steering for {NormalizeHeading(_s.Heading):F0}°.");
     }
 
     public void TurnShip(float rudderDegrees)
     {
-        _isAutopilotActive = false;
+        _s.Autopilot = false;
         float newTarget = Mathf.Clamp(rudderDegrees, -MaxRudderAngle, MaxRudderAngle);
         
-        bool isNewCommand = Mathf.Abs(newTarget - _targetRudderAngle) > 1f || !_isRudderCommandActive;
+        bool isNewCommand = Mathf.Abs(newTarget - _s.Target) > 1f || !_s.Ordered;
         
-        _targetRudderAngle = newTarget;
-        _isRudderCommandActive = true;
-        _rudderHoldTimer = RudderHoldTime;
+        _s.Target = newTarget;
+        _s.Ordered = true;
+        _s.HoldLeft = RudderHoldTime;
 
         if (isNewCommand)
         {
             string direction = rudderDegrees < 0 ? "PORT" : "STARBOARD";
-            Debug.Log($"🚢 [HELM]: Rudder {Mathf.Abs(_targetRudderAngle):F0}° {direction}.");
+            Debug.Log($"🚢 [HELM]: Rudder {Mathf.Abs(_s.Target):F0}° {direction}.");
         }
     }
 
@@ -98,31 +117,42 @@ public class ShipHelm : MonoBehaviour
 
     public void RudderMidships()
     {
-        _isAutopilotActive = false;
-        _targetRudderAngle = 0f;
-        _isRudderCommandActive = false;
-        _rudderHoldTimer = 0f;
+        Midships(ref _s);
         Debug.Log("🚢 [HELM]: Rudder amidships. Steady as she goes.");
     }
 
-    private void UpdateAutopilot()
+    private static void Midships(ref State s)
     {
-        if (!_isAutopilotActive) return;
+        s.Autopilot = false;
+        s.Target = 0f;
+        s.Ordered = false;
+        s.HoldLeft = 0f;
+    }
+
+    /// <summary>
+    /// One frame of the helm: the autopilot sets the rudder for the ordered heading, then the
+    /// blade swings toward its target and a plain turn order times out. <paramref name="heading"/>
+    /// and <paramref name="turnRate"/> are the bow's, now or as predicted.
+    /// </summary>
+    public void Step(ref State s, float heading, float turnRate, float dt)
+    {
+        StepAutopilot(ref s, heading, turnRate);
+        StepRudder(ref s, dt);
+    }
+
+    private void StepAutopilot(ref State s, float heading, float turnRate)
+    {
+        if (!s.Autopilot) return;
 
         // A heavy hull keeps swinging after the rudder comes off, so steer on where the
         // bow will be once the swing stops (omega^2 / 2a), not where it is now.
-        float heading = transform.eulerAngles.y;
         if (_movement != null && _movement.YawAcceleration > 0f)
-        {
-            float rate = _movement.TurnRate;
-            heading += Mathf.Sign(rate) * rate * rate / (2f * _movement.YawAcceleration);
-        }
-        float error = Mathf.DeltaAngle(heading, _targetHeading);
+            heading += Mathf.Sign(turnRate) * turnRate * turnRate / (2f * _movement.YawAcceleration);
+        float error = Mathf.DeltaAngle(heading, s.Heading);
 
         if (Mathf.Abs(error) <= AutopilotTolerance)
         {
-            Debug.Log($"🚢 [HELM]: Steady on {NormalizeHeading(_targetHeading):F0}°.");
-            RudderMidships();
+            Midships(ref s);
             return;
         }
 
@@ -134,35 +164,35 @@ public class ShipHelm : MonoBehaviour
         // DeltaAngle is ambiguous at exactly 180°, so an ordered "starboard one
         // eighty" would otherwise come round to port.
         float rudder = Mathf.Abs(error) > 90f
-            ? _autopilotMaxRudder * _autopilotDirection
+            ? s.MaxRudder * s.Direction
             : error * AutopilotGain;
 
         // Going astern the rudder swings the bow the other way, so the helmsman reverses it.
         if (_movement != null) rudder *= _movement.RudderEffect;
 
-        _targetRudderAngle = Mathf.Clamp(rudder, -_autopilotMaxRudder, _autopilotMaxRudder);
-        _isRudderCommandActive = true;
+        s.Target = Mathf.Clamp(rudder, -s.MaxRudder, s.MaxRudder);
+        s.Ordered = true;
     }
 
-    private void UpdateRudder()
+    private void StepRudder(ref State s, float dt)
     {
         // The rudder upgrade swings the blade faster too (ShipMovement applies it to the turn itself).
         float actualRudderSpeed = RudderSpeed * (GameSession.Instance != null ? GameSession.Instance.HelmTurnFactor : 1f);
 
-        _currentRudderAngle = Mathf.MoveTowards(_currentRudderAngle, _targetRudderAngle, actualRudderSpeed * Time.deltaTime);
+        s.Rudder = Mathf.MoveTowards(s.Rudder, s.Target, actualRudderSpeed * dt);
 
-        if (_isAutopilotActive) return;
+        if (s.Autopilot) return;
 
-        if (_isRudderCommandActive)
+        if (s.Ordered)
         {
-            _rudderHoldTimer -= Time.deltaTime;
-            if (_rudderHoldTimer <= 0f) _isRudderCommandActive = false;
+            s.HoldLeft -= dt;
+            if (s.HoldLeft <= 0f) s.Ordered = false;
             return;
         }
 
         if (AutoCenterRudder)
         {
-            _targetRudderAngle = Mathf.MoveTowards(_targetRudderAngle, 0f, actualRudderSpeed * 0.5f * Time.deltaTime);
+            s.Target = Mathf.MoveTowards(s.Target, Assist, actualRudderSpeed * 0.5f * dt);
         }
     }
 

@@ -59,6 +59,8 @@ public class StoryDirector : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        gameObject.AddComponent<PathAssist>();
+        gameObject.AddComponent<Checkpoints>();
     }
 
     private void OnEnable()
@@ -172,6 +174,32 @@ public class StoryDirector : MonoBehaviour
         }
         direction = Vector3.forward;
         return path[path.Count - 1];
+    }
+
+    /// <summary>The ship's share of the route sailed, as the radio lines count it.</summary>
+    public static float RouteShare(Vector3 ship)
+    {
+        var level = LevelGenerator.Instance;
+        return level != null ? Mathf.Clamp01(ship.z / Mathf.Max(1f, level.EndPosition.z)) : 0f;
+    }
+
+    /// <summary>
+    /// Back at a checkpoint: the radio lines and sea sights already passed stay passed (so they
+    /// don't all play at once), and a rescue made before it stays made.
+    /// </summary>
+    public void ResumeAt(Vector3 ship, bool rescueDone)
+    {
+        float progress = RouteShare(ship);
+        _queue.Clear();
+        while (_nextCue < _cues.Length && _cues[_nextCue].At <= progress) _nextCue++;
+        for (int i = 0; i < _sights.Count; i++)
+            if (_sights[i] != null && !_sightsFired.Contains(i) && _sights[i].transform.position.z < ship.z) _sightsFired.Add(i);
+        if (rescueDone)
+        {
+            _rescueBoarded = true;
+            if (_rescue != null) Destroy(_rescue.gameObject);
+            _rescue = null;
+        }
     }
 
     // ------------------------------------------------------------ during the voyage

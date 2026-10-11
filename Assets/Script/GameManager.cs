@@ -69,6 +69,19 @@ public class GameManager : Singleton<GameManager>
         SetState(GameState.Shipyard);
     }
 
+    /// <summary>Seconds since this voyage started, and the hits so far (a checkpoint keeps them).</summary>
+    public float Elapsed => Time.time - _missionStartTime;
+    public int Hits => _hits;
+    public int MineHits => _mineHits;
+
+    /// <summary>Back at a checkpoint: the clock and the hits as they were when it was passed.</summary>
+    public void RestoreProgress(float elapsed, int hits, int mineHits)
+    {
+        _missionStartTime = Time.time - Mathf.Max(0f, elapsed);
+        _hits = hits;
+        _mineHits = mineHits;
+    }
+
     public void SetState(GameState newState)
     {
         if (newState == GameState.Playing && CurrentState != GameState.Playing)

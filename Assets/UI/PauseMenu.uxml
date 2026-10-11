@@ -13,6 +13,8 @@
             <ui:Label text="PAUSED" class="menu-title" />
 
             <ui:Button name="ResumeButton" text="Resume" class="menu-button" />
+            <ui:Button name="CheckpointButton" text="Restart from Checkpoint" class="menu-button" />
+            <ui:Button name="RestartButton" text="Restart Voyage" class="menu-button" />
             <ui:Button name="SettingButton" text="Settings" class="menu-button" />
             <ui:Button name="ReplayTutorialButton" text="Replay Tutorial" class="menu-button" />
             <ui:Button name="MainMenuButton" text="Main Menu" class="menu-button" />

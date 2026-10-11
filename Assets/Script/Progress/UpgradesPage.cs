@@ -16,13 +16,14 @@ public class UpgradesPage
     private static readonly Color Teal = new Color(0.047f, 0.424f, 0.384f);
 
     private readonly VisualElement _page;
-    private readonly System.Action<string> _toast;
+    private readonly System.Action<Upgrade> _fitted;
     private ScrollView _scroll;
 
-    public UpgradesPage(VisualElement page, System.Action<string> toast)
+    /// <param name="fitted">Called after an upgrade is fitted (the shipyard celebrates it).</param>
+    public UpgradesPage(VisualElement page, System.Action<Upgrade> fitted)
     {
         _page = page;
-        _toast = toast;
+        _fitted = fitted;
         // The five cards are taller than the panel: the page may shrink, and the cards scroll.
         if (_page != null) _page.AddToClassList("scrolls");
     }
@@ -91,13 +92,19 @@ public class UpgradesPage
                 foreach (var need in cert.Needs) main.Add(Bar(need));
             }
             string why = session.WhyNot(u);
+            // Ready to fit: the card stands out the way the chosen job does, with a rust bar.
+            if (why == null)
+            {
+                card.AddToClassList("ready");
+                title.text += "  ·  READY";
+            }
             button.text = why == null ? "FIT  $" + cert.Credits : why == "credits" ? "$" + cert.Credits : "LOCKED";
             button.SetEnabled(why == null);
             button.clicked += () =>
             {
                 if (!session.TryBuy(u)) return;
-                _toast?.Invoke(Progression.UpgradeName(u) + " fitted: Mk " + Roman(session.Level(u)));
                 Refresh();
+                _fitted?.Invoke(u);
             };
         }
         card.Add(main);
@@ -141,5 +148,5 @@ public class UpgradesPage
         return row;
     }
 
-    private static string Roman(int n) => n == 1 ? "I" : n == 2 ? "II" : "III";
+    public static string Roman(int n) => n == 1 ? "I" : n == 2 ? "II" : "III";
 }

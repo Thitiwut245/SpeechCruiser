@@ -67,6 +67,10 @@
                 </ui:VisualElement>
 
                 <ui:VisualElement class="settings-row">
+                    <ui:Toggle name="PathAssistToggle" label="Story: helmsman keeps the ship near the channel" class="settings-toggle" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
                     <ui:Label text="Subtitle Size" class="settings-label" />
                     <ui:DropdownField name="SubtitleDropdown" class="settings-dropdown" />
                 </ui:VisualElement>
