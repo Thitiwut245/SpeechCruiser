@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <Style src="ShipyardUI.uss" />
+
+    <!-- Full-screen layer that lets the world show through: the store sits on the left so the
+         ship at the dock stays visible on the right. -->
+    <ui:VisualElement name="shipyard-root" class="shipyard-root" picking-mode="Ignore">
+
+        <!-- On paper (navy ink on sand, projector-safe): the heading and credits, the jobs
+             (or the story mission and its phrases), a link to the upgrades, then SET SAIL.
+             The hull is repaired free between voyages, so there is nothing to manage there. -->
+        <ui:VisualElement name="store-panel" class="store-panel">
+            <ui:VisualElement class="store-head">
+                <ui:Label name="status-text" text="Shipyard" class="store-title" />
+                <ui:Label name="credits-text" text="$0" class="credits-value" />
+            </ui:VisualElement>
+            <ui:Label name="toast-text" text="" class="toast" />
+
+            <ui:VisualElement name="page-jobs" class="yard-page shown">
+                <ui:Label text="CHOOSE A JOB" class="section-label" />
+                <ui:Button name="job-btn-easy" class="card job-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="EASY" class="card-title" />
+                        <ui:Label name="route-easy" text="Rocks only" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Label text="$300" class="card-pay" />
+                </ui:Button>
+                <ui:Button name="job-btn-normal" class="card job-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="NORMAL" class="card-title" />
+                        <ui:Label name="route-normal" text="Rocks and mines" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Label text="$700" class="card-pay" />
+                </ui:Button>
+                <ui:Button name="job-btn-hard" class="card job-card">
+                    <ui:VisualElement class="card-main">
+                        <ui:Label text="HARD" class="card-title" />
+                        <ui:Label name="route-hard" text="A long, crowded route" class="card-desc" />
+                    </ui:VisualElement>
+                    <ui:Label text="$1500" class="card-pay" />
+                </ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="page-upgrades" class="yard-page">
+                <!-- Built in code (UpgradesPage): rank, then each upgrade with its certificate. -->
+            </ui:VisualElement>
+
+            <ui:Button name="upgrades-link" text="UPGRADE SHIP" class="yard-link" />
+
+            <ui:VisualElement class="spacer" />
+            <ui:Button name="start-mission-btn" class="sail-lever">
+                <ui:VisualElement name="lever-slot" class="lever-slot" />
+                <ui:Label name="start-title" text="SET SAIL" class="start-title" />
+            </ui:Button>
+        </ui:VisualElement>
+
+        <ui:Label name="loading-caption" text="" class="loading-caption" />
+
+        <ui:VisualElement name="results-backdrop" class="results-backdrop">
+            <!-- The report is a page of the ship's log: parchment, ruled lines, a rubber stamp. -->
+            <ui:VisualElement name="results-panel" class="results-panel">
+                <ui:VisualElement class="log-header">
+                    <ui:Label name="results-eyebrow" text="SHIP'S LOG  ·  VOYAGE REPORT" class="log-eyebrow" />
+                    <ui:Label name="results-voyage" text="" class="log-voyage" />
+                </ui:VisualElement>
+                <ui:Label name="results-stamp" text="DELIVERED" class="log-stamp" />
+                <ui:Label name="results-title" text="CARGO DELIVERED" class="results-title" />
+                <ui:Label name="results-subtitle" text="" class="results-subtitle" />
+                <ui:VisualElement name="results-rows" class="results-rows" />
+                <ui:VisualElement class="results-total">
+                    <ui:Label name="results-total-label" text="CREDITS" class="results-total-label" />
+                    <ui:Label name="results-total-value" text="$0" class="results-total-value" />
+                </ui:VisualElement>
+                <ui:Label name="results-tip" text="" class="results-tip" />
+                <ui:Button name="results-continue-btn" text="BACK TO THE SHIPYARD  (Enter)" class="start-btn results-continue" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

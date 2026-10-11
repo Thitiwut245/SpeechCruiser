@@ -1,0 +1,21 @@
+.container {
+    flex-grow: 1;
+    align-items: flex-start;
+    padding: 24px;
+}
+
+/* Engine status, or a hazard warning when one is close. Sits on its own panel so it
+   reads over the brightest water. */
+.status-label {
+    font-size: 24px;
+    color: rgb(242, 247, 250);
+    -unity-font-style: bold;
+    background-color: rgba(8, 18, 28, 0.96);
+    padding: 8px 14px;
+    border-radius: 10px;
+}
+
+.status-label.warning {
+    color: rgb(255, 255, 255);
+    background-color: rgb(196, 40, 32);
+}

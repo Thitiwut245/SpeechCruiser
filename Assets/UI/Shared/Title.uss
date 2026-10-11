@@ -1,0 +1,182 @@
+/* Title screen, after Alto's Adventure, on paper (UiTheme.Paper): navy ink and spaced bold
+   capitals on a warm sand gradient from the left edge (drawn by MainMenuController), the
+   harbour showing on the right. Projector-safe: dark ink on a light ground, nothing smaller
+   than 16px. Few choices (Hick's law): one story button that names the next mission, then
+   Free Sail, then Settings and Quit. Scoped to .title-screen so the pause menu keeps its own. */
+
+.title-screen .title-panel {
+    position: absolute;
+    left: 100px;
+    top: 0;
+    bottom: 0;
+    width: 500px;
+    padding: 0;
+    justify-content: center;
+    align-items: stretch;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.title-emblem {
+    align-self: center;
+    margin-bottom: 14px;
+}
+
+.title-screen .game-title {
+    font-size: 70px;
+    letter-spacing: 14px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+}
+
+.title-screen .game-title--accent {
+    color: rgb(160, 50, 24);
+    margin-top: -14px;
+}
+
+.title-screen .game-tagline {
+    font-size: 21px;
+    letter-spacing: 1px;
+    -unity-text-align: middle-center;
+    color: rgb(62, 74, 100);
+    margin: 8px 0 44px 0;
+}
+
+/* The choices: bold words; the story's in rust with a rust line under it. */
+.title-button {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-radius: 0;
+    flex-direction: column;
+    align-items: center;
+    margin: 8px 0;
+    padding: 6px 10px 8px 10px;
+    transition-duration: 0.2s;
+}
+
+.title-button:hover {
+    background-color: rgba(0, 0, 0, 0);
+    scale: 1.05 1.05;
+}
+
+.title-button:active {
+    scale: 0.98 0.98;
+}
+
+.title-button__title {
+    font-size: 28px;
+    letter-spacing: 6px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: rgb(22, 36, 64);
+    margin: 0;
+    padding: 0 0 4px 0;
+}
+
+.title-button:hover .title-button__title {
+    color: rgb(160, 50, 24);
+}
+
+.title-button__sub {
+    font-size: 18px;
+    -unity-text-align: middle-center;
+    color: rgb(62, 74, 100);
+    white-space: normal;
+    margin: 4px 0 0 0;
+    padding: 0;
+}
+
+.title-button--primary {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.title-button--primary:hover {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.title-button--primary .title-button__title {
+    color: rgb(160, 50, 24);
+    font-size: 32px;
+    border-bottom-width: 3px;
+    border-color: rgb(160, 50, 24);
+}
+
+.title-button--primary:hover .title-button__title {
+    color: rgb(22, 36, 64);
+    border-color: rgb(22, 36, 64);
+}
+
+.title-row {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 18px;
+}
+
+/* Settings and Quit: bold spaced words. */
+.title-small {
+    font-size: 20px;
+    letter-spacing: 4px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    padding: 6px 16px;
+    margin: 0 8px;
+}
+
+.title-small:hover {
+    color: rgb(160, 50, 24);
+}
+
+.title-quiet {
+    align-self: center;
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: rgb(62, 74, 100);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    margin-top: 8px;
+    padding: 4px 10px;
+}
+
+.title-quiet:hover {
+    color: rgb(160, 50, 24);
+}
+
+.title-quiet.confirm {
+    color: rgb(170, 30, 40);
+    -unity-font-style: bold;
+    background-color: rgba(0, 0, 0, 0);
+    border-bottom-width: 2px;
+    border-color: rgb(170, 30, 40);
+    border-radius: 0;
+}
+
+/* The radio: a lamp and one line, an invitation to speak. */
+.radio-plate {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-top: 30px;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.radio-plate__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    margin-right: 10px;
+    flex-shrink: 0;
+    background-color: rgb(12, 108, 98);
+}
+
+.title-screen .radio-status {
+    font-size: 17px;
+    color: rgb(22, 36, 64);
+    margin: 0;
+    flex-shrink: 1;
+}

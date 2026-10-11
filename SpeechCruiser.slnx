@@ -1,6 +1,9 @@
 ﻿<Solution>
-  <Project Path="Yetibyte.Unity.SpeechRecognition.csproj" />
-  <Project Path="Yetibyte.Unity.SpeechRecognition.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="Yetibyte.Unity.SpeechRecognition.Test.csproj" />
+  <Project Path="com.whisper.unity.tests.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="kTools.Mirrors.Runtime.csproj" />
+  <Project Path="com.whisper.unity.csproj" />
+  <Project Path="com.whisper.unity.editor.csproj" />
+  <Project Path="kTools.Mirrors.Editor.csproj" />
 </Solution>

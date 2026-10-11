@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:Style src="Menu.uss" />
+
+    <ui:VisualElement class="menu-panel settings-panel" name="SettingsPanel" style="display: none;">
+        <ui:Label text="SETTINGS" class="menu-title" />
+
+        <ui:VisualElement class="settings-columns">
+            <ui:VisualElement class="settings-column">
+                <ui:Label text="SOUND" class="settings-heading" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Microphone Input" class="settings-label" />
+                    <ui:DropdownField name="MicDropdown" class="settings-dropdown" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Master Volume" class="settings-label" />
+                    <ui:Slider name="VolumeSlider" low-value="0" high-value="1" class="settings-slider" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Music" class="settings-label" />
+                    <ui:Slider name="MusicSlider" low-value="0" high-value="1" class="settings-slider" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Sound Effects" class="settings-label" />
+                    <ui:Slider name="EffectsSlider" low-value="0" high-value="1" class="settings-slider" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Crew Radio" class="settings-label" />
+                    <ui:Slider name="RadioSlider" low-value="0" high-value="1" class="settings-slider" />
+                </ui:VisualElement>
+
+                <ui:Label text="STUDY" class="settings-heading settings-heading-gap" />
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Participant code" class="settings-label" />
+                    <ui:TextField name="ParticipantField" class="settings-text" />
+                </ui:VisualElement>
+                <ui:Label text="Saved with the session records. Leave empty if you are not in the study." class="settings-note" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="settings-column">
+                <ui:Label text="CONTROLS" class="settings-heading" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Give an order (radio key)" class="settings-label" />
+                    <ui:Button name="OrderKeyButton" text="T" class="bind-button" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Talk to the crew" class="settings-label" />
+                    <ui:Button name="TalkKeyButton" text="Y" class="bind-button" />
+                </ui:VisualElement>
+
+                <ui:Label name="BindHint" text="Click a key box, then press the new key. Esc cancels." class="settings-note" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Toggle name="ToggleToTalk" label="Press once to talk, again to send (instead of holding)" class="settings-toggle" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label text="Subtitle Size" class="settings-label" />
+                    <ui:DropdownField name="SubtitleDropdown" class="settings-dropdown" />
+                </ui:VisualElement>
+
+                <ui:Label text="No microphone? Press Enter at sea and type your orders. Gamepad: RB order · LB talk · D-pad channel." class="settings-note" />
+                <ui:Button name="ResetKeysButton" text="Reset keys" class="menu-button settings-small-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:Button name="BackButton" text="Back" class="menu-button settings-back" />
+    </ui:VisualElement>
+</ui:UXML>

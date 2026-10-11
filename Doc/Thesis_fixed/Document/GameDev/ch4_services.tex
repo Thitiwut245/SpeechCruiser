@@ -1,0 +1,119 @@
+% =============================================================
+% 4.x การออกแบบการเชื่อมต่อบริการ
+% =============================================================
+
+\section{การออกแบบการเชื่อมต่อบริการ}
+
+เกมเชื่อมต่อกับส่วนประมวลผลภายนอกตัวเกม 2 ส่วน ได้แก่ โมเดลการรู้จำเสียง Whisper ซึ่งทำงานภายในเครื่องของผู้เล่น และบริการ OpenAI Chat Completions ซึ่งเรียกใช้ผ่านอินเทอร์เน็ต โดยออกแบบให้คำสั่งที่ตัวแยกคำสั่งเข้าใจได้ไม่ต้องเรียกบริการภายนอกเลย บริการ OpenAI จึงจะเรียกใช้เฉพาะเมื่อจำเป็น ดังตารางที่ \ref{tab:services}
+
+\begin{table}[!htbp]
+\centering
+\caption{บริการที่เกมเชื่อมต่อ}
+\label{tab:services}
+\begin{tabular}{|L{3.09cm}|L{2.44cm}|L{2.25cm}|L{5.06cm}|}
+\hline
+\textbf{บริการ} & \textbf{ผู้เรียกใช้} & \textbf{ตำแหน่ง} & \textbf{ใช้เมื่อ} \\
+\hline
+Whisper (whisper.cpp) & RadioMic & ภายในเครื่อง & ทุกครั้งที่ผู้เล่นส่งเสียงพูด \\ \hline
+OpenAI: จำแนกเจตนา & IntentClassifier & อินเทอร์เน็ต & ตัวแยกคำสั่งไม่พบคำสั่งที่ชัดเจน และการเทียบคำแบบใกล้เคียงภายในเครื่องไม่ผ่านเกณฑ์ \\ \hline
+OpenAI: สนทนา & OpenAIClient & อินเทอร์เน็ต & ผู้เล่นกดปุ่มสนทนา (Y) ถามคำถามที่ตอบจากข้อมูลในเกมไม่ได้ หรือตัวจำแนกเจตนาไม่ได้คำสั่ง \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{การตั้งค่าโมเดลการรู้จำเสียง}
+
+โมเดล Whisper เรียกผ่านแพ็กเกจ whisper.unity โดยตั้งค่าให้เหมาะกับคำสั่งการเดินเรือภาษาอังกฤษสั้น ๆ ดังตารางที่ \ref{tab:whisper_config}
+
+\begin{table}[!htbp]
+\centering
+\caption{การตั้งค่าโมเดลการรู้จำเสียง}
+\label{tab:whisper_config}
+\begin{tabular}{|L{4.00cm}|L{9.70cm}|}
+\hline
+\textbf{รายการ} & \textbf{ค่าที่ใช้และเหตุผล} \\
+\hline
+โมเดล & \texttt{ggml-base.\allowbreak en.\allowbreak bin} โมเดลขนาด base สำหรับภาษาอังกฤษเท่านั้น สมดุลระหว่างความแม่นยำและความเร็วบนซีพียู \\ \hline
+ภาษา & \texttt{en} และปิดการแปลภาษา เนื่องจากต้องการข้อความภาษาอังกฤษตามที่ผู้เล่นพูดจริง \\ \hline
+การประมวลผล & เปิดใช้การ์ดจอ (GPU) ผ่าน Vulkan ซึ่งเร็วกว่าการใช้ซีพียูประมาณ 27 เท่าบนเครื่องทดสอบ (ตารางที่ \ref{tab:gpu_bench}) หากเครื่องไม่มีการ์ดจอที่รองรับ whisper.cpp จะใช้ซีพียูแทน \\ \hline
+ข้อความนำ (Initial Prompt) & ``Captain to crew. Port, starboard, midships, slow ahead, half ahead, full ahead, astern, stop, any danger, where is the dock.'' เพื่อให้โมเดลถอดคำศัพท์การเดินเรือได้ถูกต้องขึ้น \\ \hline
+การตรวจจับเสียงพูด & เปิดใช้ VAD (Voice Activity Detection) \\ \hline
+ความยาวเสียง & 0.35--8 วินาที และเติมช่วงเงียบท้ายเสียงก่อนส่งเข้าโมเดล เพื่อไม่ให้ประโยคสั้นมากถูกปฏิเสธ \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{การเรียกบริการ OpenAI}
+
+การเรียกบริการทั้ง 2 แบบใช้ปลายทาง \texttt{POST} \url{https://api.openai.com/v1/chat/completions} ด้วยโมเดล GPT-4o mini แต่ตั้งค่าต่างกันตามหน้าที่ ดังตารางที่ \ref{tab:openai_params}
+
+\begin{table}[!htbp]
+\centering
+\caption{ค่าพารามิเตอร์การเรียกบริการ OpenAI}
+\label{tab:openai_params}
+\begin{tabular}{|L{3.49cm}|L{4.56cm}|L{5.23cm}|}
+\hline
+\textbf{พารามิเตอร์} & \textbf{จำแนกเจตนา} & \textbf{สนทนา} \\
+\hline
+\texttt{model} & gpt-4o-mini & gpt-4o-mini \\ \hline
+\texttt{temperature} & 0 (ให้ผลเหมือนเดิมทุกครั้ง) & 0.6 (คำตอบเป็นธรรมชาติ) \\ \hline
+\texttt{top\_\allowbreak p} & -- & 0.9 \\ \hline
+\texttt{frequency\_\allowbreak penalty} & -- & 0.15 \\ \hline
+\texttt{max\_\allowbreak tokens} & -- & 60 (คำตอบสั้นแบบวิทยุ) \\ \hline
+\texttt{response\_\allowbreak format} & \texttt{json\_\allowbreak object} & ข้อความปกติ \\ \hline
+เวลารอสูงสุด & 6 วินาที & 15 วินาที \\ \hline
+ข้อมูลที่ส่ง & คำสั่งของผู้เล่นและรายการชื่อคำสั่งที่เกมรองรับ & บุคลิกของลูกเรือ สถานะเรือปัจจุบัน และบทสนทนาล่าสุด 3 ครั้งของลูกเรือคนนั้น \\
+\hline
+\end{tabular}
+\end{table}
+
+ก่อนเรียกบริการจำแนกเจตนา ระบบจะเทียบข้อความกับรายการวลีคำสั่งภายในเครื่องก่อน หากความคล้ายคลึงตั้งแต่ 0.75 ขึ้นไป จะใช้คำสั่งนั้นทันทีโดยไม่เรียกบริการ ตัวอย่างข้อมูลรับส่งของการจำแนกเจตนาแสดงดังภาพที่ \ref{lst:intent_json}
+
+\begin{figure}[!htbp]
+\centering
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,numbers=none]
+Request:
+{
+  "model": "gpt-4o-mini",
+  "temperature": 0,
+  "response_format": { "type": "json_object" },
+  "messages": [
+    { "role": "system", "content": "Map a ship captain's spoken order to exactly
+        one action code. ... Port is left, starboard is right. ..." },
+    { "role": "user", "content": "Order: \"hard to pork\"" }
+  ]
+}
+
+Response (choices[0].message.content):
+{ "action": "HardPort" }
+\end{lstlisting}
+\caption{ตัวอย่างข้อมูลรับส่งของการจำแนกเจตนา}
+\label{lst:intent_json}
+\end{figure}
+
+ระบบรับเฉพาะชื่อคำสั่งที่ตรงกับรายการคำสั่งของเกม ได้แก่ คำสั่งเครื่องยนต์ (เช่น EngineSlow, EngineFullAstern) คำสั่งหางเสือ (เช่น TurnPort, RudderMidships) คำถามสถานะ (เช่น QueryHazard, QueryDestination) การยกเลิกคำสั่ง (Belay) และคำสั่งเทียบท่า (RequestDocking, MakeFast) หากได้ \texttt{None} หรือชื่อที่ไม่อยู่ในรายการ ระบบจะส่งข้อความต่อให้ลูกเรือตอบผ่านบริการสนทนา และหากไม่สำเร็จลูกเรือจะขอให้พูดซ้ำ
+
+\subsection{การจัดการข้อผิดพลาด}
+
+เนื่องจากการสื่อสารเป็นหัวใจของเกม ข้อผิดพลาดของบริการทุกกรณีจึงถูกแปลงเป็นพฤติกรรมที่สมจริงของลูกเรือ แทนการแสดงข้อความแจ้งข้อผิดพลาดทางเทคนิค ดังตารางที่ \ref{tab:service_errors}
+
+\begin{table}[!htbp]
+\centering
+\caption{การจัดการข้อผิดพลาดของบริการ}
+\label{tab:service_errors}
+\begin{tabular}{|L{4.60cm}|L{9.10cm}|}
+\hline
+\textbf{สถานการณ์} & \textbf{การตอบสนองของเกม} \\
+\hline
+ไม่มีเสียงจากไมโครโฟน & แสดง ``No sound from the microphone. Check Settings.'' ที่ช่องสถานะวิทยุ \\ \hline
+เสียงสั้นหรือเบาเกินไป & แสดงคำแนะนำให้กดปุ่มค้างระหว่างพูด หรือพูดดังขึ้น โดยไม่ส่งคำสั่ง \\ \hline
+โมเดล Whisper ยังโหลดไม่เสร็จ & แจ้งว่าระบบเสียงยังไม่พร้อม ให้ลองใหม่อีกครั้ง \\ \hline
+Whisper ถอดได้เพียงเสียงรบกวน & แจ้ง ``Didn't catch that. Try again, short and clear.'' \\ \hline
+ไม่มีกุญแจ API ของ OpenAI & ข้ามการเรียกบริการ ลูกเรือขอให้พูดซ้ำ หรือบอกคำถามที่ถามได้ในกรณีเป็นคำถาม และคำสั่งที่ตัวแยกคำสั่งเข้าใจยังใช้งานได้ตามปกติ \\ \hline
+บริการตอบผิดพลาดหรือหมดเวลา & ลูกเรือขอให้พูดซ้ำ (``Say again'') และเกมเล่นต่อได้ \\ \hline
+ได้คำตอบหลังจากเปลี่ยนฉากแล้ว & ทิ้งคำตอบนั้น เพื่อไม่ให้คำตอบของการเดินเรือรอบก่อนปรากฏในรอบใหม่ \\
+\hline
+\end{tabular}
+\end{table}
+
+จากตารางที่ \ref{tab:service_errors} เกมยังเล่นได้ครบทุกฟังก์ชันหลักแม้ไม่มีการเชื่อมต่ออินเทอร์เน็ต เนื่องจากการรู้จำเสียงและการแยกคำสั่งมาตรฐานทำงานภายในเครื่องทั้งหมด

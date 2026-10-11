@@ -1,0 +1,28 @@
+graph LR
+    subgraph Game["เกม (Unity)"]
+        GS["GameSession / Progression"]
+        ST["StoryProgress"]
+        SS["SettingsService"]
+        RL["ResearchLog"]
+    end
+
+    subgraph Prefs["PlayerPrefs (Windows Registry)"]
+        P1["career.*"]
+        P2["progress.*"]
+        P3["story.done.*"]
+        P4["การตั้งค่า"]
+    end
+
+    subgraph Files["แฟ้ม CSV (Sessions)"]
+        F1["turns.csv"]
+        F2["voyages.csv"]
+        F3["emergencies.csv"]
+    end
+
+    GS --> P1
+    GS --> P2
+    ST --> P3
+    SS --> P4
+    RL --> F1
+    RL --> F2
+    RL --> F3

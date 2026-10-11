@@ -1,0 +1,769 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
+
+public enum RadioChannel
+{
+    ChiefEngineer = 1, // Channel 1: Chief Harris, engine
+    Lookout = 2        // Channel 2: Finn, helm and lookout
+}
+
+public class CommandRouter : MonoBehaviour
+{
+    public static CommandRouter Instance;
+
+    [Header("Radio Frequency Selector")]
+    [FormerlySerializedAs("activeChannel")]
+    [SerializeField] private RadioChannel ActiveChannel = RadioChannel.ChiefEngineer;
+
+    [Header("Routing")]
+    [Tooltip("Send unmatched, non-question speech to the classifier before giving up.")]
+    [FormerlySerializedAs("useClassifierFallback")]
+    [SerializeField] private bool UseClassifierFallback = true;
+
+    [Tooltip("Send unmatched speech that looks like a question to the conversation model.")]
+    [FormerlySerializedAs("useConversationFallback")]
+    [SerializeField] private bool UseConversationFallback = true;
+
+    [Header("Debug")]
+    [FormerlySerializedAs("logRouting")]
+    [SerializeField] private bool LogRouting = true;
+
+    public event System.Action<string> OnChannelChanged;
+
+    /// <summary>An order was carried out or a question answered. The tutorial listens to this.</summary>
+    public event System.Action<ShipAction> OnActionExecuted;
+
+    // "Radio check" and "help" are handled before parsing: they are about the radio, not the ship.
+    private static readonly System.Text.RegularExpressions.Regex RadioCheckPattern = new System.Text.RegularExpressions.Regex(
+        @"\b(radio check|mic check|comms check|testing|can you hear me|do you hear me)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex HelpPattern = new System.Text.RegularExpressions.Regex(
+        @"\b(help|what can i say|what do i say|what can i do|what should i do|what do i do|what now|commands|radio card|list of orders)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // Lead-ins and names allowed in front of the two shortcuts below: "Harris, please continue".
+    private const string ShortcutLeadIn = @"^\W*(?:(?:ok|okay|yes|yeah|please|now|finn|fin|harris|chief|lookout|engineer)\W+)*";
+    private const string ShortcutTail = @"(?:\W+(?:please|sir|captain|now|then|there))*\W*$";
+
+    // Said on their own, these mean "keep the ship moving" (see Resume).
+    private static readonly System.Text.RegularExpressions.Regex ContinuePattern = new System.Text.RegularExpressions.Regex(
+        ShortcutLeadIn + @"(?:continue|keep going|carry on|go on|keep moving|keep sailing|resume|move on)(?:\W+(?:sailing|going|moving|on))?" + ShortcutTail,
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    // A bare "wait!" or "hold on!" at sea means stop, repeated or not: "Wait, wait!", "Hold on a second".
+    private static readonly System.Text.RegularExpressions.Regex WaitPattern = new System.Text.RegularExpressions.Regex(
+        ShortcutLeadIn + @"(?:(?:wait|hold on|hold it)\W*)+(?:a (?:moment|second|sec|minute))?" + ShortcutTail,
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>"Continue", "keep going"… on its own. Public for the tests.</summary>
+    public static bool IsContinue(string transcript) => ContinuePattern.IsMatch(transcript);
+
+    /// <summary>"Wait!", "hold on"… on its own. Public for the tests.</summary>
+    public static bool IsWait(string transcript) => WaitPattern.IsMatch(transcript);
+
+    /// <summary>Resuming from a stop never picks more than half ahead: a "continue" shouldn't launch her at flank.</summary>
+    private const ShipEngine.TelegraphGear MaxResumeGear = ShipEngine.TelegraphGear.Half;
+
+    // The last forward gear, so "continue" after a stop picks up where the ship was.
+    private ShipEngine.TelegraphGear _lastAheadGear = ShipEngine.TelegraphGear.Slow;
+
+    // After this many "say again" in a row, the crew suggests a simple order instead.
+    private const int MissesBeforeHint = 2;
+    private int _misses;
+
+    public RadioChannel CurrentChannel => ActiveChannel;
+
+    // What the last order changed, so "belay that" can put it back.
+    private struct UndoRecord
+    {
+        public bool Valid;
+        public bool Engine;
+        public bool Helm;
+        public ShipEngine.TelegraphGear GearBefore;
+    }
+
+    private UndoRecord _undo;
+    private bool _classifierPending;
+
+    /// <summary>True while the classifier or the conversation model is still working on a reply.</summary>
+    public bool IsWaitingForReply
+    {
+        get
+        {
+            var chat = CrewChat.Active;
+            return _classifierPending || (chat != null && chat.IsBusy);
+        }
+    }
+
+    // A second read-back waits this long so both lines can be read.
+    private const float FollowUpDelaySeconds = 1.6f;
+
+    /// <summary>
+    /// Who answers for an action. Harris runs the engine; Finn has the helm and the lookout.
+    /// A general status report comes from whoever the radio is tuned to.
+    /// </summary>
+    public static RadioChannel OwnerOf(ShipAction action, RadioChannel tuned)
+    {
+        switch (action)
+        {
+            case ShipAction.TurnPort:
+            case ShipAction.TurnStarboard:
+            case ShipAction.HardPort:
+            case ShipAction.HardStarboard:
+            case ShipAction.RudderMidships:
+            case ShipAction.QueryHazard:
+            case ShipAction.QueryDestination:
+            case ShipAction.QueryHeading:
+                return RadioChannel.Lookout;
+            case ShipAction.QueryStatus:
+                return tuned;
+            default:
+                return RadioChannel.ChiefEngineer;
+        }
+    }
+
+    private static bool ChatReady
+    {
+        get
+        {
+            var chat = CrewChat.Active;
+            return chat != null && chat.Ready;
+        }
+    }
+
+    private void Awake() 
+    { 
+        Instance = this; 
+    }
+
+    private void Start() 
+    { 
+        UpdateChannelUI(); 
+    }
+
+    public void SetChannel(RadioChannel channel)
+    {
+        ActiveChannel = channel;
+        UpdateChannelUI();
+    }
+
+    public void RouteCommand(string transcript, bool isConversation = false)
+    {
+        if (LooksLikeNoise(transcript))
+        {
+            EndInstantTurn();
+            return;
+        }
+        LanguageLog.Call();
+
+        if (RadioCheckPattern.IsMatch(transcript))
+        {
+            Say(ActiveChannel, CrewBarkLibrary.RadioCheck(ActiveChannel), "radiocheck");
+            LanguageLog.Answered();
+            OnActionExecuted?.Invoke(ShipAction.None);
+            EndInstantTurn();
+            return;
+        }
+
+        // "What does starboard mean?", "how do I say slow down?": the crew teach the word or
+        // the standard order, before anything tries to read it as an order.
+        if (Glossary.TryAnswer(ActiveChannel, transcript, out string[] explained))
+        {
+            Say(ActiveChannel, explained, "glossary");
+            LanguageLog.WordAsked();
+            _misses = 0;
+            OnActionExecuted?.Invoke(ShipAction.None);
+            EndInstantTurn();
+            return;
+        }
+
+        // In a chat, "go on…" and "wait…" are conversation, not engine orders.
+        bool chatting = isConversation && ChatReady;
+        if (!chatting && IsContinue(transcript))
+        {
+            Resume();
+            EndInstantTurn();
+            return;
+        }
+
+        if (!chatting && IsWait(transcript)) transcript = "stop";
+
+        var parsed = CommandParser.Parse(transcript);
+        _lastParsed = parsed;
+
+        // "Help! Turn right!" turns right: the orders card only opens when no order was heard.
+        if (HelpPattern.IsMatch(transcript) && !parsed.HasConfidentOrder)
+        {
+            if (ShipHUD.Instance != null) ShipHUD.Instance.SetRadioCardOpen(true);
+            Say(ActiveChannel, CrewBarkLibrary.HelpCard(ActiveChannel), "help");
+            EndInstantTurn();
+            return;
+        }
+
+        RadioChannel target = parsed.AddressedCrew ?? ActiveChannel;
+        if (parsed.AddressedCrew.HasValue && parsed.AddressedCrew.Value != ActiveChannel)
+        {
+            SetChannel(parsed.AddressedCrew.Value);
+        }
+
+        if (LogRouting)
+        {
+            Debug.Log("[ROUTER]: \"" + parsed.Normalized + "\" -> " +
+                      (parsed.Matches.Count > 0
+                          ? parsed.Matches[0].Action + " @ " + parsed.TopConfidence.ToString("0.00")
+                          : "no match") +
+                      DescribeFlags(parsed) +
+                      " | target " + target + " | mode " + (isConversation ? "Conversation" : "Command"));
+        }
+
+        if (parsed.WasNameOnly)
+        {
+            if (CrewVoice.Instance != null) CrewVoice.Instance.NameOnly(target);
+            EndInstantTurn();
+            return;
+        }
+
+        // A contradictory order is asked about, never guessed.
+        if (parsed.DirectionConflict)
+        {
+            Say(RadioChannel.ChiefEngineer, CrewBarkLibrary.AskAheadOrAstern(), "askdirection");
+            EndInstantTurn();
+            return;
+        }
+
+        if (parsed.SideConflict)
+        {
+            Say(RadioChannel.Lookout, CrewBarkLibrary.AskPortOrStarboard(RadioChannel.Lookout), "askside");
+            EndInstantTurn();
+            return;
+        }
+
+        // Small talk ("hello", "how are you?", "what's the weather?", "where are you from?"):
+        // the conversation model answers on the talk key when it's online; otherwise the crew
+        // answer straight away themselves. It beats the parser's guess at a question's topic
+        // only for personal questions ("where are you from?" isn't asking where the dock is).
+        if (IsSmallTalk(parsed, transcript))
+        {
+            if (isConversation && ChatReady)
+            {
+                SendToConversation(target, transcript, true);
+                return;
+            }
+            if (SmallTalk.Answer(target, transcript, isConversation))
+            {
+                _misses = 0;
+                LanguageLog.Talked();
+                OnActionExecuted?.Invoke(ShipAction.None);
+                EndInstantTurn();
+                return;
+            }
+        }
+
+        // Orders are orders on either key; the talk key only changes where non-orders go.
+        if (parsed.HasConfidentOrder || (parsed.HasConfidentCommand && (!isConversation || !ChatReady)))
+        {
+            ApplyMatches(parsed, target);
+            EndInstantTurn();
+            return;
+        }
+
+        if (isConversation && ChatReady && !parsed.NoChange && !parsed.WasFillerOnly)
+        {
+            SendToConversation(target, transcript, true);
+            return;
+        }
+
+        if (parsed.OrderInQuestion)
+        {
+            Say(target, CrewBarkLibrary.IsThatAnOrder(target), "isorder");
+            EndInstantTurn();
+            return;
+        }
+
+        if (parsed.NoChange)
+        {
+            Say(target, CrewBarkLibrary.NoChange(target), "nochange");
+            EndInstantTurn();
+            return;
+        }
+
+        if (parsed.WasFillerOnly)
+        {
+            Say(target, CrewBarkLibrary.StandingBy(target), "standingby");
+            EndInstantTurn();
+            return;
+        }
+
+        if (isConversation)
+        {
+            SendToConversation(target, transcript, true);
+            return;
+        }
+
+        // A question nobody can answer without the chat model: an honest "don't know" that
+        // says what can be asked, not "say again".
+        if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && !ChatReady)
+        {
+            if (SmallTalk.Answer(target, transcript, false)) LanguageLog.Talked();
+            else Say(target, CrewBarkLibrary.QuestionHint(target), "questionhint");
+            EndInstantTurn();
+            return;
+        }
+
+        if (parsed.Matches.Count == 0 && parsed.LooksLikeQuestion && UseConversationFallback)
+        {
+            SendToConversation(target, transcript, false);
+            return;
+        }
+
+        if (UseClassifierFallback && IntentClassifier.Instance != null)
+        {
+            string captured = transcript;
+            RadioChannel capturedTarget = target;
+            int epoch = RadioEpoch.Current;
+
+            _classifierPending = true;
+            if (TimeController.Instance != null) TimeController.Instance.SetAIProcessing(true);
+            IntentClassifier.Instance.Classify(captured, (action, ok) =>
+            {
+                // The classifier outlives the scene; this router may be gone, or be the old one.
+                if (this == null || !RadioEpoch.IsCurrent(epoch))
+                {
+                    Debug.Log("[ROUTER]: dropped a classifier result from the previous scene.");
+                    return;
+                }
+                _classifierPending = false;
+                ResearchLog.Route("classifier");
+                if (TimeController.Instance != null) TimeController.Instance.SetAIProcessing(false);
+                if (ok && action != ShipAction.None)
+                {
+                    ExecuteAndAcknowledge(capturedTarget, action, captured);
+                    EndInstantTurn();
+                    return;
+                }
+
+                if (UseConversationFallback)
+                {
+                    SendToConversation(capturedTarget, captured, false);
+                }
+                else
+                {
+                    SayAgainOrHint(capturedTarget);
+                    EndInstantTurn();
+                }
+            });
+            return;
+        }
+
+        if (UseConversationFallback)
+        {
+            SendToConversation(target, transcript, false);
+        }
+        else
+        {
+            SayAgainOrHint(target);
+            EndInstantTurn();
+        }
+    }
+
+    /// <summary>True if no order was heard and the words are everyday talk. Public for the tests.</summary>
+    public static bool IsSmallTalk(CommandParser.Result parsed, string transcript)
+    {
+        var topic = SmallTalk.Classify(transcript);
+        if (topic == SmallTalk.Topic.None) return false;
+        if (parsed.Matches.Count == 0) return true;
+        bool topicGuessOnly = parsed.Matches.Count == 1 && parsed.Matches[0].FirstToken < 0;
+        return topicGuessOnly && SmallTalk.IsPersonal(topic);
+    }
+
+    /// <summary>"Say again" — but after repeated misses, suggest a simple order and the radio card.</summary>
+    private CommandParser.Result _lastParsed;
+
+    /// <summary>
+    /// Experienced crew (Crew Trust I): an order they half-caught comes back as a question with
+    /// the standard phrase ("Did you mean "port twenty", Sir?"), so the Captain hears the right
+    /// words and can say them again. Null if nothing was close enough.
+    /// </summary>
+    public static string DidYouMean(CommandParser.Result parsed)
+    {
+        if (parsed.Matches == null) return null;
+        foreach (var m in parsed.Matches)
+        {
+            if (m.Confidence < CommandParser.AcceptLow || m.FirstToken < 0) continue;
+            if (!m.Action.IsMachinery() && !m.Action.IsQuery()) continue;
+            string phrase = StandardPhrases.For(m.Action, parsed.Degrees);
+            if (phrase != null) return phrase;
+        }
+        return null;
+    }
+
+    private void SayAgainOrHint(RadioChannel target)
+    {
+        LanguageLog.Unclear();
+        string guess = GameSession.Instance != null && GameSession.Instance.CrewLevel >= 2 ? DidYouMean(_lastParsed) : null;
+        if (guess != null)
+        {
+            _misses = 0;
+            string you = target == RadioChannel.Lookout ? "Sir" : "Captain";
+            Say(target, new[] { "Did you mean \"" + guess + "\", " + you + "? Say it again. Over." }, "didyoumean");
+            return;
+        }
+        _misses++;
+        if (_misses >= MissesBeforeHint)
+        {
+            _misses = 0;
+            Say(target, CrewBarkLibrary.TryHint(target), "tryhint");
+            return;
+        }
+        if (CrewVoice.Instance != null) CrewVoice.Instance.SayAgain(target);
+    }
+
+    private void Update()
+    {
+        var gear = CurrentGear();
+        if (gear > ShipEngine.TelegraphGear.Stop) _lastAheadGear = gear;
+    }
+
+    /// <summary>"Continue": already going ahead, Harris keeps her there; stopped or astern, back to the last forward speed.</summary>
+    private void Resume()
+    {
+        var gear = CurrentGear();
+        // Already moving either way: keep her as she is. Backing off a rock, "keep going" means keep backing.
+        if (gear != ShipEngine.TelegraphGear.Stop)
+        {
+            Say(RadioChannel.ChiefEngineer, gear > ShipEngine.TelegraphGear.Stop ? CrewBarkLibrary.KeepGoing() : CrewBarkLibrary.KeepGoingAstern(), "keepgoing");
+            LanguageLog.Answered();
+            OnActionExecuted?.Invoke(ShipAction.None);
+            return;
+        }
+        var resume = _lastAheadGear > MaxResumeGear ? MaxResumeGear : _lastAheadGear;
+        ExecuteAndAcknowledge(RadioChannel.ChiefEngineer, ActionFor(resume), "");
+    }
+
+    private static ShipAction ActionFor(ShipEngine.TelegraphGear gear)
+    {
+        switch (gear)
+        {
+            case ShipEngine.TelegraphGear.DeadSlow: return ShipAction.EngineDeadSlow;
+            case ShipEngine.TelegraphGear.Half: return ShipAction.EngineHalf;
+            case ShipEngine.TelegraphGear.Full: return ShipAction.EngineFull;
+            case ShipEngine.TelegraphGear.Flank: return ShipAction.EngineFlank;
+            default: return ShipAction.EngineSlow;
+        }
+    }
+
+    private void UpdateChannelUI()
+    {
+        string title = ActiveChannel == RadioChannel.Lookout
+            ? "CH 2: FINN (STEERING + LOOKOUT)"
+            : "CH 1: CHIEF HARRIS (ENGINE)";
+
+        OnChannelChanged?.Invoke(title);
+    }
+
+    private void ApplyMatches(CommandParser.Result parsed, RadioChannel target)
+    {
+        if (parsed.Matches.Count > 0 && parsed.Matches[0].Action == ShipAction.Belay)
+        {
+            bool standard = StandardPhrases.IsStandard(ShipAction.Belay, parsed.Matches[0].Phrase);
+            LanguageLog.Order(standard, StandardPhrases.For(ShipAction.Belay), Time.time, ShipAction.Belay);
+            Belay();
+            if (!standard) StartCoroutine(RecastLater(ActiveChannel, StandardPhrases.For(ShipAction.Belay), FollowUpDelaySeconds));
+            return;
+        }
+
+        var gearBefore = CurrentGear();
+        bool engineChanged = false, helmChanged = false;
+        var readBacks = new System.Collections.Generic.List<ShipAction>(3);
+        ShipAction query = ShipAction.None;
+        string recast = null;
+        RadioChannel recastBy = target;
+
+        for (int i = 0; i < parsed.Matches.Count; i++)
+        {
+            var m = parsed.Matches[i];
+            if (m.Confidence < CommandParser.AcceptHigh) continue;
+
+            ShipAction resolved = Resolve(m.Action, target);
+            if (TryExecute(resolved, parsed.Degrees))
+            {
+                if (resolved.IsHelm()) helmChanged = true;
+                else engineChanged = true;
+                readBacks.Add(resolved);
+
+                // Said another way ("turn left", "go more fast"): it's done, and the crew
+                // then model the standard order.
+                bool standard = StandardPhrases.IsStandard(resolved, m.Phrase);
+                string taught = StandardPhrases.For(resolved, parsed.Degrees);
+                LanguageLog.Order(standard, taught, Time.time, resolved, parsed.Degrees.HasValue);
+                if (!standard && taught != null && recast == null)
+                {
+                    recast = taught;
+                    recastBy = OwnerOf(resolved, target);
+                }
+            }
+            else if (resolved.IsQuery() && query == ShipAction.None)
+            {
+                query = resolved;
+            }
+        }
+
+        RememberUndo(gearBefore, engineChanged, helmChanged);
+        _misses = 0;
+        if (query != ShipAction.None) LanguageLog.Question();
+        foreach (var done in readBacks) OnActionExecuted?.Invoke(done);
+        if (query != ShipAction.None) OnActionExecuted?.Invoke(query);
+
+        // Every order that ran gets read back, engine first, then helm, then any answer.
+        readBacks.Sort((a, b) => a.IsHelm().CompareTo(b.IsHelm()));
+        if (query != ShipAction.None) readBacks.Add(query);
+
+        if (readBacks.Count == 0)
+        {
+            if (AtSea && CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
+            return;
+        }
+
+        Acknowledge(target, readBacks[0]);
+        if (readBacks.Count > 1) StartCoroutine(FollowUpReadBacks(target, readBacks));
+        if (recast != null) StartCoroutine(RecastLater(recastBy, recast, FollowUpDelaySeconds * readBacks.Count));
+    }
+
+    // When each standard phrase was last modelled, so the crew don't lecture.
+    private readonly System.Collections.Generic.Dictionary<string, float> _recastAt = new System.Collections.Generic.Dictionary<string, float>();
+    private const float RecastCooldown = 40f;
+
+    /// <summary>After the read-back, the crew model the standard order the Captain could have used.</summary>
+    private System.Collections.IEnumerator RecastLater(RadioChannel crew, string phrase, float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        // Not in an emergency (no lessons while the rocks come at us), not over the tutorial's
+        // own teaching, and not the same phrase again and again.
+        if (CrewBarkLibrary.CurrentTension(ShipTelemetry.Capture()) == CrewTension.Emergency) yield break;
+        if (TutorialManager.Instance != null && TutorialManager.Instance.IsActive) yield break;
+        if (Time.unscaledTime < EmergencyCall.QuietUntil) yield break; // the emergency call already said it
+        if (_recastAt.TryGetValue(phrase, out float last) && Time.unscaledTime - last < RecastCooldown) yield break;
+        _recastAt[phrase] = Time.unscaledTime;
+        Say(crew, StandardPhrases.Recast(crew, phrase), "recast");
+    }
+
+    private System.Collections.IEnumerator FollowUpReadBacks(RadioChannel target, System.Collections.Generic.List<ShipAction> readBacks)
+    {
+        for (int i = 1; i < readBacks.Count; i++)
+        {
+            yield return new WaitForSecondsRealtime(FollowUpDelaySeconds);
+            Acknowledge(target, readBacks[i]);
+        }
+    }
+
+    private void ExecuteAndAcknowledge(RadioChannel target, ShipAction action, string rawSpeech)
+    {
+        if (action == ShipAction.Belay)
+        {
+            Belay();
+            return;
+        }
+
+        ShipAction resolved = Resolve(action, target);
+        float? degrees = CommandParser.ExtractDegrees(rawSpeech);
+        var gearBefore = CurrentGear();
+
+        bool executed = TryExecute(resolved, degrees);
+        if (executed) RememberUndo(gearBefore, !resolved.IsHelm(), resolved.IsHelm());
+
+        if (!executed && !resolved.IsQuery())
+        {
+            if (AtSea && CrewVoice.Instance != null) CrewVoice.Instance.Redirect(target);
+            return;
+        }
+
+        _misses = 0;
+        // Words the parser didn't know (only the classifier understood them) are never the
+        // standard phrase: model it. A "continue" (no words) is fine as it is.
+        string taught = StandardPhrases.For(resolved, degrees);
+        bool standard = string.IsNullOrEmpty(rawSpeech) || resolved.IsQuery();
+        if (executed) LanguageLog.Order(standard, taught, Time.time, resolved, degrees.HasValue);
+        else LanguageLog.Question();
+        OnActionExecuted?.Invoke(resolved);
+        Acknowledge(target, resolved);
+        if (executed && !standard && taught != null) StartCoroutine(RecastLater(OwnerOf(resolved, target), taught, FollowUpDelaySeconds));
+    }
+
+    private static ShipEngine.TelegraphGear CurrentGear()
+    {
+        var nav = ShipNavigator.Instance;
+        return nav != null ? nav.currentGear : ShipEngine.TelegraphGear.Stop;
+    }
+
+    private void RememberUndo(ShipEngine.TelegraphGear gearBefore, bool engineChanged, bool helmChanged)
+    {
+        if (!engineChanged && !helmChanged) return;
+
+        _undo = new UndoRecord
+        {
+            Valid = true,
+            Engine = engineChanged,
+            Helm = helmChanged,
+            GearBefore = gearBefore,
+        };
+    }
+
+    /// <summary>"Belay that": the engine goes back to its previous gear and the rudder to midships.</summary>
+    private void Belay()
+    {
+        var nav = ShipNavigator.Instance;
+        if (!_undo.Valid || nav == null)
+        {
+            Say(ActiveChannel, CrewBarkLibrary.NothingToBelay(), "belaynone");
+            return;
+        }
+
+        if (_undo.Engine) nav.SetGear(_undo.GearBefore);
+        if (_undo.Helm) nav.RudderMidships();
+
+        string[] lines = _undo.Engine && _undo.Helm ? CrewBarkLibrary.BelayEngineAndHelm()
+                       : _undo.Engine ? CrewBarkLibrary.BelayEngine()
+                       : CrewBarkLibrary.BelayHelm();
+
+        if (LogRouting) Debug.Log("[ROUTER]: belay -> gear " + (_undo.Engine ? _undo.GearBefore.ToString() : "unchanged") + (_undo.Helm ? ", rudder midships" : ""));
+
+        RadioChannel speaker = _undo.Engine ? RadioChannel.ChiefEngineer : RadioChannel.Lookout;
+        _undo = default(UndoRecord);
+        Say(speaker, lines, "belay");
+    }
+
+    private void Say(RadioChannel crew, string[] lines, string key)
+    {
+        if (CrewVoice.Instance == null) return;
+        CrewVoice.Instance.SpeakFrom(crew, lines, ShipTelemetry.Capture(), crew + ":" + key);
+    }
+
+    private static string DescribeFlags(CommandParser.Result parsed)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (parsed.Degrees.HasValue) sb.Append(" ").Append(parsed.Degrees.Value).Append("deg");
+        if (parsed.DirectionConflict) sb.Append(" [ahead/astern?]");
+        if (parsed.SideConflict) sb.Append(" [port/starboard?]");
+        if (parsed.OrderInQuestion) sb.Append(" [order in question]");
+        if (parsed.NoChange) sb.Append(" [no change]");
+        if (parsed.WasFillerOnly) sb.Append(" [filler]");
+        return sb.ToString();
+    }
+
+    private ShipAction Resolve(ShipAction action, RadioChannel target)
+    {
+        if (action == ShipAction.QueryStatus && target == RadioChannel.Lookout)
+        {
+            return ShipAction.QueryHazard;
+        }
+        return action;
+    }
+
+    // Orders reach their owner whichever channel is tuned; the channel only picks who you chat with.
+    /// <summary>True while a voyage is under way. Orders only move the ship then.</summary>
+    private static bool AtSea => GameManager.Instance == null || GameManager.Instance.CurrentState == GameState.Playing;
+
+    private bool TryExecute(ShipAction action, float? degrees)
+    {
+        if (!action.IsMachinery()) return false;
+        // The radio is off while moored, so only a late result can get here; it must not
+        // spin up the engine in the shipyard or after the voyage ended.
+        if (!AtSea)
+        {
+            Debug.Log("[ROUTER]: ignored " + action + " outside a voyage.");
+            return false;
+        }
+        return CommandParser.Execute(action, degrees);
+    }
+
+    private void Acknowledge(RadioChannel target, ShipAction action)
+    {
+        if (CrewVoice.Instance == null) return;
+        if (action.IsHarbour()) return; // harbour control has already answered (DockingPilot)
+
+        RadioChannel speaker = OwnerOf(action, target);
+
+        var telemetry = ShipTelemetry.Capture();
+        string line = CrewVoice.Instance.Speak(speaker, action, telemetry);
+
+        if (line == null) CrewVoice.Instance.SayAgain(speaker);
+    }
+
+    private void SendToConversation(RadioChannel target, string transcript, bool conversational)
+    {
+        var chat = CrewChat.Active;
+
+        if (chat == null || !chat.Ready)
+        {
+            // No model: the crew still answer small talk themselves.
+            if (SmallTalk.Answer(target, transcript, conversational))
+            {
+                _misses = 0;
+                LanguageLog.Talked();
+            }
+            else SayAgainOrHint(target);
+            EndInstantTurn();
+            return;
+        }
+
+        ResearchLog.Route("chat");
+        chat.Converse(target, transcript, conversational);
+    }
+
+    private void EndInstantTurn()
+    {
+        if (TimeController.Instance != null) TimeController.Instance.SetPTTActive(false);
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex SoundTagPattern =
+        new System.Text.RegularExpressions.Regex(@"\([^)]*\)|\[[^\]]*\]|\*[^*]*\*");
+
+    /// <summary>True for empty transcripts and the phrases Whisper invents from silence.</summary>
+    // Whisper sometimes returns its own initial prompt (Services.prefab) when it hears nothing.
+    private const string WhisperPromptStart = "captain to crew";
+
+    public static bool LooksLikeNoise(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        
+        string lower = text.ToLowerInvariant().Trim();
+        
+        if (lower.Contains("[blank_audio]") || 
+            lower.Contains("[silence]") || 
+            lower.Contains("subtitles by") ||
+            lower.Contains("amara.org"))
+        {
+            return true;
+        }
+
+        if (lower == "thank you." || lower == "thank you") 
+        {
+            return true;
+        }
+
+        // Whisper's usual phrases for silence, and its own initial prompt read back.
+        string bare = lower.Trim('.', '!', '?', ' ');
+        if (bare == "bye" || bare == "thanks for watching" || bare == "thank you for watching" ||
+            bare.Contains("please subscribe") || bare.StartsWith(WhisperPromptStart))
+        {
+            return true;
+        }
+
+        // Whisper describes non-speech in brackets: "(chimes)", "[Music]", "*coughs*".
+        // What is left once those are gone is what was actually said.
+        string spoken = SoundTagPattern.Replace(text, " ");
+        string charsOnly = "";
+        foreach (char c in spoken)
+        {
+            if (char.IsLetterOrDigit(c)) charsOnly += c;
+        }
+
+        if (charsOnly.Length < 2) 
+        {
+            return true; 
+        }
+
+        return false;
+    }
+}

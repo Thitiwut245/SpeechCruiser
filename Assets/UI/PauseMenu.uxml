@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:Template name="SettingsPanel" src="Shared/SettingsPanel.uxml" />
+    <ui:Style src="Shared/Menu.uss" />
+
+    <ui:VisualElement class="pause-container" name="PauseMenuContainer" style="display: none;">
+        <ui:VisualElement class="menu-panel" name="MainPanel">
+            <ui:Label text="PAUSED" class="menu-title" />
+
+            <ui:Button name="ResumeButton" text="Resume" class="menu-button" />
+            <ui:Button name="SettingButton" text="Settings" class="menu-button" />
+            <ui:Button name="ReplayTutorialButton" text="Replay Tutorial" class="menu-button" />
+            <ui:Button name="MainMenuButton" text="Main Menu" class="menu-button" />
+            <ui:Button name="QuitButton" text="Quit" class="menu-button" />
+        </ui:VisualElement>
+
+        <ui:Instance template="SettingsPanel" />
+    </ui:VisualElement>
+</ui:UXML>

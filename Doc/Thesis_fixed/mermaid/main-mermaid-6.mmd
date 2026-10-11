@@ -1,0 +1,16 @@
+sequenceDiagram
+    actor P as Player
+    participant R as CommandRouter
+    participant T as ShipTelemetry
+    participant L as OpenAIClient
+    participant O as OpenAI API
+    participant V as CrewVoice
+
+    P->>R: Hold Y: "Finn, is it safe ahead?"
+    R->>T: Capture ship status
+    T-->>R: Heading, speed, hazard, weather
+    R->>L: Converse(crew, text)
+    L->>O: POST chat/completions (persona + status)
+    O-->>L: Short crew reply
+    L->>V: Subtitle and voice
+    V-->>P: "Reef two hundred metres ahead, Sir. Over."

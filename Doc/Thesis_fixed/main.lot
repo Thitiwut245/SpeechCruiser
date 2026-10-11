@@ -1,0 +1,43 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {1}{\ignorespaces เปรียบเทียบคุณสมบัติของระบบและเกมที่เกี่ยวข้อง}}{6}{table.caption.5}%
+\contentsline {table}{\numberline {2}{\ignorespaces เปรียบเทียบเทคโนโลยี Game Engine}}{7}{table.caption.6}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3}{\ignorespaces เกณฑ์การแปลความหมายค่าเฉลี่ย}}{14}{table.caption.7}%
+\contentsline {table}{\numberline {4}{\ignorespaces รายการฮาร์ดแวร์ที่ใช้ในการพัฒนาและทดสอบ}}{15}{table.caption.8}%
+\contentsline {table}{\numberline {5}{\ignorespaces รายการซอฟต์แวร์และบริการที่ใช้ในการพัฒนา}}{15}{table.caption.9}%
+\contentsline {table}{\numberline {6}{\ignorespaces แผนและระยะเวลาดำเนินการโครงงาน}}{16}{table.caption.10}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7}{\ignorespaces บทบาทผู้ใช้งานและส่วนของระบบที่เข้าถึง}}{17}{table.caption.11}%
+\contentsline {table}{\numberline {8}{\ignorespaces ความต้องการเชิงฟังก์ชัน (FR-01 ถึง FR-10)}}{18}{table.caption.12}%
+\contentsline {table}{\numberline {9}{\ignorespaces ความต้องการเชิงฟังก์ชัน (FR-11 ถึง FR-20)}}{19}{table.caption.13}%
+\contentsline {table}{\numberline {10}{\ignorespaces ความต้องการที่ไม่ใช่เชิงฟังก์ชัน}}{20}{table.caption.14}%
+\contentsline {table}{\numberline {11}{\ignorespaces กฎการตรวจสอบความถูกต้องของข้อมูล}}{20}{table.caption.15}%
+\contentsline {table}{\numberline {12}{\ignorespaces ตารางตรวจสอบย้อนกลับ}}{21}{table.caption.16}%
+\contentsline {table}{\numberline {13}{\ignorespaces รายละเอียดกรณีใช้งาน: สั่งการด้วยเสียง}}{26}{table.caption.23}%
+\contentsline {table}{\numberline {14}{\ignorespaces รายละเอียดกรณีใช้งาน: ตอบสนองต่อสถานการณ์ฉุกเฉิน}}{27}{table.caption.24}%
+\contentsline {table}{\numberline {15}{\ignorespaces ลำดับเหตุการณ์และสตอรี่บอร์ดของเกมเดินเรือ (ฉากที่ 1--3)}}{28}{table.caption.25}%
+\contentsline {table}{\numberline {16}{\ignorespaces ลำดับเหตุการณ์และสตอรี่บอร์ดของเกมเดินเรือ (ฉากที่ 4--6)}}{29}{table.caption.26}%
+\contentsline {table}{\numberline {17}{\ignorespaces โครงสร้างโฟลเดอร์หลักของโครงการ}}{34}{table.caption.30}%
+\contentsline {table}{\numberline {18}{\ignorespaces รายการต้นแบบหน้าจอ}}{35}{table.caption.31}%
+\contentsline {table}{\numberline {19}{\ignorespaces คีย์ข้อมูลความก้าวหน้าของผู้เล่น}}{43}{table.caption.39}%
+\contentsline {table}{\numberline {20}{\ignorespaces คีย์ข้อมูลการตั้งค่า}}{44}{table.caption.40}%
+\contentsline {table}{\numberline {21}{\ignorespaces โครงสร้างแฟ้ม turns.csv (หนึ่งแถวต่อการสื่อสารหนึ่งครั้ง)}}{44}{table.caption.41}%
+\contentsline {table}{\numberline {22}{\ignorespaces โครงสร้างแฟ้ม voyages.csv (หนึ่งแถวต่อการเดินเรือหนึ่งรอบ)}}{45}{table.caption.42}%
+\contentsline {table}{\numberline {23}{\ignorespaces โครงสร้างแฟ้ม emergencies.csv (หนึ่งแถวต่อสถานการณ์ฉุกเฉินหนึ่งครั้ง)}}{45}{table.caption.43}%
+\contentsline {table}{\numberline {24}{\ignorespaces บริการที่เกมเชื่อมต่อ}}{46}{table.caption.44}%
+\contentsline {table}{\numberline {25}{\ignorespaces การตั้งค่าโมเดลการรู้จำเสียง}}{47}{table.caption.45}%
+\contentsline {table}{\numberline {26}{\ignorespaces ค่าพารามิเตอร์การเรียกบริการ OpenAI}}{47}{table.caption.46}%
+\contentsline {table}{\numberline {27}{\ignorespaces การจัดการข้อผิดพลาดของบริการ}}{48}{table.caption.48}%
+\contentsline {table}{\numberline {28}{\ignorespaces แผนการทดสอบ}}{53}{table.caption.52}%
+\contentsline {table}{\numberline {29}{\ignorespaces ผลการทดสอบหน่วย}}{54}{table.caption.53}%
+\contentsline {table}{\numberline {30}{\ignorespaces ผลการทดสอบตามความต้องการเชิงฟังก์ชัน (TC-01 ถึง TC-10)}}{55}{table.caption.54}%
+\contentsline {table}{\numberline {31}{\ignorespaces ผลการทดสอบตามความต้องการเชิงฟังก์ชัน (TC-11 ถึง TC-19)}}{56}{table.caption.55}%
+\contentsline {table}{\numberline {32}{\ignorespaces กรณีทดสอบ TC-03: แยกคำสั่งมาตรฐานและคำสั่งผสม}}{57}{table.caption.56}%
+\contentsline {table}{\numberline {33}{\ignorespaces กรณีทดสอบ TC-10: เตือนภัยและตัดสินคำสั่งฉุกเฉิน}}{57}{table.caption.57}%
+\contentsline {table}{\numberline {34}{\ignorespaces เวลาแปลงเสียงเป็นข้อความของ whisper.cpp บนซีพียูและการ์ดจอ (n = 25 ครั้งต่ออุปกรณ์)}}{58}{table.caption.58}%
+\contentsline {table}{\numberline {35}{\ignorespaces ผลการทดสอบความต้องการที่ไม่ใช่เชิงฟังก์ชัน}}{59}{table.caption.59}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {36}{\ignorespaces แบบวัดความวิตกกังวลในการพูดภาษาอังกฤษ}}{67}{table.caption.61}%
+\contentsline {table}{\numberline {37}{\ignorespaces แบบสอบถามประสบการณ์การเล่นเกม}}{68}{table.caption.62}%
+\contentsline {table}{\numberline {38}{\ignorespaces ตัวอย่างคำสั่งเสียงที่รองรับภายในเกม}}{77}{table.caption.68}%

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <Style src="ShipUI.uss" />
+
+    <!-- The rest of the HUD (radar, compass, hull, telegraph, rudder, radio, crew) is built by ShipHUD. -->
+    <ui:VisualElement class="container" picking-mode="Ignore">
+        <ui:Label name="status-text" text="ENGINE: STOP" class="status-label" />
+    </ui:VisualElement>
+</ui:UXML>

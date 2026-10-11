@@ -1,0 +1,22 @@
+stateDiagram-v2
+    [*] --> MainMenu
+    state "Main Menu (Menu scene)" as MainMenu
+    state "Victory (Cargo Delivered)" as Victory
+    state "GameOver (Ship Lost)" as GameOver
+    MainMenu --> Shipyard : Story or Free Sail, load Game scene
+    Shipyard --> Playing : choose job, SET SAIL
+    Playing --> Victory : docked at the destination (MissionSuccess)
+    Playing --> GameOver : hull reaches 0 (MissionFailed)
+    Victory --> Shipyard : Continue, reload Game scene
+    GameOver --> Shipyard : Continue (towed home) or Try again
+    Victory --> MainMenu : Continue after a story mission
+    Playing --> MainMenu : pause menu, quit to menu
+    note right of Shipyard
+        Repair is free.
+        Upgrades cost credits and language certificates:
+        Engine, Rudder, Lookout, Hull, Crew
+    end note
+    note right of Victory
+        Results panel: hits, time, pay,
+        and the radio English report
+    end note

@@ -1,0 +1,20 @@
+sequenceDiagram
+    actor P as Player
+    participant M as RadioMic
+    participant W as Whisper (on-device)
+    participant R as CommandRouter
+    participant C as CommandParser
+    participant V as CrewVoice
+    participant S as Ship
+
+    P->>M: Hold T and say "starboard twenty"
+    P->>M: Release T
+    M->>M: Check length and volume
+    M->>W: GetTextAsync(audio)
+    W-->>M: "Starboard twenty."
+    M->>R: RouteCommand(text)
+    R->>C: Parse(text)
+    C-->>R: TurnStarboard, 20 degrees
+    R->>S: Execute order
+    R->>V: Read back
+    V-->>P: "Starboard rudder, aye! Turning right. Over."

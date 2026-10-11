@@ -1,0 +1,128 @@
+% =============================
+% ภาคผนวก 
+% =============================
+
+% =============================
+% ภาคผนวก ก — แบบสอบถามความคิดเห็นผู้เล่น
+% =============================
+\setcounter{chapter}{-1}
+\appendiceschapter{แบบสอบถามความคิดเห็นผู้เล่น}
+
+\section*{แบบสอบถามความคิดเห็นผู้เล่น}
+
+\textbf{คำชี้แจง} แบบสอบถามนี้จัดทำขึ้นเพื่อประเมินความคิดเห็นของผู้เล่นที่ได้ทดลองเล่นเกมเดินเรือด้วยระบบสั่งการด้วยเสียงเพื่อส่งเสริมทักษะการสื่อสาร โดยข้อมูลที่ได้รับจะนำไปใช้เพื่อปรับปรุงและพัฒนาต่อไป
+
+\subsection*{ตอนที่ 1 ข้อมูลทั่วไป}
+1. เพศ: $\square$ ชาย \quad $\square$ หญิง \quad $\square$ อื่น ๆ \newline
+2. อายุ: \rule{2cm}{0.4pt} ปี \newline
+3. ระดับการศึกษา: $\square$ ปริญญาตรี \quad $\square$ ปริญญาโท \quad $\square$ อื่น ๆ
+
+\subsection*{ตอนที่ 2 ความคิดเห็นต่อเกม}
+โปรดเลือกคำตอบที่ตรงกับความคิดเห็นของท่านมากที่สุด
+
+\begin{table}[H]
+\centering
+\caption{แบบสอบถามความคิดเห็นต่อเกมเดินเรือด้วยระบบสั่งการด้วยเสียง}
+\label{tab:survey_game}
+\small
+% ปรับขนาดคอลัมน์แรกจาก p{7.5cm} เป็น p{5cm} เพื่อไม่ให้ตารางล้นขอบ
+\begin{tabular}{|p{5cm}|c|c|c|c|c|}
+\hline
+\textbf{ข้อคำถาม} & \textbf{เห็นด้วยมาก} & \textbf{เห็นด้วย} & \textbf{ปานกลาง} & \textbf{ไม่เห็นด้วย} & \textbf{ไม่เห็นด้วยเลย} \\ \hline
+1. เนื้อหาของเกมและรูปแบบการสั่งการด้วยเสียงเข้าใจง่าย & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+2. สภาพแวดล้อมจำลองและระบบฟิสิกส์การเดินเรือมีความสมจริง & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+3. การโต้ตอบและการทวนคำสั่งของลูกเรือ AI มีความน่าสนใจและสมจริง & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+4. เกมช่วยลดความวิตกกังวลและเพิ่มความมั่นใจในการพูดภาษาอังกฤษ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+5. โดยรวมแล้วรู้สึกสนุกและมีแรงจูงใจในการฝึกฝนทักษะการสื่อสาร & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection*{ตอนที่ 3 ข้อเสนอแนะเพิ่มเติม}
+\noindent\rule{\textwidth}{0.4pt}\\[0.5cm]
+\noindent\rule{\textwidth}{0.4pt}\\[0.5cm]
+\noindent\rule{\textwidth}{0.4pt}
+
+
+% =============================
+% ภาคผนวก ข — รหัสต้นฉบับ (Source Code)
+% =============================
+\appendiceschapter{รหัสต้นฉบับ}
+\section*{ส่วนที่ 1: รหัสคำสั่งส่วนการเชื่อมต่อและรู้จำเสียง (Speech-to-Text)}
+\textit{ส่วนนี้แสดงตัวอย่างโค้ด C\# สำหรับรับเสียงจากไมโครโฟนและแปลงเป็นข้อความ (Speech-to-Text) ผ่าน Whisper API}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Document/GameDev/images/seventh.png}
+\caption{โค้ดสำหรับรับคำสั่งเสียงและแปลงเป็นข้อความ}
+\label{fig:code_stt}
+\end{figure}
+\section*{ส่วนที่ 2: รหัสคำสั่งส่วนระบบฟิสิกส์ยานพาหนะ (Ship Navigation Physics)}
+\textit{ส่วนนี้แสดงตัวอย่างโค้ด C\# ในการคำนวณแรงเฉื่อย (Inertia) และรัศมีวงเลี้ยวของเรือ}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Document/GameDev/images/eight.png}
+\caption{โค้ดระบบจำลองฟิสิกส์การเคลื่อนที่ของเรือ}
+\label{fig:code_physics}
+\end{figure}
+\section*{ส่วนที่ 3: รหัสคำสั่งส่วนระบบลูกเรือปัญญาประดิษฐ์ (AI Crew System)}
+\textit{ส่วนนี้แสดงตัวอย่างโค้ดการส่งข้อความคำสั่งไปยัง OpenAI API และรับผลลัพธ์การโต้ตอบจากลูกเรือ AI}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Document/GameDev/images/ninth.png}
+\caption{โค้ดระบบลูกเรือปัญญาประดิษฐ์และการโต้ตอบบทสนทนา}
+\label{fig:code_ai}
+\end{figure}
+
+
+% =============================
+% ภาคผนวก ค — แผนภาพ (Diagrams)
+% =============================
+\appendiceschapter{แผนภาพ}
+\section*{แผนภาพกระบวนการทำงานหลัก (Core Game Loop)}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Document/GameDev/images/ship_game_state_diagram.png}
+\caption{State Diagram ของระบบเกมหลัก (Main Game Loop)}
+\label{fig:state_main}
+\end{figure}
+\section*{แผนภาพสถานะการสื่อสารกับลูกเรือ AI}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Document/GameDev/images/communication_breakdown_state_diagram.png}
+\caption{State Diagram ของระบบประมวลผลคำสั่งและการโต้ตอบ (Communication Breakdown)}
+\label{fig:state_ai_communication}
+\end{figure}
+
+
+% =============================
+% ภาคผนวก ง — เนื้อหาคำสั่งที่ใช้ภายในเกม
+% =============================
+\appendiceschapter{เนื้อหาและรูปประโยคที่ใช้สอนภายในเกม}
+\section*{คลังคำสั่งการเดินเรือมาตรฐาน (Standard Marine Communication Phrases)}
+
+
+เนื้อหาหลักที่ใช้เป็นข้อมูลนำเข้า (Input) เพื่อประเมินความถูกต้องของคำสั่งเสียงผู้เล่น อ้างอิงจากประโยคการสื่อสารพื้นฐานด้านการเดินเรือที่กัปตันใช้สั่งการพลถือท้ายและพลต้นหน
+
+\begin{table}[H]
+\centering
+\caption{ตัวอย่างคำสั่งเสียง (Voice Commands) ที่รองรับภายในเกม}
+\label{tab:voice_commands}
+\small
+\begin{tabular}{|p{4cm}|p{6cm}|p{4cm}|}
+\hline
+\textbf{หมวดหมู่คำสั่ง} & \textbf{รูปแบบคำสั่งเสียงภาษาอังกฤษ} & \textbf{ผลลัพธ์ในเกม} \\ \hline
+การควบคุมทิศทาง (Steering) & "Starboard fifteen", "Hard-a-port", "Midships" & ลูกเรือปรับองศาหางเสือเรือไปทางขวา ซ้าย หรือคืนพวงมาลัยตรง \\ \hline
+การควบคุมความเร็ว (Engine) & "Full ahead", "Slow ahead", "Stop engine", "Full astern" & ลูกเรือปรับคันเร่งเครื่องยนต์เพื่อเพิ่ม ลด หยุด หรือถอยหลัง \\ \hline
+สถานการณ์ฉุกเฉิน (Emergency) & "Hard-a-starboard, full ahead", "Emergency stop" & การควบรวมคำสั่งเพื่อใช้หลบหลีกสิ่งกีดขวางแบบกะทันหัน \\ \hline
+การทวนถาม (Clarification) & "Say again, Captain?", "Command not clear!" & AI เป็นผู้ใช้ประโยคนี้เมื่อผู้เล่นออกเสียงผิดพลาด \\ \hline
+\end{tabular}
+\end{table}
