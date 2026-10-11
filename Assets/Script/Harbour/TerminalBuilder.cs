@@ -63,7 +63,8 @@ public static class TerminalBuilder
         float U(float u) => faceX + u;
 
         // The yard slab, and the quay wall down into the water along its edge.
-        k.Box(Mat.Concrete, new Vector3(U(Depth * 0.5f), DeckY - 1.5f, mid), new Vector3(Depth, 3f, len));
+        // The slab starts behind the wall: if they overlapped, their faces would share a plane and flicker.
+        k.Box(Mat.Concrete, new Vector3(U((Depth + 3f) * 0.5f), DeckY - 1.5f, mid), new Vector3(Depth - 3f, 3f, len));
         k.Box(Mat.Wall, new Vector3(U(1.5f), (DeckY - 7f) * 0.5f, mid), new Vector3(3f, DeckY + 7f, len));
         k.Box(Mat.Paint, new Vector3(U(0.15f), DeckY + 0.02f, mid), new Vector3(0.3f, 0.04f, len)); // edge line
         // Crane rails.

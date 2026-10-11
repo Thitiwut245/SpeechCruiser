@@ -187,27 +187,107 @@ public static class TownBuilder
     }
 }
 
-/// <summary>A lighthouse's turning beam: a long pale wedge of light sweeping round the lantern.</summary>
+/// <summary>
+/// A lighthouse's turning beam: a cone of soft light that widens and fades as it leaves the lantern,
+/// added on top of the scene (so it glows, never darkens), with a real spot light along it.
+/// </summary>
 public class LighthouseBeam : MonoBehaviour
 {
-    private Transform _beam;
+    private const float Length = 30f, EndRadius = 4.5f;
+    private const int Sides = 20;
+
+    private static Mesh _cone;
+    private static Material _glow;
+
+    private Transform _pivot;
 
     private void Start()
     {
-        _beam = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
-        Destroy(_beam.GetComponent<Collider>());
-        _beam.name = "Beam";
-        _beam.SetParent(transform, false);
-        _beam.localScale = new Vector3(0.25f, 0.35f, 22f);
-        _beam.localPosition = new Vector3(0f, 0f, 11f);
-        var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "Beam" };
-        mat.SetColor("_BaseColor", new Color(1f, 0.95f, 0.7f));
-        _beam.GetComponent<Renderer>().sharedMaterial = mat;
-        _beam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        // The beam turns on its own pivot so it isn't stretched by the lantern's scale.
+        _pivot = new GameObject("BeamPivot").transform;
+        _pivot.SetParent(transform.parent, false);
+        _pivot.position = transform.position;
+
+        var beam = new GameObject("Beam");
+        beam.transform.SetParent(_pivot, false);
+        beam.AddComponent<MeshFilter>().sharedMesh = Cone;
+        var r = beam.AddComponent<MeshRenderer>();
+        r.sharedMaterial = Glow;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        r.receiveShadows = false;
+
+        var spot = new GameObject("BeamLight").AddComponent<Light>();
+        spot.transform.SetParent(_pivot, false);
+        spot.type = LightType.Spot;
+        spot.color = new Color(1f, 0.93f, 0.7f);
+        spot.range = Length * 1.6f;
+        spot.spotAngle = 2f * Mathf.Atan(EndRadius / Length) * Mathf.Rad2Deg + 4f;
+        spot.intensity = 3f;
+        spot.shadows = LightShadows.None;
     }
 
     private void Update()
     {
-        transform.Rotate(0f, 40f * Time.deltaTime, 0f, Space.World);
+        if (_pivot != null) _pivot.Rotate(0f, 40f * Time.deltaTime, 0f, Space.World);
+    }
+
+    private void OnDestroy()
+    {
+        if (_pivot != null) Destroy(_pivot.gameObject);
+    }
+
+    /// <summary>An open cone along +z, apex at the origin; v runs 0 at the lantern to 1 at the far end.</summary>
+    private static Mesh Cone
+    {
+        get
+        {
+            if (_cone != null) return _cone;
+            var v = new Vector3[Sides * 2];
+            var uv = new Vector2[Sides * 2];
+            var t = new int[Sides * 6];
+            for (int i = 0; i < Sides; i++)
+            {
+                float a = i * Mathf.PI * 2f / Sides;
+                v[i] = new Vector3(Mathf.Cos(a) * 0.35f, Mathf.Sin(a) * 0.35f, 0f); // a little wider than a point at the lamp
+                v[i + Sides] = new Vector3(Mathf.Cos(a) * EndRadius, Mathf.Sin(a) * EndRadius, Length);
+                uv[i] = new Vector2((float)i / Sides, 0f);
+                uv[i + Sides] = new Vector2((float)i / Sides, 1f);
+                int j = (i + 1) % Sides;
+                t[i * 6] = i; t[i * 6 + 1] = j; t[i * 6 + 2] = i + Sides;
+                t[i * 6 + 3] = j; t[i * 6 + 4] = j + Sides; t[i * 6 + 5] = i + Sides;
+            }
+            _cone = new Mesh { name = "LighthouseBeam", vertices = v, uv = uv, triangles = t };
+            _cone.RecalculateBounds();
+            return _cone;
+        }
+    }
+
+    /// <summary>Additive, unlit, both sides, bright at the lamp and fading to nothing along the beam.</summary>
+    private static Material Glow
+    {
+        get
+        {
+            if (_glow != null) return _glow;
+            var fade = new Texture2D(1, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "BeamFade" };
+            for (int y = 0; y < 64; y++)
+            {
+                float k = 1f - y / 63f;
+                fade.SetPixel(0, y, new Color(k * k, k * k, k * k, 1f));
+            }
+            fade.Apply();
+
+            _glow = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "Beam" };
+            _glow.SetTexture("_BaseMap", fade);
+            _glow.SetColor("_BaseColor", new Color(0.55f, 0.5f, 0.35f));
+            _glow.SetFloat("_Surface", 1f);
+            _glow.SetFloat("_Blend", 2f);                  // additive
+            _glow.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            _glow.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            _glow.SetFloat("_ZWrite", 0f);
+            _glow.SetFloat("_Cull", 0f);                   // seen from both sides
+            _glow.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            _glow.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            return _glow;
+        }
     }
 }

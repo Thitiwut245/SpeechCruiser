@@ -17,7 +17,8 @@ using UnityEngine;
 ///
 /// Files live in Application.persistentDataPath/Sessions (shown on the F8 timing panel) and
 /// are appended, with a session id per run of the game and an optional participant code
-/// (Settings > Study, or the command line "-participant P07"). Writing never interrupts
+/// (Settings > Study, or the command line "-participant P07"). A file from an older build with
+/// different columns is renamed to name.old-&lt;time&gt;.csv and a new one started. Writing never interrupts
 /// play: a failure is logged once and the game goes on.
 /// </summary>
 public static class ResearchLog
@@ -275,11 +276,7 @@ public static class ResearchLog
         try
         {
             Directory.CreateDirectory(Folder);
-            string path = Path.Combine(Folder, file);
-            var sb = new StringBuilder();
-            if (!File.Exists(path)) sb.Append(header).Append("\r\n");
-            sb.Append(Csv(fields)).Append("\r\n");
-            File.AppendAllText(path, sb.ToString(), new UTF8Encoding(false));
+            AppendRow(Path.Combine(Folder, file), header, fields);
         }
         catch (Exception e)
         {
@@ -287,6 +284,35 @@ public static class ResearchLog
             _warned = true;
             Debug.LogWarning("[RESEARCH]: could not write " + file + ": " + e.Message);
         }
+    }
+
+    /// <summary>
+    /// Appends one row under <paramref name="header"/> (public for the tests). A file written
+    /// with older columns is renamed aside, never appended to: new rows under a stale header
+    /// would be misaligned for the analysis.
+    /// </summary>
+    public static void AppendRow(string path, string header, IEnumerable<string> fields)
+    {
+        string first = null;
+        if (File.Exists(path))
+            using (var reader = new StreamReader(path)) first = reader.ReadLine();
+        if (first != null && first != header) File.Move(path, StalePath(path));
+
+        var sb = new StringBuilder();
+        if (!File.Exists(path) || first == null) sb.Append(header).Append("\r\n");
+        sb.Append(Csv(fields)).Append("\r\n");
+        File.AppendAllText(path, sb.ToString(), new UTF8Encoding(false));
+    }
+
+    /// <summary>voyages.csv -> voyages.old-20260901-143000.csv; a counter keeps two renames in one second apart.</summary>
+    private static string StalePath(string path)
+    {
+        string dir = Path.GetDirectoryName(path) ?? "";
+        string name = Path.GetFileNameWithoutExtension(path) + ".old-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        string ext = Path.GetExtension(path);
+        string stale = Path.Combine(dir, name + ext);
+        for (int n = 2; File.Exists(stale); n++) stale = Path.Combine(dir, name + "-" + n + ext);
+        return stale;
     }
 
     /// <summary>One CSV line: fields with commas, quotes or line breaks are quoted (public for the tests).</summary>

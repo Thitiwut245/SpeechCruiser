@@ -79,7 +79,8 @@ public class Quay : MonoBehaviour
         }
 
         // The berth painted on the quay: a yellow edge line and a bar at each end.
-        Piece(go, PrimitiveType.Cube, _yellow, new Vector3(faceX + 0.35f, deck + 0.02f, z0), new Vector3(0.3f, 0.04f, BerthHalfLength * 2f));
+        // Just inside the terminal's white edge line (0–0.3 m) and a hair thicker, so the two never share a surface.
+        Piece(go, PrimitiveType.Cube, _yellow, new Vector3(faceX + 0.45f, deck + 0.025f, z0), new Vector3(0.3f, 0.05f, BerthHalfLength * 2f));
         foreach (float z in new[] { -BerthHalfLength, BerthHalfLength })
             Piece(go, PrimitiveType.Cube, _yellow, new Vector3(faceX + 1.6f, deck + 0.02f, z0 + z), new Vector3(2.6f, 0.04f, 0.35f));
 
