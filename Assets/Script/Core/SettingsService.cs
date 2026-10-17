@@ -32,7 +32,7 @@ public class SettingsService : Singleton<SettingsService>
     /// <summary>Press the radio key once to start talking and again to send, instead of holding it.</summary>
     public bool ToggleToTalk { get; private set; }
 
-    /// <summary>Story mode: the helmsman quietly keeps the ship toward the channel (PathAssist). On by default.</summary>
+    /// <summary>Story mode: the helmsman quietly keeps the ship toward the channel (PathAssist). Off by default: the sea is the player's.</summary>
     public bool PathAssist { get; private set; }
     public float SubtitleScale { get; private set; }
 
@@ -51,7 +51,7 @@ public class SettingsService : Singleton<SettingsService>
         RadioVolume = PlayerPrefs.GetFloat(RadioKey, 1f);
         ToggleToTalk = PlayerPrefs.GetInt(ToggleToTalkKey, 0) == 1;
         SubtitleScale = PlayerPrefs.GetFloat(SubtitleScaleKey, 1f);
-        PathAssist = PlayerPrefs.GetInt(PathAssistKey, 1) == 1;
+        PathAssist = PlayerPrefs.GetInt(PathAssistKey, 0) == 1;
         AudioListener.volume = MasterVolume;
     }
 

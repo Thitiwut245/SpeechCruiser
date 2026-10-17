@@ -186,6 +186,7 @@ public class MissionResultsPanel : MonoBehaviour
         {
             AddRow("Time at sea", FormatTime(result.Seconds), null);
         }
+        AddScoreRows(result, story);
 
         var language = LanguageLog.Read();
         AddLanguageRows(language);
@@ -230,6 +231,29 @@ public class MissionResultsPanel : MonoBehaviour
         row.Add(l);
         row.Add(v);
         _rows.Add(row);
+    }
+
+    /// <summary>
+    /// Story mode: the coins found on the channel (paid only on delivery), and the score with what
+    /// made it up, against the best for the mission.
+    /// </summary>
+    private void AddScoreRows(MissionResult result, StoryMission story)
+    {
+        if (story == null) return;
+        if (result.FindsTotal > 0)
+            AddRow("Finds", result.Finds + " / " + result.FindsTotal + (result.Finds > 0 ? "  ·  in the logbook" : ""),
+                   result.Finds == result.FindsTotal ? "good" : null);
+        if (result.CoinsTotal > 0)
+        {
+            string paid = result.CoinPay > 0 ? "  +$" + result.CoinPay : !result.Delivered && result.Coins > 0 ? "  (lost with the ship)" : "";
+            AddRow("Coins", result.Coins + " / " + result.CoinsTotal + paid, result.Coins == result.CoinsTotal ? "good" : null);
+        }
+        if (!result.Delivered) return;
+        string best = result.NewBest ? "  ·  new best!" : result.BestScore > 0 ? "  (best " + result.BestScore + ")" : "";
+        AddRow("Score", result.Score + best, result.NewBest ? "good" : null);
+        var parts = new System.Collections.Generic.List<string> { "coins " + result.CoinScore };
+        if (result.ScoreBonuses != null) foreach (var b in result.ScoreBonuses) parts.Add(b.Key + " " + b.Value);
+        AddRow("", string.Join("  ·  ", parts), null, true);
     }
 
     /// <summary>

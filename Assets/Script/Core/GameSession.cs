@@ -63,6 +63,14 @@ public class MissionResult
     /// <summary>Par time for the route; delivering inside it earns OnTimeBonus.</summary>
     public float ParSeconds;
     public int OnTimeBonus;
+    /// <summary>Story mode (PathCoins): coins picked up of those on the channel, and the credits they paid (0 if the ship was lost).</summary>
+    public int Coins, CoinsTotal, CoinPay;
+    /// <summary>Story mode (SeaFinds): finds picked up of those out there.</summary>
+    public int Finds, FindsTotal;
+    /// <summary>Story mode score (StoryScore): coin points plus the bonuses listed; the best before this voyage; 0 off story.</summary>
+    public int Score, CoinScore, BestScore;
+    public bool NewBest;
+    public System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>> ScoreBonuses;
 }
 
 /// <summary>

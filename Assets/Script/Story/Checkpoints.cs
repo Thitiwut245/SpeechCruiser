@@ -39,9 +39,12 @@ public static class VoyageRestart
 /// <summary>
 /// Story mode's checkpoints: three points along the channel (a quarter, half and three quarters
 /// of the way). Passing one saves where the voyage stands: the ship on the channel there, the
-/// hull, the cargo aboard, the clock and the hits, and whether the rescue is done. Restarting from
+/// hull, the cargo aboard, the clock and the hits, whether the rescue is done, and the coins taken
+/// and the score (PathCoins). Restarting from
 /// it (pause menu, the report after a sinking, or the prompt below) puts all of that back.
-/// Far off the channel (50 m for 8 s), it asks whether to go back to the last checkpoint.
+/// The sea is open: a checkpoint counts wherever the ship passes it, within 120 m of the channel.
+/// Only when the ship is off the channel and has gone 90 m farther from the dock than it has
+/// been (for 8 s) does it ask whether to go back to the last checkpoint.
 /// The StoryDirector adds it.
 /// </summary>
 public class Checkpoints : MonoBehaviour
@@ -56,10 +59,15 @@ public class Checkpoints : MonoBehaviour
         public float Elapsed;
         public bool RescueDone;
         public bool EncounterDone;   // the Kraken or the pirates were over when it was passed
+        public bool[] CoinsTaken;    // PathCoins: which coins were picked up, the score, the run
+        public int Score, CoinRun;
+        public bool[] FindsTaken;    // SeaFinds: which finds were picked up
     }
 
     private static readonly float[] Shares = { 0.25f, 0.5f, 0.75f };
     private const float OnChannel = 50f;      // metres from the channel that still count as on it
+    private const float PassReach = 120f;     // a checkpoint counts this far to either side of it
+    private const float AwayMetres = 90f;     // farther from the dock than the closest yet: heading away
     private const float OffSeconds = 8f;
     private const float SnoozeSeconds = 25f;  // "keep sailing" quiets the prompt this long
 
@@ -70,6 +78,7 @@ public class Checkpoints : MonoBehaviour
 
     private int _progress;
     private float _offFor, _snoozeUntil;
+    private float _closest = float.MaxValue; // the nearest the ship has come to the dock
     private VisualElement _layer, _prompt;
     private GameObject _layerObject;
     private bool _restoring;
@@ -119,7 +128,7 @@ public class Checkpoints : MonoBehaviour
 
     private void PassCheckpoints(ShipNavigator nav, float distance)
     {
-        if (distance > OnChannel) return;
+        if (distance > PassReach) return;
         int passed = Saved != null ? Saved.Number : 0;
         if (passed >= Shares.Length) return;
         float at = Channel.Along[_progress];
@@ -144,6 +153,8 @@ public class Checkpoints : MonoBehaviour
             RescueDone = StoryDirector.Instance == null || StoryDirector.Instance.RescueDone,
             EncounterDone = StoryEncounter.Current != null && StoryEncounter.Current.Done,
         };
+        if (PathCoins.Current != null) PathCoins.Current.Save(Saved);
+        if (SeaFinds.Current != null) SeaFinds.Current.Save(Saved);
         Banner("CHECKPOINT", Saved.Number + " of " + Shares.Length, "You can restart from here (Esc).");
         PlayBell();
     }
@@ -171,11 +182,14 @@ public class Checkpoints : MonoBehaviour
         GameManager.Instance.RestoreProgress(s.Elapsed, s.Hits, s.MineHits);
         if (StoryDirector.Instance != null) StoryDirector.Instance.ResumeAt(p, s.RescueDone);
         if (s.EncounterDone && StoryEncounter.Current != null) StoryEncounter.Current.Skip();
+        if (PathCoins.Current != null) PathCoins.Current.Restore(s);
+        if (SeaFinds.Current != null) SeaFinds.Current.Restore(s);
 
         // The camera jumps with the ship instead of gliding there.
         var vcam = FindAnyObjectByType<Unity.Cinemachine.CinemachineCamera>();
         if (vcam != null) vcam.PreviousStateIsValid = false;
         _progress = 0;
+        _closest = float.MaxValue;
         Banner("BACK AT CHECKPOINT", s.Number + " of " + Shares.Length, "Engines stopped. Give your orders, Captain.");
     }
 
@@ -186,7 +200,11 @@ public class Checkpoints : MonoBehaviour
         bool nearBerth = Quay.Destination != null && Channel.Flat(ship - Quay.Destination.Berth).magnitude < 80f;
         bool fighting = StoryEncounter.Current != null && !StoryEncounter.Current.Done; // dodging the Kraken or the pirates
         bool busy = DialoguePlayer.IsPlaying || nearBerth || fighting || Time.unscaledTime < _snoozeUntil;
-        _offFor = distance > OnChannel && !busy ? _offFor + Time.deltaTime : 0f;
+        // Exploring is fine; going the wrong way is not: far from the channel and losing ground to the dock.
+        float dock = Quay.Destination != null ? Channel.Flat(ship - Quay.Destination.Berth).magnitude : 0f;
+        _closest = Mathf.Min(_closest, dock);
+        bool away = distance > OnChannel && dock > _closest + AwayMetres;
+        _offFor = away && !busy ? _offFor + Time.deltaTime : 0f;
         if (_offFor >= OffSeconds) ShowPrompt();
     }
 
@@ -207,13 +225,13 @@ public class Checkpoints : MonoBehaviour
         kicker.style.letterSpacing = 6f;
         kicker.style.color = UiTheme.Coral;
         kicker.style.unityFontStyleAndWeight = FontStyle.Bold;
-        var title = new Label("We're far from the channel, Captain.");
+        var title = new Label("We're sailing away from the dock, Captain.");
         title.style.fontSize = 40f;
         title.style.color = UiTheme.White;
         title.style.unityFontStyleAndWeight = FontStyle.Bold;
         title.style.marginTop = 6f;
         string where = Saved != null ? "checkpoint " + Saved.Number : "the start of the voyage";
-        var line = new Label("Go back to " + where + ", or keep sailing and find the way yourself?");
+        var line = new Label("Go back to " + where + ", or keep sailing? Ask \"where is the dock?\" to see the way.");
         line.style.fontSize = 22f;
         line.style.color = UiTheme.Dim;
         line.style.marginTop = 10f;
@@ -224,7 +242,7 @@ public class Checkpoints : MonoBehaviour
         var back = new Button(() => { HidePrompt(); VoyageRestart.Request(VoyageRestart.Mode.FromCheckpoint); })
             { text = Saved != null ? "RESTART FROM CHECKPOINT " + Saved.Number : "RESTART THE VOYAGE" };
         UiTheme.WordButton(back, primary: true, size: 22f);
-        var keep = new Button(() => { HidePrompt(); _snoozeUntil = Time.unscaledTime + SnoozeSeconds; }) { text = "KEEP SAILING" };
+        var keep = new Button(() => { HidePrompt(); _snoozeUntil = Time.unscaledTime + SnoozeSeconds; _closest = float.MaxValue; }) { text = "KEEP SAILING" };
         UiTheme.WordButton(keep, primary: false, size: 22f);
         back.style.marginRight = 48f;
         row.Add(back);

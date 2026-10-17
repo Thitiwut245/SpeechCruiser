@@ -8,6 +8,8 @@ using UnityEngine;
 ///                sails by). It bends as the rudder goes over, green to starboard, red to port.
 ///   Course       amber dots along the safe channel (Channel) to the destination berth, from where the
 ///                ship is now; they stop short of the berth, where its yellow outline takes over.
+///                In story mode the sea is the player's: the dots show for the first seconds of the
+///                voyage and after "where is the dock?", then fade away.
 /// Shown only at sea. Sits on the ship (ShipMovement adds it); the lines are drawn in world space.
 /// </summary>
 public class CourseGuides : MonoBehaviour
@@ -19,6 +21,9 @@ public class CourseGuides : MonoBehaviour
     private const float CourseLength = 220f;   // how far ahead the dots run
     private const float CourseHideNear = 35f;  // near the berth its outline is the guide
     private const float Lift = 0.35f;          // above the waves
+    private const float StoryShowAtStart = 20f; // story mode: seconds the dots show as the voyage begins
+    private const float StoryShowAsked = 25f;   // ... and after the Captain asks where the dock is
+    private const float StoryFade = 3f;
 
     private static readonly Color Straight = new Color(1f, 1f, 1f);
     private static readonly Color Port = new Color(1f, 0.38f, 0.32f);
@@ -34,6 +39,8 @@ public class CourseGuides : MonoBehaviour
     private readonly List<Vector3> _drawn = new List<Vector3>();
 
     private int _progress; // the channel point last reached (Channel)
+    private float _askedAt = -100f;
+    private CommandRouter _router;
 
     private void Awake()
     {
@@ -46,8 +53,28 @@ public class CourseGuides : MonoBehaviour
         _course.textureScale = new Vector2(1f / 2.4f, 1f); // a dot every 2.4 m
     }
 
+    private void Start()
+    {
+        _router = CommandRouter.Instance;
+        if (_router != null) _router.OnActionExecuted += OnAction;
+    }
+
+    private void OnAction(ShipAction action)
+    {
+        if (action == ShipAction.QueryDestination) _askedAt = Time.time;
+    }
+
+    /// <summary>1 while the dots should show, fading to 0: always outside story mode.</summary>
+    private float CourseAlpha()
+    {
+        if (StoryDirector.Instance == null || GameManager.Instance == null) return 1f;
+        float left = Mathf.Max(StoryShowAtStart - GameManager.Instance.Elapsed, StoryShowAsked - (Time.time - _askedAt));
+        return Mathf.Clamp01(left / StoryFade);
+    }
+
     private void OnDestroy()
     {
+        if (_router != null) _router.OnActionExecuted -= OnAction;
         if (_arc != null) Destroy(_arc.gameObject);
         if (_course != null) Destroy(_course.gameObject);
     }
@@ -90,7 +117,8 @@ public class CourseGuides : MonoBehaviour
     private void DrawCourse(bool atSea)
     {
         Vector3 berth = Quay.Destination != null ? Quay.Destination.Berth : Vector3.zero;
-        bool show = atSea && Quay.Destination != null && Channel.Ready &&
+        float alpha = atSea ? CourseAlpha() : 0f;
+        bool show = atSea && alpha > 0f && Quay.Destination != null && Channel.Ready &&
                     Flat(transform.position - berth).magnitude > CourseHideNear;
         _course.enabled = show;
         if (!show) return;
@@ -114,7 +142,7 @@ public class CourseGuides : MonoBehaviour
 
         _course.positionCount = _drawn.Count;
         _course.SetPositions(_drawn.ToArray());
-        _course.colorGradient = Fade(Amber, 0.85f);
+        _course.colorGradient = Fade(Amber, 0.85f * alpha);
     }
 
     // ------------------------------------------------------------ drawing

@@ -126,6 +126,7 @@ public static class StoryCatalog
                     {
                         R(0.03f, Harris, "Engine is warm, Captain. Ready when you are."),
                         R(0.15f, Finn, "Follow the channel, Captain. Say \"turn left\" or \"turn right\" to steer."),
+                        R(0.25f, Finn, "The sea is yours, Captain. If I see something in the water, I'll tell you where it is. Go and get it if you like."),
                         R(0.4f, Finn, "The water is calm today. Nice and easy."),
                         R(0.75f, Finn, "I can see the dock ahead! Keep going."),
                     },
@@ -157,7 +158,7 @@ public static class StoryCatalog
                     Radio = new[]
                     {
                         R(0.06f, Harris, "Want more speed? Say \"half ahead\". Too fast? \"Slow down\"."),
-                        R(0.2f, Finn, "Rocks on both sides, Captain. Stay in the channel."),
+                        R(0.2f, Finn, "More rocks on this route, Captain. Keep clear of them."),
                         R(0.85f, Harris, "The market is close. Slow down before the dock."),
                     },
                     Sights = new[]

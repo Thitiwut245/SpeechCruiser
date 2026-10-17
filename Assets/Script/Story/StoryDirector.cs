@@ -64,6 +64,8 @@ public class StoryDirector : MonoBehaviour
         Instance = this;
         gameObject.AddComponent<PathAssist>();
         gameObject.AddComponent<Checkpoints>();
+        gameObject.AddComponent<SeaFinds>();   // before PathCoins: its coins go round the finds
+        gameObject.AddComponent<PathCoins>();
     }
 
     private void OnEnable()
@@ -237,6 +239,7 @@ public class StoryDirector : MonoBehaviour
             if (Flat(s - ship).magnitude > SightDistance) continue;
             _sightsFired.Add(i);
             _sights[i].Reveal();
+            Logbook.RecordSight(_sights[i].Kind);
             foreach (var line in Mission.Sights[i].Lines) _queue.Enqueue(line);
         }
 

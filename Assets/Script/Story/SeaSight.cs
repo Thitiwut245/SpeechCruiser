@@ -137,15 +137,19 @@ public class SeaSight : MonoBehaviour
             }
         tex.SetPixels32(px);
         tex.Apply();
-        _shadeMaterial = new Material(Shader.Find("Sprites/Default")) { name = "Old One shade", mainTexture = tex, renderQueue = 3200 };
+        // Clear and hidden until Reveal. It lives beside the sight, not under it, so it stays flat on
+        // the water while the body pitches; left showing, it stood upright over the ship's berth.
+        _shadeMaterial = new Material(Shader.Find("Sprites/Default")) { name = "Old One shade", mainTexture = tex, renderQueue = 3200, color = Color.clear };
         var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
         Destroy(quad.GetComponent<Collider>());
         quad.name = "Shade";
         quad.GetComponent<MeshRenderer>().sharedMaterial = _shadeMaterial;
         quad.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         _shade = quad.transform;
-        _shade.SetParent(transform.parent, true);
+        _shade.SetParent(transform.parent, false);
+        _shade.SetPositionAndRotation(new Vector3(transform.position.x, _surface + 0.35f, transform.position.z), Quaternion.LookRotation(Vector3.down, _heading));
         _shade.localScale = new Vector3(OldOneLength * 0.32f, OldOneLength * 1.1f, 1f);
+        quad.SetActive(false);
 
         // The eye: a pale glint high on the head, seen only when it turns up toward the ship.
         var eye = new LowPolyMesh();
@@ -419,6 +423,7 @@ public class SeaSight : MonoBehaviour
         _revealedAt = Time.time;
         gameObject.SetActive(true);
         if (_ribbon != null) foreach (var r in _ribbon) r.gameObject.SetActive(true);
+        if (_shade != null) _shade.gameObject.SetActive(true);
     }
 
     /// <summary>Spirit light: it has led the ship home; it slows and sinks away.</summary>
