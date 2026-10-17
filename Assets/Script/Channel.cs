@@ -61,6 +61,19 @@ public static class Channel
 
     public static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 
+    /// <summary>
+    /// Degrees off <paramref name="ship"/>'s bow (+ starboard) to the channel point <paramref name="ahead"/>
+    /// metres on from the one nearest it: where to steer to get back on the channel.
+    /// </summary>
+    public static float BearingFrom(Transform ship, float ahead)
+    {
+        if (ship == null || !Ready) return 0f;
+        int near = Nearest(ship.position, 0, out _);
+        Vector3 to = Flat(_points[IndexAt(_along[near] + ahead)] - ship.position);
+        if (to.sqrMagnitude < 1f) return 0f;
+        return Mathf.DeltaAngle(ship.eulerAngles.y, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg);
+    }
+
     private static void Refresh()
     {
         var level = LevelGenerator.Instance;

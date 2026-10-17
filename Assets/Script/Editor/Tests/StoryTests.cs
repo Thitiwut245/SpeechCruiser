@@ -28,13 +28,58 @@ public class StoryTests
     }
 
     [Test]
-    public void ThreeChaptersOfThreeMissions()
+    public void ThreeChaptersWithTheEncounters()
     {
         Assert.AreEqual(3, StoryCatalog.Chapters.Length);
-        foreach (var c in StoryCatalog.Chapters) Assert.AreEqual(3, c.Missions.Length, "chapter " + c.Number);
-        Assert.AreEqual(9, StoryCatalog.Missions.Count);
+        CollectionAssert.AreEqual(new[] { 3, 4, 4 }, System.Array.ConvertAll(StoryCatalog.Chapters, c => c.Missions.Length));
+        Assert.AreEqual(11, StoryCatalog.Missions.Count);
         Assert.AreEqual("1-1", StoryCatalog.Missions[0].Id);
-        Assert.AreEqual("3-3", StoryCatalog.Missions[8].Id);
+        Assert.AreEqual(MissionGoal.Kraken, StoryCatalog.Find("2-4").Goal);
+        Assert.AreEqual(MissionGoal.Pirates, StoryCatalog.Find("3-2").Goal);
+        Assert.AreEqual("3-4", StoryCatalog.Missions[10].Id);
+        Assert.IsNotNull(StoryCatalog.Missions[10].OutroTitle, "the epilogue stays last");
+    }
+
+    [Test]
+    public void EncounterMissionsAreOpenWater()
+    {
+        foreach (var m in StoryCatalog.Missions)
+        {
+            if (m.Goal != MissionGoal.Kraken && m.Goal != MissionGoal.Pirates) continue;
+            Assert.AreEqual(0f, m.Job.DensityScale, m.Id);
+            Assert.IsFalse(m.Job.Mines, m.Id);
+            Assert.That(m.EncounterAt, Is.InRange(0.05f, 0.4f), m.Id);
+        }
+    }
+
+    /// <summary>
+    /// Every phrase a mission teaches does something when said at sea: an order the ship carries
+    /// out, a question the crew answer, or talk the crew reply to. Never "say again".
+    /// </summary>
+    [Test]
+    public void EveryMissionPhraseIsUnderstood()
+    {
+        foreach (var m in StoryCatalog.Missions)
+            foreach (var phrase in m.Phrases)
+            {
+                var parsed = CommandParser.Parse(phrase);
+                bool order = parsed.HasConfidentOrder;
+                bool question = parsed.Matches.Exists(x => x.Action.IsQuery());
+                bool talk = SmallTalk.Classify(phrase) != SmallTalk.Topic.None;
+                Assert.IsTrue(order || question || talk, m.Id + ": \"" + phrase + "\" does nothing at sea");
+            }
+    }
+
+    [Test]
+    public void TurnAroundWithASideIsAHalfCircle()
+    {
+        var p = CommandParser.Parse("turn around to port");
+        Assert.IsTrue(p.HasConfidentOrder);
+        Assert.AreEqual(ShipAction.TurnPort, p.Matches[0].Action);
+        Assert.AreEqual(CommandParser.TurnAroundDegrees, p.Degrees);
+        Assert.IsTrue(CommandParser.Parse("turn around").SideConflict, "no side: the crew ask which way");
+        Assert.AreEqual(ShipAction.FollowCourse, CommandParser.Parse("follow the light").Matches[0].Action);
+        Assert.AreEqual(ShipAction.FollowCourse, CommandParser.Parse("take us home").Matches[0].Action);
     }
 
     [Test]
@@ -144,7 +189,7 @@ public class StoryTests
         foreach (var m in StoryCatalog.Missions) StoryProgress.MarkDone(m);
         Assert.IsTrue(StoryProgress.IsFinished);
         Assert.IsNull(StoryProgress.NextToPlay);
-        Assert.IsNull(StoryCatalog.Next(StoryCatalog.Missions[8]));
+        Assert.IsNull(StoryCatalog.Next(StoryCatalog.Missions[StoryCatalog.Missions.Count - 1]));
     }
 
     [Test]

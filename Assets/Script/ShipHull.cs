@@ -298,6 +298,19 @@ public class ShipHull : MonoBehaviour
 
     public void RepairShip() => RepairPoints(MaxHealth);
 
+    /// <summary>
+    /// A blow from outside (the Kraken's arm): like hitting a hazard, with the shake, the sound and
+    /// <paramref name="containers"/> knocked overboard, but nothing to push clear of.
+    /// </summary>
+    public void Strike(int containers)
+    {
+        if (_isDestroyed || IsInvulnerable) return;
+        if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing) return;
+        _invulnerableUntil = Time.time + InvulnerableSeconds;
+        OnHullHit?.Invoke(containers);
+        TakeDamage(1);
+    }
+
     /// <summary>Sets the hull to <paramref name="points"/> (at least 1): back at a checkpoint, as it was there.</summary>
     public void SetHealth(int points)
     {

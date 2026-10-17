@@ -681,6 +681,7 @@ public class CommandRouter : MonoBehaviour
     {
         if (CrewVoice.Instance == null) return;
         if (action.IsHarbour()) return; // harbour control has already answered (DockingPilot)
+        if (action.IsSignal()) return;  // ShipSignals (or the story encounter) has already answered
 
         RadioChannel speaker = OwnerOf(action, target);
 

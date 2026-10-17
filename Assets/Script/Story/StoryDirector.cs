@@ -44,6 +44,9 @@ public class StoryDirector : MonoBehaviour
     private SeaSight _guide;
     private bool _guideReleased;
 
+    /// <summary>Where the guiding light is leading (story 3-4), or null if there is none to follow.</summary>
+    public Vector3? GuideTarget => _guide != null && _guide.Revealed && !_guideReleased ? _guide.GuideTarget : (Vector3?)null;
+
     /// <summary>The rescue is done (or the mission has none).</summary>
     public bool RescueDone => Mission == null || Mission.Goal != MissionGoal.Rescue || (_rescue != null && _rescue.Boarded) || _rescueBoarded;
     private bool _rescueBoarded;
@@ -82,6 +85,7 @@ public class StoryDirector : MonoBehaviour
         System.Array.Sort(_cues, (a, b) => a.At.CompareTo(b.At));
         if (Mission.Weather != Weather.Clear) _weather = StoryWeather.Create(Mission.Weather);
         EmergencyCall.Create(transform); // near misses become a call to give the right order
+        StoryEncounter.Install(gameObject, Mission); // the Kraken or the pirates, on those missions
     }
 
     private void OnDisable()
@@ -194,6 +198,13 @@ public class StoryDirector : MonoBehaviour
         while (_nextCue < _cues.Length && _cues[_nextCue].At <= progress) _nextCue++;
         for (int i = 0; i < _sights.Count; i++)
             if (_sights[i] != null && !_sightsFired.Contains(i) && _sights[i].transform.position.z < ship.z) _sightsFired.Add(i);
+        // The guiding light waits just ahead of the ship, not back at the start dock.
+        if (_guide != null && !_guideReleased && Channel.Ready)
+        {
+            int near = Channel.Nearest(ship, 0, out _);
+            int ahead = Channel.IndexAt(Channel.Along[near] + 32f);
+            _guide.MoveTo(Channel.Points[ahead], Channel.Direction(ahead));
+        }
         if (rescueDone)
         {
             _rescueBoarded = true;
@@ -324,6 +335,9 @@ public class StoryDirector : MonoBehaviour
     /// <summary>The dock stays shut until the rescue is done; Finn says why.</summary>
     private bool CanFinish()
     {
+        // An encounter still going (the Kraken, the pirates) keeps the dock shut.
+        var encounter = StoryEncounter.Current;
+        if (encounter != null && !encounter.Done) return false;
         if (RescueDone) return true;
         if (Time.time - _missedSaidAt > 6f)
         {

@@ -108,6 +108,10 @@ public enum MissionGoal
     Delivery,
     /// <summary>Stop beside someone adrift on the way, then sail to the dock.</summary>
     Rescue,
+    /// <summary>Open water: the Kraken strikes; dodge it, then drive it off with the horn (KrakenFight).</summary>
+    Kraken,
+    /// <summary>Open water: pirates give chase; outrun them and call the navy with a Mayday (PirateChase).</summary>
+    Pirates,
 }
 
 public class StoryMission
@@ -146,6 +150,9 @@ public class StoryMission
     public RadioCue[] GuideLines;
     /// <summary>The closing dialogue's title, if not "Mission ... complete" (the ending).</summary>
     public string OutroTitle;
+
+    /// <summary>Kraken and pirate missions: share of the route where the encounter begins.</summary>
+    public float EncounterAt;
 
     public string Label => "Mission " + Chapter + "-" + Number;
 }

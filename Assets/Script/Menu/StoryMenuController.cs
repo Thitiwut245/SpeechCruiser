@@ -14,7 +14,11 @@ using UnityEngine.UIElements;
 public class StoryMenuController
 {
     private static readonly CharacterId[] ChapterFaces = { CharacterId.Ada, CharacterId.Finn, CharacterId.Harris };
-    private static readonly Vector2[] Stops = { new Vector2(0.17f, 0.76f), new Vector2(0.5f, 0.6f), new Vector2(0.83f, 0.76f) };
+    private static readonly Vector2[] ThreeStops = { new Vector2(0.17f, 0.76f), new Vector2(0.5f, 0.6f), new Vector2(0.83f, 0.76f) };
+    private static readonly Vector2[] FourStops = { new Vector2(0.13f, 0.76f), new Vector2(0.38f, 0.6f), new Vector2(0.62f, 0.74f), new Vector2(0.87f, 0.6f) };
+
+    /// <summary>Where a chapter's missions sit on its chart: three or four ports.</summary>
+    private static Vector2[] StopsFor(StoryChapter chapter) => chapter.Missions.Length > 3 ? FourStops : ThreeStops;
 
     private readonly VisualElement _panel;
     private readonly VisualElement _tabs;
@@ -133,7 +137,8 @@ public class StoryMenuController
         route.AddToClassList("chart-fill");
         int sailed = 0;
         foreach (var m in chapter.Missions) if (StoryProgress.IsDone(m)) sailed++;
-        route.SetRoute(Stops, sailed);
+        var stops = StopsFor(chapter);
+        route.SetRoute(stops, sailed);
         _chart.Add(route);
 
         var rose = new CompassRose(74f, UiTheme.Ink, UiTheme.InkSoft, UiTheme.Rust);
@@ -157,7 +162,7 @@ public class StoryMenuController
         _chart.Add(portrait);
 
         var next = StoryProgress.NextToPlay;
-        for (int i = 0; i < chapter.Missions.Length && i < Stops.Length; i++)
+        for (int i = 0; i < chapter.Missions.Length && i < stops.Length; i++)
         {
             var m = chapter.Missions[i];
             bool open = StoryProgress.IsUnlocked(m), done = StoryProgress.IsDone(m);
@@ -167,14 +172,14 @@ public class StoryMenuController
             marker.EnableInClassList("next", m == next);
             marker.EnableInClassList("locked", !open);
             marker.EnableInClassList("selected", m == _selected);
-            marker.style.left = Length.Percent(Stops[i].x * 100f);
-            marker.style.top = Length.Percent(Stops[i].y * 100f);
+            marker.style.left = Length.Percent(stops[i].x * 100f);
+            marker.style.top = Length.Percent(stops[i].y * 100f);
             _chart.Add(marker);
 
             var caption = new Label(open ? m.Title : "?");
             caption.AddToClassList("chart-marker-caption");
-            caption.style.left = Length.Percent(Stops[i].x * 100f);
-            caption.style.top = Length.Percent(Stops[i].y * 100f);
+            caption.style.left = Length.Percent(stops[i].x * 100f);
+            caption.style.top = Length.Percent(stops[i].y * 100f);
             _chart.Add(caption);
         }
     }

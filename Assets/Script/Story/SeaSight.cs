@@ -35,6 +35,11 @@ public class SeaSight : MonoBehaviour
     // Whale
     private CreatureModels.WhaleRig _whale;
     private bool _flukeAbove, _spout1, _spout2, _slapped;
+    // The Old One: the story's deep shadow, huge and never surfacing; a darkness on the water over it.
+    private bool _oldOne;
+    private Transform _shade, _eyeGlint;
+    private Material _shadeMaterial;
+    private const float OldOneLength = 75f;
     // Serpent
     private LiveLoft _serpent;
     private CreatureModels.SerpentHeadRig _head;
@@ -47,7 +52,8 @@ public class SeaSight : MonoBehaviour
     private Transform[] _lanterns;
     private float _nextWisp;
     // Spirit
-    private Transform _wingL, _wingR, _core;
+    private Transform _wingL, _wingR, _core, _tipL, _tipR;
+    private Transform[] _tail;
     private Transform[] _sparks, _ribbon;
     private readonly List<Vector3> _trail = new List<Vector3>();
     private float _nextTrail, _nextRipple;
@@ -97,10 +103,100 @@ public class SeaSight : MonoBehaviour
 
     // ------------------------------------------------------------ the shapes
 
+    /// <summary>
+    /// The Old One of the Deep: a whale-shaped spirit 75 m long, far bigger than the ship. It never
+    /// breaks the surface; it glides a few metres down as a vast dark shape, a soft darkness spreading
+    /// on the water above it, and once in a while a pale eye glints up through the sea.
+    /// </summary>
     private void BuildWhale()
     {
-        _speed = 3f;
-        _whale = CreatureModels.Whale(transform, "Whale", 30f, CreatureModels.WhaleColours.Shadow);
+        _speed = 4f;
+        _oldOne = true;
+        _whale = CreatureModels.Whale(transform, "Whale", OldOneLength, CreatureModels.WhaleColours.Shadow);
+        // Drawn as a shadow seen through the sea: one dark, see-through colour, after the water,
+        // so the water's own colour never lightens it.
+        var silhouette = new Material(Shader.Find("Sprites/Default")) { name = "Old One silhouette", renderQueue = 3150, color = new Color(0.01f, 0.025f, 0.05f, 0.58f) };
+        foreach (var r in _whale.Root.GetComponentsInChildren<Renderer>())
+        {
+            var mats = new Material[r.sharedMaterials.Length];
+            for (int i = 0; i < mats.Length; i++) mats[i] = silhouette;
+            r.sharedMaterials = mats;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        // The darkness on the water: a flat soft-edged oval that rides the surface over it.
+        var tex = new Texture2D(64, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "Old One shade" };
+        var px = new Color32[64 * 64];
+        for (int y = 0; y < 64; y++)
+            for (int x = 0; x < 64; x++)
+            {
+                float dx = (x - 31.5f) / 31.5f, dy = (y - 31.5f) / 31.5f;
+                float d = Mathf.Sqrt(dx * dx + dy * dy);
+                byte a = (byte)(255f * Mathf.Pow(Mathf.Clamp01(1f - d * d), 0.7f));
+                px[y * 64 + x] = new Color32(2, 6, 12, a);
+            }
+        tex.SetPixels32(px);
+        tex.Apply();
+        _shadeMaterial = new Material(Shader.Find("Sprites/Default")) { name = "Old One shade", mainTexture = tex, renderQueue = 3200 };
+        var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        Destroy(quad.GetComponent<Collider>());
+        quad.name = "Shade";
+        quad.GetComponent<MeshRenderer>().sharedMaterial = _shadeMaterial;
+        quad.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        _shade = quad.transform;
+        _shade.SetParent(transform.parent, true);
+        _shade.localScale = new Vector3(OldOneLength * 0.32f, OldOneLength * 1.1f, 1f);
+
+        // The eye: a pale glint high on the head, seen only when it turns up toward the ship.
+        var eye = new LowPolyMesh();
+        eye.Ellipsoid(Vector3.zero, new Vector3(0.9f, 0.6f, 1.2f), 8, 5, new Color(0.75f, 0.9f, 0.95f), 0f, 1f);
+        _eyeGlint = CreatureModels.Part(_whale.Body, "Eye glint", eye, 2.4f, false);
+        _eyeGlint.localPosition = new Vector3(OldOneLength * 0.1f, OldOneLength * 0.035f, OldOneLength * 0.36f);
+        _eyeGlint.gameObject.SetActive(false);
+    }
+
+    // The Old One: 0-5 s rising out of the deep, 5-20 gliding beside the ship a few metres down
+    // (the tail beating slowly, the eye glinting once), 20-26 sinking away into the dark.
+    private bool UpdateOldOne(float age)
+    {
+        var w = _whale;
+        float f = w.Length / 30f;
+        Glide(_speed);
+        Vector3 p = transform.position;
+        float surfaceY = Wave(p);
+        float under = -2.85f * f - 1.6f;   // its back just under the water
+        float deep = -2.85f * f - 30f;
+        float y = age < 5f ? Mathf.Lerp(deep, under, Mathf.SmoothStep(0f, 1f, age / 5f))
+                : age < 20f ? under + Mathf.Sin(age * 0.4f) * 0.8f
+                : Mathf.Lerp(under, deep, Mathf.SmoothStep(0f, 1f, (age - 20f) / 6f));
+        float pitch = age > 20f ? Mathf.SmoothStep(0f, 14f, (age - 20f) / 3f) : Mathf.Sin(age * 0.3f) * 2f;
+        transform.position = new Vector3(p.x, surfaceY + y, p.z);
+        transform.rotation = Quaternion.LookRotation(_heading) * Quaternion.Euler(pitch, 0f, Mathf.Sin(age * 0.25f) * 4f);
+        w.Tail.localRotation = Quaternion.Euler(Mathf.Sin(age * 0.6f) * 6f, 0f, 0f);
+        w.Fluke.localRotation = Quaternion.Euler(Mathf.Sin(age * 0.6f - 0.8f) * 12f, 0f, 0f);
+        w.FlipperR.localRotation = Quaternion.Euler(0f, 32f, -28f + Mathf.Sin(age * 0.5f) * 8f);
+        w.FlipperL.localRotation = Quaternion.Euler(0f, -32f, 28f + Mathf.Sin(age * 0.5f + 1f) * 8f);
+
+        // The darkness above it: deepest when it is closest to the surface.
+        float near = Mathf.InverseLerp(deep, under, y);
+        if (_shade != null)
+        {
+            // Where the body shows through the water as the camera sees it: its centre carried up
+            // the line of sight to the surface, so the darkness lies over it, not beside it.
+            Vector3 c = transform.position;
+            var cam = Camera.main;
+            if (cam != null && cam.transform.forward.y < -0.05f)
+            {
+                Vector3 back = -cam.transform.forward;
+                c += back * ((surfaceY - c.y) / back.y);
+            }
+            _shade.position = new Vector3(c.x, surfaceY + 0.35f, c.z);
+            _shade.rotation = Quaternion.LookRotation(Vector3.down, _heading);
+            _shadeMaterial.color = new Color(1f, 1f, 1f, 0.94f * near);
+        }
+        // A glint of the eye once, mid-way, as if it looked up at the ship.
+        if (_eyeGlint != null) _eyeGlint.gameObject.SetActive(age > 10f && age < 13.5f && Mathf.Repeat(age, 0.9f) < 0.75f);
+        return age > 27f;
     }
 
     private void BuildSerpent()
@@ -226,52 +322,92 @@ public class SeaSight : MonoBehaviour
         m.Box((a + b) * 0.5f, new Vector3(0.06f, 0.06f, (b - a).magnitude), c, Quaternion.LookRotation(b - a));
     }
 
+    /// <summary>
+    /// The spirit light: a manta ray made of light. Broad wings that ripple from root to tip as a
+    /// manta flies through the water, the two horn-like fins at its head, a long thin tail, a heart
+    /// of light glowing in its back, sparks circling it and a ribbon of light trailing behind.
+    /// About eight metres from wingtip to wingtip, so it reads from the bridge.
+    /// </summary>
     private void BuildSpiritLight()
     {
         _speed = 9f;
-        Color warm = new Color(0.9f, 0.55f, 0.12f), pale = new Color(0.95f, 0.75f, 0.3f), core = new Color(1f, 0.85f, 0.45f);
-        var body = new LowPolyMesh();
-        // A manta-like spirit: a flat diamond body, a rounded head lobe, the glowing heart inside.
-        body.Fin(new[] { new Vector2(0f, 1.6f), new Vector2(0.7f, 0.4f), new Vector2(0.4f, -1.4f), new Vector2(0f, -1.8f), new Vector2(-0.4f, -1.4f), new Vector2(-0.7f, 0.4f) },
-                 0.35f, warm, Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(90f, 0f, 0f), Vector3.one));
-        body.Ellipsoid(new Vector3(0f, 0f, 1.3f), new Vector3(0.55f, 0.3f, 0.45f), 8, 5, warm, 0f, 1f);
-        CreatureModels.Part(transform, "Spirit", body, 1.0f, false);
-        var heart = new LowPolyMesh();
-        heart.Ellipsoid(Vector3.zero, Vector3.one * 0.55f, 8, 6, core, 0f, 1f);
-        _core = CreatureModels.Part(transform, "Heart", heart, 2.2f, false);
-        _core.localPosition = new Vector3(0f, 0.25f, 0.2f);
-        _wingR = SpiritWing(1f, pale);
-        _wingL = SpiritWing(-1f, pale);
+        Color back = new Color(1f, 0.78f, 0.36f), wing = new Color(1f, 0.72f, 0.3f), edge = new Color(1f, 0.92f, 0.62f), core = new Color(1f, 0.95f, 0.75f);
 
-        _sparks = new Transform[4];
+        var body = new LowPolyMesh();
+        // The body: a broad flat disc, raised along the spine, with the head lobes in front.
+        body.Ellipsoid(new Vector3(0f, 0f, 0.1f), new Vector3(1.25f, 0.42f, 1.9f), 12, 6, back, 0f, 1f);
+        body.Ellipsoid(new Vector3(0f, 0.18f, 0.2f), new Vector3(0.55f, 0.32f, 1.3f), 8, 5, edge, 0.5f, 1f);
+        foreach (float side in new[] { -1f, 1f })
+        {
+            // Cephalic fins: two curled horns either side of the mouth.
+            body.Ellipsoid(new Vector3(side * 0.62f, -0.05f, 2.05f), new Vector3(0.2f, 0.16f, 0.62f), 6, 4, edge, 0f, 1f);
+            body.Ellipsoid(new Vector3(side * 0.5f, -0.05f, 2.55f), new Vector3(0.14f, 0.12f, 0.3f), 6, 3, edge, 0f, 1f);
+        }
+        CreatureModels.Part(transform, "Spirit", body, 1.2f, false);
+
+        var heart = new LowPolyMesh();
+        heart.Ellipsoid(Vector3.zero, new Vector3(0.32f, 0.2f, 0.42f), 8, 6, core, 0f, 1f);
+        _core = CreatureModels.Part(transform, "Heart", heart, 2.6f, false);
+        _core.localPosition = new Vector3(0f, 0.4f, 0.5f);
+
+        _wingR = MantaWing(1f, wing, edge, out _tipR);
+        _wingL = MantaWing(-1f, wing, edge, out _tipL);
+
+        // The tail: thin joints trailing behind, waving.
+        _tail = new Transform[4];
+        Transform holder = transform;
+        for (int i = 0; i < _tail.Length; i++)
+        {
+            var seg = new LowPolyMesh();
+            float r = Mathf.Lerp(0.16f, 0.04f, i / (float)_tail.Length);
+            seg.Box(new Vector3(0f, 0f, -0.7f), new Vector3(r * 2f, r * 1.6f, 1.45f), edge);
+            var part = CreatureModels.Part(holder, "Tail " + i, seg, 1.4f, false);
+            part.localPosition = i == 0 ? new Vector3(0f, 0f, -1.85f) : new Vector3(0f, 0f, -1.4f);
+            _tail[i] = part;
+            holder = part;
+        }
+
+        _sparks = new Transform[5];
         for (int i = 0; i < _sparks.Length; i++) // little sparks circling it
         {
             var s = new LowPolyMesh();
-            s.Ellipsoid(Vector3.zero, Vector3.one * 0.22f, 5, 4, pale, 0f, 1f);
-            _sparks[i] = CreatureModels.Part(transform, "Spark " + i, s, 1.5f, false);
+            s.Ellipsoid(Vector3.zero, Vector3.one * 0.26f, 5, 4, edge, 0f, 1f);
+            _sparks[i] = CreatureModels.Part(transform, "Spark " + i, s, 1.6f, false);
         }
         // The ribbon of light trailing behind: diamonds that follow where it has been.
-        _ribbon = new Transform[10];
+        _ribbon = new Transform[12];
         for (int i = 0; i < _ribbon.Length; i++)
         {
             var r = new LowPolyMesh();
-            float size = Mathf.Lerp(0.42f, 0.12f, i / (float)_ribbon.Length);
-            r.Fin(new[] { new Vector2(0f, size * 1.6f), new Vector2(size, 0f), new Vector2(0f, -size * 1.6f), new Vector2(-size, 0f) }, 0.05f, pale,
+            float size = Mathf.Lerp(0.5f, 0.12f, i / (float)_ribbon.Length);
+            r.Fin(new[] { new Vector2(0f, size * 1.6f), new Vector2(size, 0f), new Vector2(0f, -size * 1.6f), new Vector2(-size, 0f) }, 0.05f, edge,
                   Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(90f, 0f, 0f), Vector3.one));
             _ribbon[i] = CreatureModels.Part(transform.parent, "Ribbon " + i, r, 1.3f, false);
             _ribbon[i].gameObject.SetActive(false);
         }
     }
 
-    private Transform SpiritWing(float side, Color colour)
+    /// <summary>One wing, in two parts so it can ripple: the inner wing from the body, and the tip.</summary>
+    private Transform MantaWing(float side, Color colour, Color edge, out Transform tip)
     {
-        var w = new LowPolyMesh();
-        var outline = new List<Vector2> { new Vector2(0f, 0.9f), new Vector2(1.4f, 0.5f), new Vector2(2.6f, -0.3f), new Vector2(1.2f, -0.6f), new Vector2(0f, -1.1f) };
-        if (side < 0f) { for (int i = 0; i < outline.Count; i++) outline[i] = new Vector2(-outline[i].x, outline[i].y); outline.Reverse(); }
-        w.Fin(outline, 0.12f, colour, Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(90f, 0f, 0f), Vector3.one));
-        var t = CreatureModels.Part(transform, side > 0 ? "Wing R" : "Wing L", w, 1.1f, false);
-        t.localPosition = new Vector3(side * 0.6f, 0f, 0f);
-        return t;
+        List<Vector2> Mirror(List<Vector2> o)
+        {
+            if (side > 0f) return o;
+            for (int i = 0; i < o.Count; i++) o[i] = new Vector2(-o[i].x, o[i].y);
+            o.Reverse();
+            return o;
+        }
+        var flat = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(90f, 0f, 0f), Vector3.one);
+        var inner = new LowPolyMesh();
+        inner.Fin(Mirror(new List<Vector2> { new Vector2(0f, 1.6f), new Vector2(1f, 1.25f), new Vector2(2f, 0.6f), new Vector2(2f, -1.07f), new Vector2(1.4f, -1.25f), new Vector2(0.6f, -1.7f), new Vector2(0f, -1.9f) }), 0.16f, colour, flat);
+        var root = CreatureModels.Part(transform, side > 0 ? "Wing R" : "Wing L", inner, 1.1f, false);
+        root.localPosition = new Vector3(side * 0.95f, 0f, 0.1f);
+
+        var outer = new LowPolyMesh();
+        outer.Fin(Mirror(new List<Vector2> { new Vector2(0f, 0.6f), new Vector2(1f, -0.3f), new Vector2(1.55f, -0.85f), new Vector2(1.85f, -1.3f), new Vector2(1.3f, -1.22f), new Vector2(0.5f, -1.05f), new Vector2(0f, -1.07f) }), 0.1f, edge, flat);
+        tip = CreatureModels.Part(root, side > 0 ? "Tip R" : "Tip L", outer, 1.3f, false);
+        tip.localPosition = new Vector3(side * 2f, 0f, 0f);
+        return root;
     }
 
     // ------------------------------------------------------------ behaviour
@@ -298,6 +434,7 @@ public class SeaSight : MonoBehaviour
     private void OnDestroy()
     {
         if (_ribbon != null) foreach (var r in _ribbon) if (r != null) Destroy(r.gameObject);
+        if (_shade != null) Destroy(_shade.gameObject);
     }
 
     private void Update()
@@ -310,7 +447,7 @@ public class SeaSight : MonoBehaviour
             case SightKind.GhostShip: done = UpdateGhostShip(age); break;
             case SightKind.SerpentCoils: done = UpdateSerpent(age); break;
             case SightKind.SpiritLight: done = UpdateSpirit(age); break;
-            default: done = UpdateWhale(age); break;
+            default: done = _oldOne ? UpdateOldOne(age) : UpdateWhale(age); break;
         }
         if (done) Destroy(gameObject);
     }
@@ -491,6 +628,16 @@ public class SeaSight : MonoBehaviour
         return age > stay + 7f;
     }
 
+    /// <summary>Puts it at <paramref name="at"/> at once (back at a checkpoint), facing <paramref name="facing"/>, its ribbon gathered in.</summary>
+    public void MoveTo(Vector3 at, Vector3 facing)
+    {
+        transform.position = new Vector3(at.x, transform.position.y, at.z);
+        facing.y = 0f;
+        if (facing.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(facing.normalized);
+        _trail.Clear();
+        GuideTarget = null;
+    }
+
     // The spirit: leads the ship along the channel, wings beating slowly, its ribbon trailing,
     // touching ripples onto the water; once released it slows and sinks away.
     private bool UpdateSpirit(float age)
@@ -514,21 +661,27 @@ public class SeaSight : MonoBehaviour
         float y = rise + Mathf.Sin(age * 0.8f) * 0.25f - sinkT * sinkT * 11f;
         transform.position = new Vector3(p.x, _surface + y, p.z);
 
-        float flap = Mathf.Sin(age * 2.4f);
-        _wingR.localRotation = Quaternion.Euler(0f, 0f, flap * 24f);
-        _wingL.localRotation = Quaternion.Euler(0f, 0f, -flap * 24f);
+        // A manta's stroke: the wave runs out along each wing, the tips following the roots.
+        float flap = Mathf.Sin(age * 1.9f), tipFlap = Mathf.Sin(age * 1.9f - 0.9f);
+        _wingR.localRotation = Quaternion.Euler(0f, 0f, flap * 18f);
+        _wingL.localRotation = Quaternion.Euler(0f, 0f, -flap * 18f);
+        if (_tipR != null) _tipR.localRotation = Quaternion.Euler(0f, 0f, tipFlap * 26f);
+        if (_tipL != null) _tipL.localRotation = Quaternion.Euler(0f, 0f, -tipFlap * 26f);
+        if (_tail != null)
+            for (int i = 0; i < _tail.Length; i++)
+                _tail[i].localRotation = Quaternion.Euler(Mathf.Sin(age * 1.9f - 1.4f - i * 0.6f) * 6f, Mathf.Sin(age * 1.2f - i * 0.7f) * 9f, 0f);
         _core.localScale = Vector3.one * (1f + 0.15f * Mathf.Sin(age * 3.1f));
         for (int i = 0; i < _sparks.Length; i++)
         {
             float a = age * 2.2f + i * Mathf.PI * 2f / _sparks.Length;
-            _sparks[i].localPosition = new Vector3(Mathf.Cos(a) * 2.6f, Mathf.Sin(age * 3f + i) * 0.6f, Mathf.Sin(a) * 2.6f);
+            _sparks[i].localPosition = new Vector3(Mathf.Cos(a) * 4.8f, Mathf.Sin(age * 3f + i) * 0.8f, Mathf.Sin(a) * 3.2f);
         }
 
         // The ribbon: each diamond sits where the spirit's tail was a moment ago.
         if (Time.time >= _nextTrail)
         {
             _nextTrail = Time.time + 0.06f;
-            _trail.Insert(0, transform.TransformPoint(new Vector3(0f, 0f, -1.7f)));
+            _trail.Insert(0, transform.TransformPoint(new Vector3(0f, 0f, -2.2f)));
             if (_trail.Count > _ribbon.Length * 2 + 2) _trail.RemoveAt(_trail.Count - 1);
         }
         for (int i = 0; i < _ribbon.Length; i++)

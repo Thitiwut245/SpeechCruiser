@@ -564,6 +564,7 @@ public static class CommandParser
 
         // "Turn back" / "U-turn" name no side. Claim their words first so "back" can't
         // become an astern order, then ask which way unless a real turn is also given.
+        bool turnAround = SaysTurnAround(clause);
         bool sidelessHelm = ClaimSidelessHelm(clause, used);
 
         // Questions: weak query words may stand in a full sentence ("is there any danger?"),
@@ -692,6 +693,9 @@ public static class CommandParser
         }
 
         result.Degrees = FindTurnDegrees(clause, result.Matches);
+        // "Turn around to port": the side says which way, "around" says how far: a half circle.
+        if (turnAround && result.Degrees == null && result.Matches.Exists(m => m.Action == ShipAction.TurnPort || m.Action == ShipAction.TurnStarboard))
+            result.Degrees = TurnAroundDegrees;
 
         // Best first.
         result.Matches.Sort((a, b) => b.Confidence.CompareTo(a.Confidence));
@@ -781,6 +785,34 @@ public static class CommandParser
         {
             if (Negators.Contains(clause.Tokens[i]) && !clause.InQuestion[i]) return true;
         }
+        return false;
+    }
+
+    /// <summary>"Turn around to port" turns the ship round: this many degrees.</summary>
+    public const float TurnAroundDegrees = 180f;
+
+    private static readonly string[][] Reversals =
+    {
+        new[] { "turn", "around" }, new[] { "come", "about" }, new[] { "turn", "about" }, new[] { "come", "around" },
+        new[] { "bring", "her", "about" }, new[] { "bring", "her", "around" }, new[] { "turn", "back" },
+        new[] { "u", "turn" }, new[] { "uturn" },
+    };
+
+    /// <summary>True if the clause says to turn the ship round ("turn around", "come about"), unnegated and not asked.</summary>
+    private static bool SaysTurnAround(Clause clause)
+    {
+        var toks = clause.Tokens;
+        foreach (var phrase in Reversals)
+            for (int start = 0; start + phrase.Length <= toks.Count; start++)
+            {
+                bool hit = true;
+                for (int k = 0; k < phrase.Length && hit; k++)
+                {
+                    int i = start + k;
+                    hit = toks[i] == phrase[k] && !clause.InQuestion[i] && !clause.Negated[i];
+                }
+                if (hit) return true;
+            }
         return false;
     }
 
@@ -1131,9 +1163,16 @@ public static class CommandParser
             case ShipAction.HardStarboard:    nav.ChangeHeading(HardTurnDegrees);  return true;
             case ShipAction.RudderMidships:   nav.RudderMidships(); return true;
 
+            // "Follow the light" / "take us home": the helmsman steers the way himself (PathAssist).
+            case ShipAction.FollowCourse:   return PathAssist.Follow();
+
             // The harbour pilot answers these himself (DockingPilot).
             case ShipAction.RequestDocking: return DockingPilot.Instance != null && DockingPilot.Instance.RequestDocking();
             case ShipAction.MakeFast:       return DockingPilot.Instance != null && DockingPilot.Instance.MakeFast();
+
+            // The horn and the distress call: ShipSignals sounds them and the crew (or a story encounter) answer.
+            case ShipAction.SoundHorn:      return ShipSignals.Horn();
+            case ShipAction.Mayday:         return ShipSignals.Mayday();
 
             // Belay needs the previous order, which only the router remembers.
             default: return false;

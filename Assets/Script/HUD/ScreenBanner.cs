@@ -8,6 +8,15 @@ using UnityEngine.UIElements;
 /// </summary>
 public static class ScreenBanner
 {
+    private static readonly System.Collections.Generic.List<VisualElement> Live = new System.Collections.Generic.List<VisualElement>();
+
+    /// <summary>Takes down every banner showing: an order is being asked for, and nothing may cover it.</summary>
+    public static void ClearAll()
+    {
+        foreach (var b in Live) b.RemoveFromHierarchy();
+        Live.Clear();
+    }
+
     /// <param name="left">Left edge of the area it is centred in, in percent of the screen (the right edge is the screen's).</param>
     /// <param name="top">Its top, in percent of the screen.</param>
     public static void Show(VisualElement root, string kicker, string title, string line, float seconds = 2.8f,
@@ -34,6 +43,7 @@ public static class ScreenBanner
         banner.Add(t);
         if (!string.IsNullOrEmpty(line)) banner.Add(Text(line, 26f));
         root.Add(banner);
+        Live.Add(banner);
 
         float start = Time.unscaledTime;
         IVisualElementScheduledItem tick = null;
@@ -47,7 +57,7 @@ public static class ScreenBanner
             banner.style.scale = new Scale(new Vector3(scale, scale, 1f));
             banner.style.opacity = Mathf.Clamp01(s / 0.2f) * (1f - leave);
             banner.style.translate = new Translate(0f, -40f * leave);
-            if (s >= seconds) { tick.Pause(); banner.RemoveFromHierarchy(); }
+            if (s >= seconds || banner.panel == null) { tick.Pause(); banner.RemoveFromHierarchy(); Live.Remove(banner); }
         }).Every(16);
     }
 

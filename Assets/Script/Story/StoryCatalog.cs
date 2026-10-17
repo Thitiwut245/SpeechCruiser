@@ -189,7 +189,7 @@ public static class StoryCatalog
                     Goal = MissionGoal.Rescue,
                     Client = Mia,
                     Job = Job("1-3", rows: 26, containers: 5, reward: 400, density: 0.8f, mines: false, weave: 1.12f, towing: 80, seed: 1301),
-                    Phrases = new[] { "stop", "slow ahead", "turn around" },
+                    Phrases = new[] { "stop", "slow ahead", "turn around to port" },
                     RescueAt = 0.55f,
                     RescueName = "the rowboat",
                     RescueSpotted = R(0f, Finn, "There! A rowboat, straight ahead! Stop the ship next to it."),
@@ -371,7 +371,40 @@ public static class StoryCatalog
                         L(Finn, "We saw it! Glowing sails, and nobody on board!"),
                         L(Sam, "That is the Lantern. Long ago, she guided lost sailors home."),
                         L(Sam, "She belongs to the Old One of the Deep, the spirit of this sea. It helps kind sailors."),
+                        L(Sam, "But not everything in the deep is kind. Out past the Deep Water lives the Kraken."),
                         L(Harris, "...Well. I need a cup of tea."),
+                    },
+                },
+                new StoryMission
+                {
+                    Title = "The Legend",
+                    Summary = "Take Sam's supplies across the Deep Water. Open sea, no rocks. And maybe something else.",
+                    Goal = MissionGoal.Kraken,
+                    Client = Sam,
+                    Job = Job("2-4", rows: 30, containers: 5, reward: 800, density: 0f, mines: false, weave: 1.05f, towing: 200, seed: 2401),
+                    EncounterAt = 0.22f,
+                    Phrases = new[] { "hard a port", "hard a starboard", "sound the horn" },
+                    Intro = new[]
+                    {
+                        L(Sam, "Captain, my island needs food and oil. The fastest way is across the Deep Water."),
+                        L(Sam, "No rocks out there. Only deep, deep sea. And the Kraken, if you believe old stories."),
+                        L(Finn, "A sea monster? With giant arms?"),
+                        L(Sam, "Old sailors say it hates one thing: the sound of a ship's horn."),
+                        L(Harris, "If an arm comes up, turn away fast. Say \"hard a port\" or \"hard a starboard\"."),
+                        L(Finn, "And if it shows its face, Captain, say \"sound the horn\"! Loud!"),
+                    },
+                    Radio = new[]
+                    {
+                        R(0.04f, Finn, "Deep Water, Captain. No rocks for miles. Very quiet."),
+                        R(0.15f, Harris, "Too quiet. I don't like it."),
+                        R(0.9f, Finn, "Sam's island! We made it across!"),
+                    },
+                    Outro = new[]
+                    {
+                        L(Sam, "You met the Kraken... and you drove it away with a horn! Ha!"),
+                        L(Sam, "My grandfather said only a calm captain can do that. You listen, and you speak clearly."),
+                        L(Finn, "My legs are still shaking."),
+                        L(Harris, "That's the engine, lad. ...No, it's my legs too."),
                         L(Ada, "Get some sleep, everyone. Tomorrow is the most important day for this company."),
                     },
                 },
@@ -431,6 +464,37 @@ public static class StoryCatalog
                         L(Ada, "Fifteen containers, and every one is safe! The city signed the contract!"),
                         L(Ada, "Marlow and Company is saved. Thank you, Captain. Thank you, all of you."),
                         L(Finn, "We did it!"),
+                        L(Ada, "One more job before we celebrate. The city's first payment must go to our bank in Southport."),
+                        L(Ada, "The way is through the Strait. Ships say there are pirates there now."),
+                    },
+                },
+                new StoryMission
+                {
+                    Title = "Pirate Waters",
+                    Summary = "Carry the city's payment through the Strait. Pirates hunt there: run, and call for help.",
+                    Goal = MissionGoal.Pirates,
+                    Client = Ada,
+                    Job = Job("3-2", rows: 32, containers: 6, reward: 1000, density: 0f, mines: false, weave: 1.05f, towing: 300, seed: 3151),
+                    EncounterAt = 0.16f,
+                    Phrases = new[] { "flank speed", "mayday, under attack by pirates", "hard a starboard" },
+                    Intro = new[]
+                    {
+                        L(Ada, "Captain, the payment is in a locked box on deck. Please take it to Southport."),
+                        L(Ada, "If pirates come, do not fight. Run, and call for help."),
+                        L(Harris, "Our old girl is fast at \"flank speed\". Say it, and I give you everything."),
+                        L(Finn, "And the call for help is a Mayday: \"Mayday, under attack by pirates\"."),
+                        L(Finn, "The navy listens on the radio. They will come."),
+                        L(Harris, "If a boat comes close, turn away hard. They can't climb on a ship that moves."),
+                    },
+                    Radio = new[]
+                    {
+                        R(0.04f, Finn, "Entering the Strait. Open water, Captain. I'm watching every side."),
+                        R(0.9f, Finn, "Southport! Bring her in, Captain."),
+                    },
+                    Outro = new[]
+                    {
+                        L(Ada, "The payment is in the bank. And you kept everyone safe. Well done, Captain."),
+                        L(Finn, "Did you see the navy ship? Huge! The pirates ran like rabbits!"),
                         L(Harris, "Hmm. The sky in the west is very dark. I don't like it."),
                         L(Ada, "A storm? Then everyone stays in port tonight. Everyone."),
                     },
@@ -441,7 +505,7 @@ public static class StoryCatalog
                     Summary = "The storm is here, and Tomas is still at sea with a dead radio. Find him.",
                     Goal = MissionGoal.Rescue,
                     Client = Tomas,
-                    Job = Job("3-2", rows: 30, containers: 4, reward: 900, density: 1f, mines: true, weave: 1.15f, towing: 300, seed: 3201),
+                    Job = Job("3-3", rows: 30, containers: 4, reward: 900, density: 1f, mines: true, weave: 1.15f, towing: 300, seed: 3201),
                     Weather = Weather.Storm,
                     Phrases = new[] { "please stop the engine", "turn to starboard, please", "is everyone safe?" },
                     RescueAt = 0.5f,
@@ -476,7 +540,7 @@ public static class StoryCatalog
                     Summary = "Lost in the storm, with a crazy compass. A light in the water shows the way.",
                     Goal = MissionGoal.Delivery,
                     Client = Tomas,
-                    Job = Job("3-3", rows: 34, containers: 4, reward: 1200, density: 1.1f, mines: true, weave: 1.2f, towing: 300, seed: 3301),
+                    Job = Job("3-4", rows: 34, containers: 4, reward: 1200, density: 1.1f, mines: true, weave: 1.2f, towing: 300, seed: 3301),
                     Weather = Weather.Storm,
                     Guide = true,
                     GuideLines = new[]

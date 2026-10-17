@@ -42,6 +42,13 @@ public enum ShipAction
     // --- Harbour: docking at the destination berth (DockingPilot) ---
     RequestDocking,
     MakeFast,
+
+    // --- Signals: the ship's horn, and the distress call (ShipSignals; story encounters answer them) ---
+    SoundHorn,
+    Mayday,
+
+    // --- The helmsman steers the way himself: "follow the light", "take us home" (PathAssist) ---
+    FollowCourse,
 }
 
 /// <summary>
@@ -57,6 +64,7 @@ public enum ActionCategory
     Helm,
     Query,
     Harbour,
+    Signal,
 }
 
 public static class ShipActionExtensions
@@ -67,6 +75,7 @@ public static class ShipActionExtensions
         if (a.IsQuery()) return ActionCategory.Query;
         if (a.IsHelm()) return ActionCategory.Helm;
         if (a.IsHarbour()) return ActionCategory.Harbour;
+        if (a.IsSignal()) return ActionCategory.Signal;
         return ActionCategory.Engine;
     }
 
@@ -140,6 +149,15 @@ public static class ShipActionExtensions
     public static bool IsHarbour(this ShipAction a)
     {
         return a == ShipAction.RequestDocking || a == ShipAction.MakeFast;
+    }
+
+    /// <summary>
+    /// True for the orders that are carried out and answered by their own handler, not read back
+    /// by the crew: the horn and the distress call (ShipSignals), and "follow the light" (PathAssist).
+    /// </summary>
+    public static bool IsSignal(this ShipAction a)
+    {
+        return a == ShipAction.SoundHorn || a == ShipAction.Mayday || a == ShipAction.FollowCourse;
     }
 
     /// <summary>True if this is a helm order (rudder), as opposed to an engine order.</summary>

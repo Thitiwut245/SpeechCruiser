@@ -55,6 +55,7 @@ public class Checkpoints : MonoBehaviour
         public int Hull, Cargo, Hits, MineHits;
         public float Elapsed;
         public bool RescueDone;
+        public bool EncounterDone;   // the Kraken or the pirates were over when it was passed
     }
 
     private static readonly float[] Shares = { 0.25f, 0.5f, 0.75f };
@@ -141,6 +142,7 @@ public class Checkpoints : MonoBehaviour
             MineHits = gm.MineHits,
             Elapsed = gm.Elapsed,
             RescueDone = StoryDirector.Instance == null || StoryDirector.Instance.RescueDone,
+            EncounterDone = StoryEncounter.Current != null && StoryEncounter.Current.Done,
         };
         Banner("CHECKPOINT", Saved.Number + " of " + Shares.Length, "You can restart from here (Esc).");
         PlayBell();
@@ -168,6 +170,7 @@ public class Checkpoints : MonoBehaviour
         if (session != null) ShipyardManager.ShedCargo(session.CargoAboard - s.Cargo);
         GameManager.Instance.RestoreProgress(s.Elapsed, s.Hits, s.MineHits);
         if (StoryDirector.Instance != null) StoryDirector.Instance.ResumeAt(p, s.RescueDone);
+        if (s.EncounterDone && StoryEncounter.Current != null) StoryEncounter.Current.Skip();
 
         // The camera jumps with the ship instead of gliding there.
         var vcam = FindAnyObjectByType<Unity.Cinemachine.CinemachineCamera>();
@@ -181,7 +184,8 @@ public class Checkpoints : MonoBehaviour
     private void WatchOffCourse(Vector3 ship, float distance)
     {
         bool nearBerth = Quay.Destination != null && Channel.Flat(ship - Quay.Destination.Berth).magnitude < 80f;
-        bool busy = DialoguePlayer.IsPlaying || nearBerth || Time.unscaledTime < _snoozeUntil;
+        bool fighting = StoryEncounter.Current != null && !StoryEncounter.Current.Done; // dodging the Kraken or the pirates
+        bool busy = DialoguePlayer.IsPlaying || nearBerth || fighting || Time.unscaledTime < _snoozeUntil;
         _offFor = distance > OnChannel && !busy ? _offFor + Time.deltaTime : 0f;
         if (_offFor >= OffSeconds) ShowPrompt();
     }
@@ -252,8 +256,21 @@ public class Checkpoints : MonoBehaviour
         return _layer = ScreenBanner.Layer(_layerObject, 20);
     }
 
-    private void Banner(string kicker, string title, string line) =>
+    private void Banner(string kicker, string title, string line) => StartCoroutine(BannerWhenClear(kicker, title, line));
+
+    // Not over an order being asked for (an emergency, the Kraken, the pirates).
+    private System.Collections.IEnumerator BannerWhenClear(string kicker, string title, string line)
+    {
+        float until = Time.unscaledTime + 20f;
+        while (Time.unscaledTime < until && (EmergencyCall.Running || AnyPrompt())) yield return null;
         ScreenBanner.Show(Layer(), kicker, title, line, 3f, top: 20f);
+    }
+
+    private static bool AnyPrompt()
+    {
+        foreach (var p in FindObjectsByType<CallPrompt>(FindObjectsSortMode.None)) if (p.Running) return true;
+        return false;
+    }
 
     private static void PlayBell()
     {
