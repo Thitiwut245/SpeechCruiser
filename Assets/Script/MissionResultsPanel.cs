@@ -32,6 +32,7 @@ public class MissionResultsPanel : MonoBehaviour
     private Label _stamp;
     private Label _voyage;
     private Button _continue;
+    private Button _checkpoint;
 
     private float _showAt = -1f;
     private float _continueAt = float.MaxValue;
@@ -63,6 +64,11 @@ public class MissionResultsPanel : MonoBehaviour
         _voyage = root.Q<Label>("results-voyage");
         _continue = root.Q<Button>("results-continue-btn");
         _continue.clicked += Continue;
+        // A story ship lost after a checkpoint can go back there instead of starting over.
+        _checkpoint = new Button(() => { if (_shown) { _shown = false; VoyageRestart.Request(VoyageRestart.Mode.FromCheckpoint); } });
+        foreach (var c in _continue.GetClasses()) _checkpoint.AddToClassList(c);
+        _checkpoint.style.display = DisplayStyle.None;
+        _continue.parent.Insert(_continue.parent.IndexOf(_continue), _checkpoint);
 
         if (GameManager.Instance != null) GameManager.Instance.OnStateChanged += HandleStateChanged;
         _mic = FindAnyObjectByType<RadioMic>();
@@ -146,6 +152,9 @@ public class MissionResultsPanel : MonoBehaviour
         var story = StoryProgress.ActiveMission;
         string job = story != null ? story.Label + ": " + story.Title
                                    : result.JobName.Substring(0, 1) + result.JobName.Substring(1).ToLowerInvariant() + " run";
+        bool checkpoint = story != null && !result.Delivered && Checkpoints.Saved != null;
+        _checkpoint.style.display = checkpoint ? DisplayStyle.Flex : DisplayStyle.None;
+        if (checkpoint) _checkpoint.text = "RESTART FROM CHECKPOINT " + Checkpoints.Saved.Number;
         _continue.text = story == null ? "BACK TO THE SHIPYARD"
                        : result.Delivered ? "BACK TO THE STORY" : "TRY AGAIN";
         if (result.Delivered)
@@ -177,6 +186,7 @@ public class MissionResultsPanel : MonoBehaviour
         {
             AddRow("Time at sea", FormatTime(result.Seconds), null);
         }
+        AddScoreRows(result, story);
 
         var language = LanguageLog.Read();
         AddLanguageRows(language);
@@ -221,6 +231,29 @@ public class MissionResultsPanel : MonoBehaviour
         row.Add(l);
         row.Add(v);
         _rows.Add(row);
+    }
+
+    /// <summary>
+    /// Story mode: the coins found on the channel (paid only on delivery), and the score with what
+    /// made it up, against the best for the mission.
+    /// </summary>
+    private void AddScoreRows(MissionResult result, StoryMission story)
+    {
+        if (story == null) return;
+        if (result.FindsTotal > 0)
+            AddRow("Finds", result.Finds + " / " + result.FindsTotal + (result.Finds > 0 ? "  ·  in the logbook" : ""),
+                   result.Finds == result.FindsTotal ? "good" : null);
+        if (result.CoinsTotal > 0)
+        {
+            string paid = result.CoinPay > 0 ? "  +$" + result.CoinPay : !result.Delivered && result.Coins > 0 ? "  (lost with the ship)" : "";
+            AddRow("Coins", result.Coins + " / " + result.CoinsTotal + paid, result.Coins == result.CoinsTotal ? "good" : null);
+        }
+        if (!result.Delivered) return;
+        string best = result.NewBest ? "  ·  new best!" : result.BestScore > 0 ? "  (best " + result.BestScore + ")" : "";
+        AddRow("Score", result.Score + best, result.NewBest ? "good" : null);
+        var parts = new System.Collections.Generic.List<string> { "coins " + result.CoinScore };
+        if (result.ScoreBonuses != null) foreach (var b in result.ScoreBonuses) parts.Add(b.Key + " " + b.Value);
+        AddRow("", string.Join("  ·  ", parts), null, true);
     }
 
     /// <summary>

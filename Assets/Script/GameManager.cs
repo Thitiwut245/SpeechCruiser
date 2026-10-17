@@ -69,6 +69,19 @@ public class GameManager : Singleton<GameManager>
         SetState(GameState.Shipyard);
     }
 
+    /// <summary>Seconds since this voyage started, and the hits so far (a checkpoint keeps them).</summary>
+    public float Elapsed => Time.time - _missionStartTime;
+    public int Hits => _hits;
+    public int MineHits => _mineHits;
+
+    /// <summary>Back at a checkpoint: the clock and the hits as they were when it was passed.</summary>
+    public void RestoreProgress(float elapsed, int hits, int mineHits)
+    {
+        _missionStartTime = Time.time - Mathf.Max(0f, elapsed);
+        _hits = hits;
+        _mineHits = mineHits;
+    }
+
     public void SetState(GameState newState)
     {
         if (newState == GameState.Playing && CurrentState != GameState.Playing)
@@ -119,10 +132,13 @@ public class GameManager : Singleton<GameManager>
         // Speed pays: arriving inside par adds a share of what was earned.
         result.ParSeconds = ParSeconds;
         result.OnTimeBonus = ParSeconds > 0f && result.Seconds <= ParSeconds ? Mathf.RoundToInt(pay * OnTimeBonusShare) : 0;
-        session.AddCredits(pay + result.OnTimeBonus);
+        // Story coins are banked now that the cargo is in, and the voyage is scored.
+        CountCoins(result, paid: true);
+        ScoreStory(result);
+        session.AddCredits(pay + result.OnTimeBonus + result.CoinPay);
         session.RecordMissionCompleted();
         session.MarkAtSea(false);
-        session.LastMissionSummary = $"DELIVERED {session.CargoAboard}/{session.CargoLoaded} CONTAINERS: +${pay + result.OnTimeBonus}";
+        session.LastMissionSummary = $"DELIVERED {session.CargoAboard}/{session.CargoLoaded} CONTAINERS: +${pay + result.OnTimeBonus + result.CoinPay}";
         result.Pay = pay;
         FinishResult(result);
         session.ClearCargo();
@@ -147,6 +163,7 @@ public class GameManager : Singleton<GameManager>
         session.LastMissionSummary = $"SHIP LOST. CARGO GONE, TOWED HOME: -${fee}";
         result.TowingFee = fee;
         result.CargoDelivered = 0;
+        CountCoins(result, paid: false); // found, but they went down with the ship
         FinishResult(result);
         session.ClearCargo();
         SetState(GameState.GameOver);
@@ -167,6 +184,31 @@ public class GameManager : Singleton<GameManager>
             Seconds = Time.time - _missionStartTime,
             CreditsBefore = session.Credits,
         };
+    }
+
+    private static void CountCoins(MissionResult result, bool paid)
+    {
+        var finds = SeaFinds.Current;
+        if (finds != null) { result.Finds = finds.Found; result.FindsTotal = finds.Total; }
+        var coins = PathCoins.Current;
+        if (coins == null) return;
+        result.Coins = coins.Taken;
+        result.CoinsTotal = coins.Total;
+        result.CoinPay = paid ? coins.Credits : 0;
+    }
+
+    /// <summary>Story mode only: the coins' points plus the bonuses earned, and the best kept.</summary>
+    private static void ScoreStory(MissionResult result)
+    {
+        var mission = StoryProgress.ActiveMission;
+        if (mission == null) return;
+        result.CoinScore = PathCoins.Current != null ? PathCoins.Current.Score : 0;
+        result.ScoreBonuses = StoryScore.Bonuses(result.Hits, result.OnTimeBonus > 0,
+                                                 result.CargoDelivered == result.CargoLoaded, LanguageLog.Read().StandardOrders, result.Finds);
+        result.Score = result.CoinScore;
+        foreach (var b in result.ScoreBonuses) result.Score += b.Value;
+        result.BestScore = StoryScore.Best(mission.Id);
+        result.NewBest = StoryScore.RecordBest(mission.Id, result.Score);
     }
 
     private void FinishResult(MissionResult result)

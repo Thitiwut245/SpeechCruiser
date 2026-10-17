@@ -57,7 +57,7 @@ public static class ResearchLog
         "calls,understood,understood_pct,orders,standard_orders,say_again,words_asked,avg_reaction_s,practise," +
         "avg_stt_ms,avg_total_ms,avg_ship_ms,emergencies,emergencies_saved";
     public const string EmergenciesHeader =
-        "session,participant,voyage,mission,time_utc,hazard,distance_m,window_s,outcome,reaction_ms,tries,standard,said";
+        "session,participant,voyage,mission,time_utc,hazard,distance_m,window_s,outcome,reaction_ms,tries,standard,said,call";
 
     public static readonly string SessionId = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
     public static string Folder => Path.Combine(Application.persistentDataPath, "Sessions");
@@ -204,12 +204,12 @@ public static class ResearchLog
     /// A story emergency call ended (EmergencyCall): what was ahead, how much time there was,
     /// what happened (saved, hit, cleared), how fast the right order came, and what was said.
     /// </summary>
-    public static void Emergency(string hazard, float distance, float window, string outcome, int reactionMs, int tries, string standard)
+    public static void Emergency(string hazard, float distance, float window, string outcome, int reactionMs, int tries, string standard, string call = "")
     {
         string said = _open != null ? _open.Heard : Last != null ? Last.Heard : "";
         var row = new List<string>(Common())
         {
-            hazard ?? "", F(distance), F(window), outcome, reactionMs >= 0 ? I(reactionMs) : "", I(tries), standard ?? "", outcome == "saved" ? said : "",
+            hazard ?? "", F(distance), F(window), outcome, reactionMs >= 0 ? I(reactionMs) : "", I(tries), standard ?? "", outcome == "saved" ? said : "", call ?? "",
         };
         Append("emergencies.csv", EmergenciesHeader, row);
     }

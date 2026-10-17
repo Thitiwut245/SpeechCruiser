@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Speech Cruiser Study Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 16mm; }
+  body { font-family: "Noto Sans Thai", "Noto Sans", sans-serif; color: #1b2a3a; background: #fff; margin: 0 auto; max-width: 178mm; font-size: 11.5pt; line-height: 1.55; }
+  h1 { font-size: 17pt; margin: 0 0 2mm; }
+  h2 { font-size: 13pt; margin: 6mm 0 2mm; border-bottom: 1.5px solid #1b2a3a; padding-bottom: 1mm; }
+  .sub { color: #555; margin: 0 0 4mm; }
+  ul.check { list-style: none; padding: 0; margin: 0; }
+  ul.check li { padding: 1mm 0 1mm 8mm; position: relative; }
+  ul.check li::before { content: ""; position: absolute; left: 0; top: 2.4mm; width: 3.6mm; height: 3.6mm; border: 1.3px solid #1b2a3a; }
+  code { font-family: Consolas, monospace; background: #f1efe9; padding: 0 1mm; }
+  .page { page-break-after: always; }
+  .card { border: 2px solid #1b2a3a; padding: 8mm 10mm; margin-top: 4mm; }
+  .card h1 { text-align: center; font-size: 20pt; letter-spacing: 0.06em; }
+  .how { text-align: center; font-size: 13pt; margin: 2mm 0 6mm; }
+  ol.cmds { font-family: "Noto Sans", sans-serif; font-size: 19pt; font-weight: 600; margin: 0; padding-left: 12mm; }
+  ol.cmds li { padding: 2.2mm 0; border-bottom: 1px dashed #b9b4a8; }
+  ol.cmds li span { font-family: "Noto Sans Thai", sans-serif; font-weight: 400; font-size: 11.5pt; color: #555; margin-left: 4mm; }
+  .note { font-size: 10.5pt; color: #555; margin-top: 5mm; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>Speech Cruiser: ใบตรวจรายการผู้ดำเนินการทดลอง</h1>
+  <p class="sub">ใช้คู่กับแบบสอบถาม Google Form (ฟอร์มเดียว) ตามขั้นตอนในบทที่ 3</p>
+
+  <h2>ก่อนวันทดลอง (ครั้งเดียว)</h2>
+  <ul class="check">
+    <li>ยกเลิกกุญแจ OpenAI เดิมที่เคยวางในแชต และใส่กุญแจใหม่ใน <code>BuildStudy\SpeechCruiser_Data\StreamingAssets\openai.key</code></li>
+    <li>ตั้งหูฟังที่มีไมค์เป็นอุปกรณ์เริ่มต้น (Default) ทั้งลำโพงและไมโครโฟนใน Windows</li>
+    <li>เสียบสายชาร์จ และตั้งโหมดพลังงานเป็นประสิทธิภาพสูงสุด (Whisper ใช้การ์ดจอ RTX 4050)</li>
+    <li>เปิด <b>Start new player</b> บนเดสก์ท็อป กด T ค้างแล้วพูด "radio check" ลูกเรือต้องตอบกลับ</li>
+    <li>เล่นเที่ยวเรือเต็ม 1 เที่ยว แล้วย้ายไฟล์ CSV ที่เกิดจากการลองออกจากโฟลเดอร์ Sessions</li>
+    <li>เตรียมลิงก์ฟอร์ม (หรือ QR) และพิมพ์หน้าที่ 2 ของเอกสารนี้ (บัตรคำสั่ง)</li>
+  </ul>
+
+  <h2>ผู้เข้าร่วมแต่ละคน (ประมาณ 45 นาที)</h2>
+  <ul class="check">
+    <li>ชี้แจงวัตถุประสงค์ แล้วเปิดฟอร์ม ให้ผู้เข้าร่วมตอบความยินยอม ตอนที่ 1 และตอนที่ 2 (ก่อนเล่น)</li>
+    <li>ปิดเกมของคนก่อนหน้า (ถ้ายังเปิดอยู่) แล้วดับเบิลคลิก <b>Start new player</b> เกมจะเริ่มใหม่จากบทฝึกสอนทุกครั้ง</li>
+    <li>สวมหูฟัง ทดสอบ "radio check" 1 ครั้ง แล้วกด <b>START THE STORY</b></li>
+    <li>ให้เล่นบทฝึกสอนและเดินเรือต่อประมาณ 30 นาที ระหว่างเล่นให้พูดคำสั่งทั้ง 10 คำสั่งจากบัตรคำสั่งอย่างน้อยคำสั่งละ 1 ครั้ง</li>
+    <li>ไม่ช่วยพูดหรือแปลคำสั่งให้ ช่วยได้เฉพาะปัญหาทางเทคนิค (ไมค์ เสียง ปุ่ม)</li>
+    <li>ครบเวลาแล้วปิดเกม (Esc แล้วเลือก Quit) ให้ผู้เข้าร่วมกลับไปที่ฟอร์มเดิม ตอบตอนที่ 2 ซ้ำ ตอนที่ 3 และ 4 แล้วกดส่ง</li>
+    <li>จดเวลาเริ่มเล่นของผู้เข้าร่วม (ใช้จับคู่รอบการเปิดเกมในคอลัมน์ <code>session</code> ของไฟล์ CSV)</li>
+  </ul>
+
+  <h2>หลังทดลองครบทุกคน</h2>
+  <ul class="check">
+    <li>คัดลอกโฟลเดอร์ <code>%USERPROFILE%\AppData\LocalLow\DefaultCompany\SpeechCruiser\Sessions</code> (turns.csv, voyages.csv, emergencies.csv)</li>
+    <li>ใน Google Form เปิด Apps Script แล้วเรียก <code>scoreResponses()</code> เพื่อคำนวณคะแนน</li>
+    <li>ห้ามส่งหรือบีบอัดโฟลเดอร์ <code>BuildStudy</code> ให้ผู้อื่น เพราะมีกุญแจ API อยู่ข้างใน</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h1>RADIO ORDERS</h1>
+  <p class="how">กด <b>T</b> ค้างไว้ พูดคำสั่ง แล้วปล่อย</p>
+  <ol class="cmds">
+    <li>slow ahead <span>เดินหน้าช้า</span></li>
+    <li>half ahead <span>เดินหน้าครึ่งกำลัง</span></li>
+    <li>full ahead <span>เดินหน้าเต็มกำลัง</span></li>
+    <li>port twenty <span>หางเสือซ้าย 20 องศา</span></li>
+    <li>starboard twenty <span>หางเสือขวา 20 องศา</span></li>
+    <li>midships <span>ตั้งหางเสือตรง</span></li>
+    <li>reduce speed <span>ลดความเร็ว</span></li>
+    <li>status report <span>ขอรายงานสถานะเรือ</span></li>
+    <li>request docking <span>ขอเข้าเทียบท่า</span></li>
+    <li>stop engine <span>หยุดเครื่องยนต์</span></li>
+  </ol>
+  <p class="note">พูดได้ตามลำดับที่สถานการณ์ในเกมเหมาะสม ไม่ต้องเรียงตามเลข คำสั่งอื่นและการคุยกับลูกเรือพูดได้ตามสบาย</p>
+</div>
+
+</body>
+</html>

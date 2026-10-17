@@ -98,6 +98,7 @@ public class ShipMovement : MonoBehaviour
         EnsureVisualChild();
         _visualRest = Visual.localPosition;
         if (GetComponent<ShipWake>() == null) gameObject.AddComponent<ShipWake>();
+        if (GetComponent<CourseGuides>() == null) gameObject.AddComponent<CourseGuides>(); // turn arc and course on the water
     }
 
     /// <summary>
@@ -150,20 +151,59 @@ public class ShipMovement : MonoBehaviour
 
     private void UpdateRotation(float rudder)
     {
-        float speed = _engine.Speed;
+        _turnRate = NextTurnRate(_turnRate, rudder, _engine.Speed, Time.deltaTime);
+        if (Mathf.Abs(_turnRate) < 0.01f) return;
 
+        transform.Rotate(0f, _turnRate * Time.deltaTime, 0f, Space.World);
+    }
+
+    private static float HelmFactor => GameSession.Instance != null ? GameSession.Instance.HelmTurnFactor : 1f;
+
+    /// <summary>The rate of turn after <paramref name="dt"/>, for a rudder (-1..1) at a speed.</summary>
+    private float NextTurnRate(float rate, float rudder, float speed, float dt)
+    {
         // Rudder bite ramps from a slow standstill pivot up to full authority,
         // and reverses when the ship is making way astern.
         float bite = Mathf.Lerp(PivotAuthority, 1f, Mathf.Clamp01(Mathf.Abs(speed) / FullAuthoritySpeed));
         float cargo = GameSession.Instance != null ? GameSession.Instance.CargoTurnFactor : 1f;
         // The rudder upgrade turns the ship itself faster, not just the rudder blade.
-        float helm = GameSession.Instance != null ? GameSession.Instance.HelmTurnFactor : 1f;
-        float target = rudder * TurningPower * helm * cargo * bite * Sternward;
+        float target = rudder * TurningPower * HelmFactor * cargo * bite * Sternward;
+        return Mathf.MoveTowards(rate, target, YawAccel * HelmFactor * dt);
+    }
 
-        _turnRate = Mathf.MoveTowards(_turnRate, target, YawAccel * helm * Time.deltaTime);
-        if (Mathf.Abs(_turnRate) < 0.01f) return;
+    /// <summary>Way through the water: along the bow, plus the slide away from the turn.</summary>
+    private Vector3 Velocity(Vector3 forward, Vector3 right, float rudder, float speed)
+    {
+        // Slide away from the turn so the stern kicks out. The turn reverses when going
+        // astern, so the slide does too. Flattened to the water plane.
+        Vector3 drift = right * (-rudder * Sternward * LateralDrift * Mathf.Abs(speed));
+        drift.y = 0f;
+        forward.y = 0f;
+        return forward.normalized * speed + drift;
+    }
 
-        transform.Rotate(0f, _turnRate * Time.deltaTime, 0f, Space.World);
+    /// <summary>
+    /// Where the ship will be over the next <paramref name="seconds"/> if no new order is given:
+    /// the helm and the hull stepped ahead with the same rules as Update, at today's speed.
+    /// Fills <paramref name="points"/> from the ship's position, one point per step.
+    /// </summary>
+    public void Predict(System.Collections.Generic.List<Vector3> points, float seconds, float step)
+    {
+        points.Clear();
+        var helm = _helm.Snapshot;
+        Vector3 position = transform.position;
+        float heading = transform.eulerAngles.y, rate = _turnRate, speed = _engine.Speed;
+        points.Add(position);
+        for (float t = 0f; t < seconds; t += step)
+        {
+            _helm.Step(ref helm, heading, rate, step);
+            float rudder = _helm.MaxAngle > 0f ? helm.Rudder / _helm.MaxAngle : 0f;
+            rate = NextTurnRate(rate, rudder, speed, step);
+            heading += rate * step;
+            var turn = Quaternion.Euler(0f, heading, 0f);
+            position += Velocity(turn * Vector3.forward, turn * Vector3.right, rudder, speed) * step;
+            points.Add(position);
+        }
     }
 
     private void UpdateTranslation(float rudder)
@@ -177,14 +217,7 @@ public class ShipMovement : MonoBehaviour
         float speed = _engine.Speed;
         if (Mathf.Abs(speed) < 0.01f) return;
 
-        // Slide away from the turn so the stern kicks out. The turn reverses when going
-        // astern, so the slide does too. Flattened to the water plane.
-        Vector3 drift = transform.right * (-rudder * Sternward * LateralDrift * Mathf.Abs(speed));
-        drift.y = 0f;
-
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-        transform.position += (forward.normalized * speed + drift) * Time.deltaTime;
+        transform.position += Velocity(transform.forward, transform.right, rudder, speed) * Time.deltaTime;
     }
 
     private void UpdateBank(float rudder)

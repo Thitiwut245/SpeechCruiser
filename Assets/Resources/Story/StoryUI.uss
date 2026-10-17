@@ -455,6 +455,50 @@
     color: rgb(160, 50, 24);
 }
 
+/* ------------------------------------------------------------ the Captain's logbook */
+
+/* In place of the chart and the mission: one long page of lines, like a ship's log. */
+.log-page {
+    height: 600px;
+    border-width: 0;
+    border-top-width: 1px;
+    border-color: rgba(22, 36, 64, 0.3);
+    padding-top: 14px;
+}
+
+.log-section {
+    margin: 22px 0 6px 0;
+}
+
+.log-entry {
+    flex-direction: row;
+    padding: 6px 0;
+    border-bottom-width: 1px;
+    border-color: rgba(22, 36, 64, 0.15);
+}
+
+.log-entry__title {
+    width: 240px;
+    font-size: 19px;
+    -unity-font-style: bold;
+    color: rgb(22, 36, 64);
+    margin: 0;
+}
+
+.log-entry__note {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 17px;
+    color: rgb(62, 74, 100);
+    white-space: normal;
+    margin: 0;
+}
+
+.log-entry.empty .log-entry__title,
+.log-entry.empty .log-entry__note {
+    color: rgba(62, 74, 100, 0.55);
+}
+
 /* ------------------------------------------------------------ shipyard mission card */
 
 /* On the shipyard's paper: the mission, then the new phrases to practise out loud. */

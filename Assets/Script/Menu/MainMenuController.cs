@@ -69,7 +69,7 @@ public class MainMenuController : MonoBehaviour
             _emblem = new CompassRose(84f, UiTheme.Ink, UiTheme.InkSoft, UiTheme.Rust);
             emblemSlot.Add(_emblem);
         }
-        _settings = new SettingsPanelController(root, ShowMainPanel);
+        _settings = new SettingsPanelController(root, BackToMain);
         // The settings page is a full-screen dim: its template wrapper must fill the screen
         // too (it has no size of its own), without catching clicks while it's hidden.
         var settingsWrapper = root.Q<VisualElement>("SettingsPanel")?.parent;
@@ -80,7 +80,7 @@ public class MainMenuController : MonoBehaviour
             settingsWrapper.style.top = 0; settingsWrapper.style.bottom = 0;
             settingsWrapper.pickingMode = PickingMode.Ignore;
         }
-        _story = new StoryMenuController(root, ShowMainPanel);
+        _story = new StoryMenuController(root, BackToMain);
 
         _storyButton.clicked += OnStoryClicked;
         _playButton.clicked += OnPlayClicked;
@@ -196,13 +196,13 @@ public class MainMenuController : MonoBehaviour
         RefreshCareer();
     }
 
-    private void OnStoryClicked()
+    private void OnStoryClicked() => SceneLoader.Page(() =>
     {
         RefreshCareer(); // leaving the title cancels a half-confirmed New Career
         _mainPanel.style.display = DisplayStyle.None;
         if (_scrim != null) _scrim.style.width = StoryScrimWidth;
         _story.Show();
-    }
+    });
 
     /// <summary>Free Sail: the career's shipyard, jobs and upgrades.</summary>
     private void OnPlayClicked()
@@ -211,12 +211,15 @@ public class MainMenuController : MonoBehaviour
         SceneLoader.Instance.Load(SceneId.Game);
     }
 
-    private void OnSettingClicked()
+    private void OnSettingClicked() => SceneLoader.Page(() =>
     {
         RefreshCareer(); // leaving the title cancels a half-confirmed New Career
         _mainPanel.style.display = DisplayStyle.None;
         _settings.Show();
-    }
+    });
+
+    /// <summary>Back to the title from the story or settings page, under the ink wipe.</summary>
+    private void BackToMain() => SceneLoader.Page(ShowMainPanel);
 
     private void ShowMainPanel()
     {

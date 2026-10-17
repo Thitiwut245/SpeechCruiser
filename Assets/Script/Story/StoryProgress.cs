@@ -68,7 +68,8 @@ public static class StoryProgress
     /// <summary>Forgets every finished mission (New Career).</summary>
     public static void Reset()
     {
-        foreach (var m in StoryCatalog.Missions) PlayerPrefs.DeleteKey(DonePref + m.Id);
+        foreach (var m in StoryCatalog.Missions) { PlayerPrefs.DeleteKey(DonePref + m.Id); StoryScore.ClearBest(m.Id); }
+        Logbook.Reset();
         PlayerPrefs.Save();
         _briefed.Clear();
         ActiveMission = null;

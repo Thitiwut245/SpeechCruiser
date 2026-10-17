@@ -8,13 +8,19 @@ using UnityEngine.UIElements;
 /// teaches, a portrait, and the voyage route through a marker per mission (solid where sailed,
 /// dashed ahead; done, next or locked). Clicking a marker shows that mission below: its goal
 /// in a line, the weather and danger, the new words to learn, and SET SAIL. Only what helps
-/// the player choose and speak: no pay or client tags. Built in code inside the title
-/// screen's container, styled by Resources/Story/StoryUI.uss.
+/// the player choose and speak: no pay or client tags. LOGBOOK in the footer turns the page to
+/// the Captain's logbook (Logbook): the legends of the sea seen, and each mission's finds, with
+/// the empty lines still to find. Built in code inside the title screen's container, styled by
+/// Resources/Story/StoryUI.uss.
 /// </summary>
 public class StoryMenuController
 {
     private static readonly CharacterId[] ChapterFaces = { CharacterId.Ada, CharacterId.Finn, CharacterId.Harris };
-    private static readonly Vector2[] Stops = { new Vector2(0.17f, 0.76f), new Vector2(0.5f, 0.6f), new Vector2(0.83f, 0.76f) };
+    private static readonly Vector2[] ThreeStops = { new Vector2(0.17f, 0.76f), new Vector2(0.5f, 0.6f), new Vector2(0.83f, 0.76f) };
+    private static readonly Vector2[] FourStops = { new Vector2(0.13f, 0.76f), new Vector2(0.38f, 0.6f), new Vector2(0.62f, 0.74f), new Vector2(0.87f, 0.6f) };
+
+    /// <summary>Where a chapter's missions sit on its chart: three or four ports.</summary>
+    private static Vector2[] StopsFor(StoryChapter chapter) => chapter.Missions.Length > 3 ? FourStops : ThreeStops;
 
     private readonly VisualElement _panel;
     private readonly VisualElement _tabs;
@@ -22,8 +28,11 @@ public class StoryMenuController
     private readonly VisualElement _detail;
     private readonly Label _progress;
     private readonly Action _onBack;
+    private readonly ScrollView _logbook;
+    private readonly Button _logButton;
     private int _chapter;
     private StoryMission _selected;
+    private bool _logOpen;
 
     public bool IsOpen => _panel.style.display == DisplayStyle.Flex;
 
@@ -54,13 +63,24 @@ public class StoryMenuController
         _progress.AddToClassList("story-progress");
         var back = new Button(() => _onBack?.Invoke()) { text = "Back" };
         back.AddToClassList("story-back");
+        _logButton = new Button(() => { _logOpen = !_logOpen; Render(); });
+        _logButton.AddToClassList("story-back");
+        var buttons = new VisualElement();
+        buttons.style.flexDirection = FlexDirection.Row;
+        buttons.Add(_logButton);
+        buttons.Add(back);
+        _logButton.style.marginRight = 36f;
         footer.Add(_progress);
-        footer.Add(back);
+        footer.Add(buttons);
+
+        _logbook = new ScrollView(ScrollViewMode.Vertical);
+        _logbook.AddToClassList("log-page");
 
         _panel.Add(title);
         _panel.Add(_tabs);
         _panel.Add(_chart);
         _panel.Add(_detail);
+        _panel.Add(_logbook);
         _panel.Add(footer);
     }
 
@@ -73,6 +93,7 @@ public class StoryMenuController
             focus = StoryProgress.NextToPlay ?? StoryProgress.ActiveMission;
         _chapter = focus != null ? focus.Chapter : StoryCatalog.Chapters.Length;
         _selected = focus;
+        _logOpen = false;
         Render();
         _panel.style.display = DisplayStyle.Flex;
     }
@@ -88,9 +109,17 @@ public class StoryMenuController
     {
         var shown = Shown;
         if (_selected == null || _selected.Chapter != shown.Number) _selected = DefaultIn(shown);
-        RenderTabs();
-        RenderChart(shown);
-        RenderDetail(_selected);
+        var chartShown = _logOpen ? DisplayStyle.None : DisplayStyle.Flex;
+        _tabs.style.display = _chart.style.display = _detail.style.display = chartShown;
+        _logbook.style.display = _logOpen ? DisplayStyle.Flex : DisplayStyle.None;
+        _logButton.text = _logOpen ? "CHART" : "LOGBOOK  " + Logbook.Written + " / " + Logbook.Entries;
+        if (_logOpen) RenderLogbook();
+        else
+        {
+            RenderTabs();
+            RenderChart(shown);
+            RenderDetail(_selected);
+        }
 
         int count = StoryCatalog.Missions.Count;
         int finished = StoryProgress.DoneCount;
@@ -133,7 +162,8 @@ public class StoryMenuController
         route.AddToClassList("chart-fill");
         int sailed = 0;
         foreach (var m in chapter.Missions) if (StoryProgress.IsDone(m)) sailed++;
-        route.SetRoute(Stops, sailed);
+        var stops = StopsFor(chapter);
+        route.SetRoute(stops, sailed);
         _chart.Add(route);
 
         var rose = new CompassRose(74f, UiTheme.Ink, UiTheme.InkSoft, UiTheme.Rust);
@@ -157,7 +187,7 @@ public class StoryMenuController
         _chart.Add(portrait);
 
         var next = StoryProgress.NextToPlay;
-        for (int i = 0; i < chapter.Missions.Length && i < Stops.Length; i++)
+        for (int i = 0; i < chapter.Missions.Length && i < stops.Length; i++)
         {
             var m = chapter.Missions[i];
             bool open = StoryProgress.IsUnlocked(m), done = StoryProgress.IsDone(m);
@@ -167,14 +197,14 @@ public class StoryMenuController
             marker.EnableInClassList("next", m == next);
             marker.EnableInClassList("locked", !open);
             marker.EnableInClassList("selected", m == _selected);
-            marker.style.left = Length.Percent(Stops[i].x * 100f);
-            marker.style.top = Length.Percent(Stops[i].y * 100f);
+            marker.style.left = Length.Percent(stops[i].x * 100f);
+            marker.style.top = Length.Percent(stops[i].y * 100f);
             _chart.Add(marker);
 
             var caption = new Label(open ? m.Title : "?");
             caption.AddToClassList("chart-marker-caption");
-            caption.style.left = Length.Percent(Stops[i].x * 100f);
-            caption.style.top = Length.Percent(Stops[i].y * 100f);
+            caption.style.left = Length.Percent(stops[i].x * 100f);
+            caption.style.top = Length.Percent(stops[i].y * 100f);
             _chart.Add(caption);
         }
     }
@@ -231,6 +261,62 @@ public class StoryMenuController
         sail.AddToClassList("mission-sail");
         sail.SetEnabled(open);
         _detail.Add(sail);
+    }
+
+    // ------------------------------------------------------------ the logbook
+
+    private void RenderLogbook()
+    {
+        _logbook.Clear();
+        var head = new Label("Captain's Logbook");
+        head.AddToClassList("chart-title");
+        var lead = new Label("What the lookout reported and you found, and the legends of the sea. An empty line is still out there: listen for the lookout and steer to it.");
+        lead.AddToClassList("mission-summary");
+        _logbook.Add(head);
+        _logbook.Add(lead);
+
+        Section("LEGENDS OF THE SEA");
+        foreach (var kind in Logbook.Legends)
+        {
+            bool seen = Logbook.HasSight(kind);
+            Entry(seen ? Logbook.Title(kind) : "?", seen ? Logbook.Note(kind) : "Not seen yet. Keep sailing the story.", seen);
+        }
+
+        foreach (var m in StoryCatalog.Missions)
+        {
+            bool open = StoryProgress.IsUnlocked(m);
+            Section(open ? m.Id + "  " + m.Title.ToUpperInvariant() + "  ·  " + Logbook.FoundIn(m) + " / " + Logbook.FindsPerMission
+                         : m.Id + "  ·  LOCKED");
+            if (!open) continue;
+            for (int i = 0; i < Logbook.FindsPerMission; i++)
+            {
+                var kind = Logbook.KindFor(m, i);
+                bool found = Logbook.HasFind(m.Id, i);
+                Entry(found ? Logbook.Title(kind) : "?", found ? Logbook.Note(kind) : "Still out there. Listen for the lookout.", found);
+            }
+        }
+    }
+
+    private void Section(string text)
+    {
+        var caption = new Label(text);
+        caption.AddToClassList("mission-words__caption");
+        caption.AddToClassList("log-section");
+        _logbook.Add(caption);
+    }
+
+    private void Entry(string title, string note, bool written)
+    {
+        var row = new VisualElement();
+        row.AddToClassList("log-entry");
+        row.EnableInClassList("empty", !written);
+        var t = new Label(title);
+        t.AddToClassList("log-entry__title");
+        var n = new Label(note);
+        n.AddToClassList("log-entry__note");
+        row.Add(t);
+        row.Add(n);
+        _logbook.Add(row);
     }
 
     private static void Tag(VisualElement parent, string text, string kind)

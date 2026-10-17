@@ -227,6 +227,31 @@ public static class CommandVocabulary
             // Whisper's spellings
             "make fest", "make vast", "tire up", "tide up"),
 
+        // ---------------- Signals ----------------
+        new Entry(ShipAction.SoundHorn,
+            "sound the horn", "sound horn", "sound the ship horn", "blow the horn", "blow horn", "use the horn",
+            "horn", "fog horn", "foghorn", "ship horn", "sound the whistle", "whistle", "sound signal",
+            "honk", "toot",
+            // Whisper's spellings
+            "sound the home", "sound the corn", "sound the hon"),
+
+        // The helmsman steers the way himself: after the guiding light (story 3-4), or home.
+        new Entry(ShipAction.FollowCourse,
+            "follow the light", "follow light", "follow it", "follow that light", "follow the lantern",
+            "take us home", "take me home", "take her home", "bring us home", "lead us home", "lead the way",
+            "go home", "head for home", "follow the channel",
+            // Whisper's spellings
+            "follow the night", "follow the like", "take us hold"),
+
+        // The distress call. SMCP: "Mayday, mayday, mayday ... I am under attack by pirates."
+        new Entry(ShipAction.Mayday,
+            "mayday", "may day", "mayday mayday", "mayday mayday mayday",
+            "under attack", "we are under attack", "under attack by pirates", "attack by pirates",
+            "pirate attack", "pirates attack", "pirates", "send distress", "distress call", "send a distress call",
+            "call the navy", "call navy", "sos", "s o s",
+            // Whisper's spellings
+            "mate day", "may die"),
+
         new Entry(ShipAction.QueryFuel,
             "fuel status", "how much fuel", "fuel", "fuel level", "how is fuel",
             "fuel remaining", "bunker status", "how much fuel left"),

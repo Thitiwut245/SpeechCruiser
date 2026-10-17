@@ -18,6 +18,8 @@ public class PauseMenuController : MonoBehaviour
     private Button _mainMenuButton;
     private Button _quitButton;
     private Button _replayTutorialButton;
+    private Button _checkpointButton;
+    private Button _restartButton;
     private SettingsPanelController _settings;
 
     public bool IsOpen { get; private set; }
@@ -37,7 +39,9 @@ public class PauseMenuController : MonoBehaviour
         _mainMenuButton = root.Q<Button>("MainMenuButton");
         _quitButton = root.Q<Button>("QuitButton");
         _replayTutorialButton = root.Q<Button>("ReplayTutorialButton");
-        _settings = new SettingsPanelController(root, ShowMainPanel);
+        _checkpointButton = root.Q<Button>("CheckpointButton");
+        _restartButton = root.Q<Button>("RestartButton");
+        _settings = new SettingsPanelController(root, () => SceneLoader.Page(ShowMainPanel));
         UiTheme.Apply(root);
         UiTheme.Paper(_container);
 
@@ -53,6 +57,8 @@ public class PauseMenuController : MonoBehaviour
         _mainMenuButton.clicked += OnMainMenuClicked;
         _quitButton.clicked += OnQuitClicked;
         _replayTutorialButton.clicked += OnReplayTutorialClicked;
+        _checkpointButton.clicked += OnCheckpointClicked;
+        _restartButton.clicked += OnRestartClicked;
 
         _container.style.display = DisplayStyle.None;
     }
@@ -64,6 +70,8 @@ public class PauseMenuController : MonoBehaviour
         _mainMenuButton.clicked -= OnMainMenuClicked;
         _quitButton.clicked -= OnQuitClicked;
         _replayTutorialButton.clicked -= OnReplayTutorialClicked;
+        _checkpointButton.clicked -= OnCheckpointClicked;
+        _restartButton.clicked -= OnRestartClicked;
         _settings.Dispose();
 
         if (IsOpen && TimeController.Instance != null) TimeController.Instance.ReleasePause(this);
@@ -77,7 +85,7 @@ public class PauseMenuController : MonoBehaviour
         if (TypedOrders.BlocksHotkeys) return;
 
         if (!IsOpen) Open();
-        else if (_settings.IsOpen) ShowMainPanel();
+        else if (_settings.IsOpen) SceneLoader.Page(ShowMainPanel);
         else Close();
     }
 
@@ -100,11 +108,11 @@ public class PauseMenuController : MonoBehaviour
         TimeController.Instance.ReleasePause(this);
     }
 
-    private void OnSettingClicked()
+    private void OnSettingClicked() => SceneLoader.Page(() =>
     {
         _mainPanel.style.display = DisplayStyle.None;
         _settings.Show();
-    }
+    });
 
     private void ShowMainPanel()
     {
@@ -112,6 +120,11 @@ public class PauseMenuController : MonoBehaviour
         _confirmQuit = false;
         _mainMenuButton.text = "Main Menu";
         _quitButton.text = "Quit";
+        // Story voyages can be restarted, from the start or from the last checkpoint passed.
+        bool story = AtSea && StoryProgress.ActiveMission != null;
+        _restartButton.style.display = story ? DisplayStyle.Flex : DisplayStyle.None;
+        _checkpointButton.style.display = story && Checkpoints.Saved != null ? DisplayStyle.Flex : DisplayStyle.None;
+        if (Checkpoints.Saved != null) _checkpointButton.text = "Restart from Checkpoint " + Checkpoints.Saved.Number;
         _settings.Hide();
         _mainPanel.style.display = DisplayStyle.Flex;
     }
@@ -135,6 +148,17 @@ public class PauseMenuController : MonoBehaviour
     {
         int cost = GameSession.Instance.AbandonCost;
         return question + (cost > 0 ? " (-$" + cost + ")" : " (free: tutorial)");
+    }
+
+    // A restart reloads the scene; the game stays paused through the fade, as for Main Menu.
+    private void OnCheckpointClicked() => Restart(VoyageRestart.Mode.FromCheckpoint);
+    private void OnRestartClicked() => Restart(VoyageRestart.Mode.FromStart);
+
+    private void Restart(VoyageRestart.Mode mode)
+    {
+        IsOpen = false;
+        _container.style.display = DisplayStyle.None;
+        VoyageRestart.Request(mode);
     }
 
     private void OnReplayTutorialClicked()

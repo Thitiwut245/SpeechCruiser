@@ -4,11 +4,15 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// Story mode's emergency call: when the ship is about to hit a reef, a rock or a mine, time
-/// slows, Finn shouts and the order to give appears big ("HARD A STARBOARD!"). Saying it in
-/// time (or any order that means the same: turning away, stopping, going astern) saves the
-/// ship: the next touch only scrapes. A standard phrase is praised; plain English is modelled
-/// ("Hard a starboard, aye: that's the call!"). The wrong way gets "Other way!", and the clock
-/// keeps going. Nothing, or too late, and the ship takes the hit as usual.
+/// slows, Finn shouts where the danger is and the order to give appears big. The order depends
+/// on the danger (<see cref="Choose"/>): something off to one side is dodged the other way;
+/// something dead ahead is dodged toward the channel, or, a mine, stopped short of. The words are
+/// picked at random among the right ones ("hard a starboard", "starboard twenty", "full astern",
+/// "stop engine"), so the Captain learns more than left and right. Saying it in time (or any order
+/// that means the same) saves the ship: the next touch only scrapes, and the helmsman then brings
+/// her back onto the channel. A standard phrase is praised; plain English is modelled ("Hard a
+/// starboard, aye: that's the call!"). The wrong way gets "Other way!", and the clock keeps
+/// going. Nothing, or too late, and the ship takes the hit as usual.
 ///
 /// Fair to the speaker: the clock stops while the radio records or decodes, so the speech
 /// system's delay never costs the player. At most three a mission, the first one the most
@@ -24,6 +28,12 @@ public class EmergencyCall : MonoBehaviour
 
     public enum Response { Saves, WrongWay, Other }
 
+    /// <summary>The way out of an emergency: turn to starboard, turn to port, or stop short.</summary>
+    public enum Dodge { Starboard, Port, Stop }
+
+    /// <summary>Within this of dead ahead (degrees), a danger can be dodged either way.</summary>
+    public const float DeadAhead = 12f;
+
     public static EmergencyCall Active { get; private set; }
 
     /// <summary>An emergency call is on now (the crew's usual hazard warnings stand down).</summary>
@@ -36,7 +46,9 @@ public class EmergencyCall : MonoBehaviour
     private float _nextAllowed;
     private bool _running;
     private float _started, _clock, _window;
-    private bool _avoidRight;
+    private Dodge _dodge;
+    private string _callPhrase;
+    private readonly System.Random _rng = new System.Random();
     private int _tries;
     private string _hazard;
     private float _distance;
@@ -50,20 +62,63 @@ public class EmergencyCall : MonoBehaviour
     /// <summary>Seconds to answer the <paramref name="index"/>th emergency (0-based): generous first, then quicker.</summary>
     public static float WindowFor(int index) => index == 0 ? 6f : 4.5f;
 
-    /// <summary>The order to show: hard over, away from the danger.</summary>
-    public static string CallFor(bool avoidRight) => avoidRight ? "hard a starboard" : "hard a port";
+    /// <summary>
+    /// The way out. <paramref name="threatBearing"/> is where the danger is (degrees, + starboard);
+    /// <paramref name="channelBearing"/> where the channel lies ahead. To one side, turn away from it.
+    /// Dead ahead, a mine is stopped short of; anything else is passed on the channel's side, so
+    /// the dodge also heads home.
+    /// </summary>
+    public static Dodge Choose(float threatBearing, float channelBearing, string kind)
+    {
+        if (Mathf.Abs(threatBearing) > DeadAhead) return threatBearing < 0f ? Dodge.Starboard : Dodge.Port;
+        if (kind == "Mine") return Dodge.Stop;
+        return channelBearing >= 0f ? Dodge.Starboard : Dodge.Port;
+    }
 
-    /// <summary>Does <paramref name="action"/> save the ship when the danger must be passed on the <paramref name="avoidRight"/> side?</summary>
-    public static Response Judge(ShipAction action, bool avoidRight)
+    /// <summary>The standard orders that make this dodge, any of which may be called.</summary>
+    public static string[] PhrasesFor(Dodge dodge)
+    {
+        switch (dodge)
+        {
+            case Dodge.Starboard: return new[] { "hard a starboard", "starboard twenty", "starboard thirty" };
+            case Dodge.Port: return new[] { "hard a port", "port twenty", "port thirty" };
+            default: return new[] { "full astern", "stop engine" };
+        }
+    }
+
+    /// <summary>
+    /// The order to call: one of <see cref="PhrasesFor"/> picked by <paramref name="roll"/> (0..1),
+    /// but always hard over when there is little time: twenty degrees may not swing her in time.
+    /// </summary>
+    public static string CallFor(Dodge dodge, double roll, bool hurry)
+    {
+        var phrases = PhrasesFor(dodge);
+        if (hurry && dodge != Dodge.Stop) return phrases[0];
+        return phrases[Mathf.Clamp((int)(roll * phrases.Length), 0, phrases.Length - 1)];
+    }
+
+    /// <summary>Where the danger is, as a lookout says it ("fine on the port bow").</summary>
+    public static string Where(float bearing)
+    {
+        float a = Mathf.Abs(bearing);
+        string side = bearing < 0f ? "port" : "starboard";
+        if (a <= DeadAhead) return "dead ahead";
+        if (a <= 30f) return "fine on the " + side + " bow";
+        if (a <= 70f) return "on the " + side + " bow";
+        return "on the " + side + " beam";
+    }
+
+    /// <summary>Does <paramref name="action"/> save the ship when the way out is <paramref name="dodge"/>?</summary>
+    public static Response Judge(ShipAction action, Dodge dodge)
     {
         switch (action)
         {
             case ShipAction.TurnStarboard:
             case ShipAction.HardStarboard:
-                return avoidRight ? Response.Saves : Response.WrongWay;
+                return dodge == Dodge.Port ? Response.WrongWay : Response.Saves; // dead ahead, either side clears it
             case ShipAction.TurnPort:
             case ShipAction.HardPort:
-                return avoidRight ? Response.WrongWay : Response.Saves;
+                return dodge == Dodge.Starboard ? Response.WrongWay : Response.Saves;
             case ShipAction.EngineStop:
             case ShipAction.EngineSlowAstern:
             case ShipAction.EngineFullAstern:
@@ -127,12 +182,39 @@ public class EmergencyCall : MonoBehaviour
         _tries = 0;
         _hazard = kind;
         _distance = radar.ThreatDistance;
-        _avoidRight = radar.ThreatBearing < 0f; // danger on the left: turn right
+        var nav = ShipNavigator.Instance;
+        _dodge = Choose(radar.ThreatBearing, ChannelBearing(nav), kind);
+        _callPhrase = CallFor(_dodge, _rng.NextDouble(), radar.TimeToImpact < 3f);
         if (TimeController.Instance != null) TimeController.Instance.SetEmergency(true);
 
-        string call = CallFor(_avoidRight);
-        ShowBanner(call);
-        Say(new[] { "EMERGENCY, Sir! " + kind + " dead ahead! Say \"" + call + "\"! Now!" }, "emergency:start");
+        ScreenBanner.ClearAll(); // nothing covers the order
+        ShowBanner(_callPhrase);
+        string where = Where(radar.ThreatBearing);
+        string what = kind == "Mine" ? "A mine" : kind == "Rock" ? "Rocks" : kind;
+        string q = "\"" + _callPhrase + "\"";
+        Say(new[]
+        {
+            "EMERGENCY, Sir! " + what + " " + where + "! Say " + q + "! Now!",
+            "Danger, Captain! " + what + " " + where + "! Order " + q + "!",
+            what + " " + where + ", Sir! " + Cap(_callPhrase) + ", now! Say it!",
+        }, "emergency:start");
+    }
+
+    /// <summary>Where the channel lies, a little way ahead along it: degrees off the bow (+ starboard).</summary>
+    private static float ChannelBearing(ShipNavigator nav)
+    {
+        if (nav == null || !Channel.Ready) return 0f;
+        Vector3 aim = ChannelAhead(nav.transform.position, 45f);
+        Vector3 to = Channel.Flat(aim - nav.transform.position);
+        if (to.sqrMagnitude < 1f) return 0f;
+        return Mathf.DeltaAngle(nav.transform.eulerAngles.y, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg);
+    }
+
+    /// <summary>The channel point <paramref name="metres"/> on from the one nearest <paramref name="at"/>.</summary>
+    private static Vector3 ChannelAhead(Vector3 at, float metres)
+    {
+        int near = Channel.Nearest(at, 0, out _);
+        return Channel.Points[Channel.IndexAt(Channel.Along[near] + metres)];
     }
 
     private void Run()
@@ -161,10 +243,10 @@ public class EmergencyCall : MonoBehaviour
     {
         if (!_running) return;
         _tries++;
-        var verdict = Judge(action, _avoidRight);
+        var verdict = Judge(action, _dodge);
         if (verdict == Response.WrongWay)
         {
-            Say(new[] { "Other way, Sir! \"" + CallFor(_avoidRight) + "\"!" }, "emergency:wrong");
+            Say(new[] { _dodge == Dodge.Stop ? "Not faster, Sir! \"" + _callPhrase + "\"!" : "Other way, Sir! \"" + _callPhrase + "\"!" }, "emergency:wrong");
             return;
         }
         if (verdict != Response.Saves) return;
@@ -173,10 +255,34 @@ public class EmergencyCall : MonoBehaviour
         if (hull != null) hull.Spare(SpareSeconds);
         QuietUntil = Time.unscaledTime + 6f;
         End("saved", standard);
-        string call = CallFor(_avoidRight);
+        string call = _callPhrase;
+        StartCoroutine(BackToChannel());
         StartCoroutine(Praise(standard
             ? new[] { "Textbook, Captain! We're clear of it! Over.", "Perfect order, Sir! That was close! Over." }
             : new[] { "\"" + Cap(call) + "\", aye: that's the call, Sir! We're clear! Over.", "We made it! On the radio that's \"" + call + "\", Sir. Over." }));
+    }
+
+    /// <summary>
+    /// After a save the helmsman brings her back: once the danger is behind (or a few seconds on),
+    /// he steers for the channel a little way ahead, and if she was stopped or going astern, rings
+    /// slow ahead once she points the right way. The dodge heads somewhere useful, not anywhere.
+    /// </summary>
+    private System.Collections.IEnumerator BackToChannel()
+    {
+        float until = Time.unscaledTime + 5f;
+        yield return new WaitForSecondsRealtime(2f);
+        while (Time.unscaledTime < until && RadarSystem.Instance != null && RadarSystem.Instance.IsThreat) yield return null;
+        var nav = ShipNavigator.Instance;
+        if (!AtSea || nav == null || _running || !Channel.Ready || DockingPilot.Busy) yield break;
+
+        float turn = ChannelBearing(nav);
+        var helm = nav.GetComponent<ShipHelm>();
+        if (helm != null && Mathf.Abs(turn) > 4f) helm.OrderHeadingChange(turn, 25f);
+        bool stopped = nav.currentSpeed < 0.5f;
+        Say(new[] { "Bringing her back to the channel, Sir. Over.", "Helm's coming round to the channel, Captain. Over." }, "emergency:recover");
+        if (!stopped) yield break;
+        yield return new WaitForSecondsRealtime(2.5f);
+        if (AtSea && !_running && ShipNavigator.Instance != null) ShipNavigator.Instance.SetGear(ShipEngine.TelegraphGear.Slow);
     }
 
     private System.Collections.IEnumerator Praise(string[] lines)
@@ -194,7 +300,7 @@ public class EmergencyCall : MonoBehaviour
         bool saved = outcome == "saved";
         if (outcome != "ended" && outcome != "cleared") LanguageLog.Emergency(saved);
         int reactionMs = Mathf.RoundToInt((Time.unscaledTime - _started) * 1000f);
-        ResearchLog.Emergency(_hazard, _distance, _window, outcome, saved ? reactionMs : -1, _tries, saved ? (standard ? "1" : "0") : "");
+        ResearchLog.Emergency(_hazard, _distance, _window, outcome, saved ? reactionMs : -1, _tries, saved ? (standard ? "1" : "0") : "", _callPhrase);
     }
 
     private static string Cap(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
@@ -212,7 +318,8 @@ public class EmergencyCall : MonoBehaviour
         if (_root == null) BuildBanner();
         if (_root == null) return;
         _call.text = call.ToUpperInvariant() + "!";
-        _alt.text = "or \"full astern\"  ·  hold " + (FindAnyObjectByType<RadioMic>() is RadioMic mic ? mic.OrderKeyName : "T") + " and say it";
+        string other = _dodge == Dodge.Stop ? "or turn away" : "or \"full astern\"";
+        _alt.text = other + "  ·  hold " + (FindAnyObjectByType<RadioMic>() is RadioMic mic ? mic.OrderKeyName : "T") + " and say it";
         _bar.style.width = Length.Percent(100f);
         _root.style.display = DisplayStyle.Flex;
     }

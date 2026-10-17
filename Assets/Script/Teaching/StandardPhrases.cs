@@ -25,6 +25,9 @@ public static class StandardPhrases
         { ShipAction.Belay, new[] { "belay that", "belay" } },
         { ShipAction.RequestDocking, new[] { "request docking" } },
         { ShipAction.MakeFast, new[] { "make fast" } },
+        { ShipAction.SoundHorn, new[] { "sound the horn", "sound horn" } },
+        { ShipAction.FollowCourse, new[] { "follow the light", "take us home", "follow it", "bring us home" } },
+        { ShipAction.Mayday, new[] { "mayday", "may day", "mayday mayday", "mayday mayday mayday", "under attack by pirates", "we are under attack", "under attack" } },
     };
 
     private static readonly Dictionary<ShipAction, string> Taught = new Dictionary<ShipAction, string>
@@ -53,6 +56,9 @@ public static class StandardPhrases
         { ShipAction.Belay, "belay that" },
         { ShipAction.RequestDocking, "request docking" },
         { ShipAction.MakeFast, "make fast" },
+        { ShipAction.SoundHorn, "sound the horn" },
+        { ShipAction.FollowCourse, "follow the light" },
+        { ShipAction.Mayday, "mayday, under attack by pirates" },
     };
 
     /// <summary>The phrase taught for <paramref name="action"/> ("port twenty"), or null.</summary>

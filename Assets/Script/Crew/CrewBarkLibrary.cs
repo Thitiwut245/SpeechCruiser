@@ -178,9 +178,9 @@ public static class CrewBarkLibrary
     public static string[] AskPortOrStarboard(RadioChannel crew)
     {
         if (crew == RadioChannel.Lookout)
-            return new[] { "Left or right, Sir? Port or starboard? Over.", "Which side, Sir — left or right? Over." };
+            return new[] { "Left or right, Sir? Say \"turn around to port\" or \"to starboard\". Over.", "Which side, Sir? Port or starboard? Over." };
 
-        return new[] { "Left or right, Captain? Port or starboard? Over.", "Which way, Sir — left or right? Over." };
+        return new[] { "Left or right, Captain? Say \"turn around to port\" or \"to starboard\". Over.", "Which way, Sir? Port or starboard? Over." };
     }
 
     /// <summary>An order was asked as a question. Questions never move the ship.</summary>
